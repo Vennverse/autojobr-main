@@ -64,7 +64,7 @@ import {
 // Helper function for consistent share functionality
 const shareCareerPage = {
   getShareUrl: () => window.location.href,
-  
+
   native: (companyName: string, jobCount: number, onFallback: () => void) => {
     if (navigator.share) {
       navigator.share({
@@ -76,18 +76,18 @@ const shareCareerPage = {
       onFallback();
     }
   },
-  
+
   twitter: (companyName: string, jobCount: number) => {
     const url = encodeURIComponent(shareCareerPage.getShareUrl());
     const text = encodeURIComponent(`Check out career opportunities at ${companyName}! ${jobCount} open positions available. Apply now:`);
     window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank', 'noopener,noreferrer');
   },
-  
+
   linkedin: (companyName: string, jobCount: number) => {
     const url = encodeURIComponent(shareCareerPage.getShareUrl());
     window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'noopener,noreferrer');
   },
-  
+
   copyLink: (onSuccess: () => void) => {
     navigator.clipboard.writeText(shareCareerPage.getShareUrl());
     onSuccess();
@@ -97,7 +97,7 @@ const shareCareerPage = {
 // Utility function to normalize company names for comparison
 const normalizeCompany = (companyName: string): string => {
   if (!companyName) return '';
-  
+
   return companyName
     .toLowerCase()
     .trim()
@@ -112,7 +112,7 @@ const normalizeCompany = (companyName: string): string => {
 const isCompanyMatch = (companyName: string, targetCompany: string): boolean => {
   const normalized1 = normalizeCompany(companyName);
   const normalized2 = normalizeCompany(targetCompany);
-  
+
   return normalized1.includes(normalized2) || normalized2.includes(normalized1) || 
          normalized1 === normalized2;
 };
@@ -120,7 +120,7 @@ const isCompanyMatch = (companyName: string, targetCompany: string): boolean => 
 // Utility functions for professional job formatting
 const formatJobType = (jobType?: string) => {
   if (!jobType) return '';
-  
+
   const typeMap: { [key: string]: string } = {
     'platform': 'Full-time',
     'scraped': 'Full-time', 
@@ -131,20 +131,20 @@ const formatJobType = (jobType?: string) => {
     'temporary': 'Temporary',
     'internship': 'Internship'
   };
-  
+
   return typeMap[jobType.toLowerCase()] || 'Full-time';
 };
 
 const formatWorkMode = (workMode?: string) => {
   if (!workMode) return '';
-  
+
   const modeMap: { [key: string]: string } = {
     'onsite': 'On-site',
     'remote': 'Remote',
     'hybrid': 'Hybrid', 
     'field': 'Field-based'
   };
-  
+
   return modeMap[workMode.toLowerCase()] || workMode;
 };
 
@@ -188,17 +188,16 @@ interface CompanyInfo {
 
 export default function CompanyCareerPage() {
   const params = useParams();
-  // Handle company name from URL with proper slug conversion
-  const rawCompanyName = params?.companyName ? decodeURIComponent(params.companyName) : '';
-  const companyName = rawCompanyName
-    .replace(/-/g, ' ') // Convert kebab-case to spaces
-    .replace(/\b\w/g, l => l.toUpperCase()) // Title case
-    .trim();
+  // Get company from URL path or query parameter
+  const pathCompany = useLocation().pathname.split('/career/')[1];
+  const queryCompany = new URLSearchParams(useLocation().search).get('company');
+  const companyName = pathCompany || queryCompany || '';
+
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
   const [_, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  
+
   // State management
   const [searchQuery, setSearchQuery] = useState("");
   const [savedJobs, setSavedJobs] = useState<Set<number>>(new Set());
@@ -223,16 +222,16 @@ export default function CompanyCareerPage() {
       const params = new URLSearchParams();
       if (searchQuery) params.append('search', searchQuery);
       if (companyName) params.append('company', companyName);
-      
+
       Object.entries(filterPreferences).forEach(([key, value]) => {
         if (value && typeof value === 'string' && value !== 'all') params.append(key, value);
       });
-      
+
       const response = await fetch(`/api/jobs/postings?${params}`);
-      
+
       if (!response.ok) throw new Error('Failed to fetch jobs');
       const jobs = await response.json();
-      
+
       // Filter by company name
       return jobs.filter((job: any) => {
         const jobCompany = job.companyName || job.company_name || job.company || '';
@@ -298,13 +297,13 @@ export default function CompanyCareerPage() {
   // Calculate compatibility
   const calculateCompatibility = (job: any) => {
     if (!isAuthenticated || !userProfile) return 0;
-    
+
     let score = 50;
-    
+
     // Skills matching
     const userSkills = userProfile?.skills || [];
     const jobSkills = job.requiredSkills || [];
-    
+
     if (jobSkills.length > 0 && userSkills.length > 0) {
       const skillsMatch = jobSkills.filter((skill: string) => 
         userSkills.some((userSkill: string) => 
@@ -312,17 +311,17 @@ export default function CompanyCareerPage() {
           skill.toLowerCase().includes(userSkill.toLowerCase())
         )
       ).length;
-      
+
       const skillMatchPercentage = skillsMatch / jobSkills.length;
       score += Math.round(skillMatchPercentage * 30);
     }
-    
+
     // Experience level matching
     if (userProfile?.experienceLevel && job.experienceLevel) {
       const levels = ['entry', 'junior', 'mid', 'senior', 'lead', 'principal'];
       const userLevelIndex = levels.indexOf(userProfile.experienceLevel.toLowerCase());
       const jobLevelIndex = levels.indexOf(job.experienceLevel.toLowerCase());
-      
+
       if (userLevelIndex !== -1 && jobLevelIndex !== -1) {
         const levelDiff = Math.abs(userLevelIndex - jobLevelIndex);
         if (levelDiff === 0) score += 15;
@@ -330,20 +329,20 @@ export default function CompanyCareerPage() {
         else if (levelDiff === 2) score += 5;
       }
     }
-    
+
     // Location preference
     if (userProfile?.preferredLocation && job.location) {
       const userLocation = userProfile.preferredLocation.toLowerCase();
       const jobLocation = job.location.toLowerCase();
-      
+
       if (jobLocation.includes(userLocation) || userLocation.includes(jobLocation) || jobLocation.includes('remote')) {
         score += 5;
       }
     }
-    
+
     const pseudoRandom = (job.id % 21) - 10;
     score += pseudoRandom;
-    
+
     return Math.min(100, Math.max(45, score));
   };
 
@@ -364,17 +363,17 @@ export default function CompanyCareerPage() {
         const matchA = calculateCompatibility(a);
         const matchB = calculateCompatibility(b);
         return matchB - matchA;
-      
+
       case "date":
         const dateA = new Date(a.createdAt || a.created_at || 0).getTime();
         const dateB = new Date(b.createdAt || b.created_at || 0).getTime();
         return dateB - dateA;
-        
+
       case "salary":
         const salaryA = a.maxSalary || a.minSalary || 0;
         const salaryB = b.maxSalary || b.minSalary || 0;
         return salaryB - salaryA;
-        
+
       default: // relevance
         const relevanceA = calculateCompatibility(a);
         const relevanceB = calculateCompatibility(b);
@@ -415,12 +414,12 @@ export default function CompanyCareerPage() {
         credentials: 'include',
         body: JSON.stringify({ resumeId: null, coverLetter: "" })
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to apply to job');
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
@@ -441,7 +440,7 @@ export default function CompanyCareerPage() {
 
   // Helper functions
   const appliedJobIds = Array.isArray(applications) ? applications.map((app: any) => app.jobPostingId) : [];
-  
+
   const handleApply = (job: any) => {
     if (!isAuthenticated) {
       setLocation('/auth');
@@ -586,7 +585,7 @@ export default function CompanyCareerPage() {
         ogType="website"
       />
       <Navbar />
-      
+
       {/* Company Header */}
       <div className="bg-gradient-to-br from-white via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 py-8">
@@ -623,7 +622,7 @@ export default function CompanyCareerPage() {
                 </div>
               )}
             </div>
-            
+
             {/* Company Info */}
             <div className="flex-1">
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -647,7 +646,7 @@ export default function CompanyCareerPage() {
                 </div>
               </div>
             </div>
-            
+
             {/* Action Buttons */}
             <div className="flex items-center gap-3">
               <Button
@@ -659,7 +658,7 @@ export default function CompanyCareerPage() {
                 <Globe className="w-4 h-4" />
                 Learn More
               </Button>
-              
+
               {/* Share Button */}
               <Button
                 variant="outline"
@@ -681,7 +680,7 @@ export default function CompanyCareerPage() {
                 <Share2 className="w-4 h-4" />
                 Share
               </Button>
-              
+
               <Button
                 variant="default"
                 size="sm"
@@ -718,7 +717,7 @@ export default function CompanyCareerPage() {
                 />
               </div>
             </div>
-            
+
             {/* Share Buttons */}
             <div className="flex gap-2" data-testid="share-buttons-container">
               <Button
@@ -734,7 +733,7 @@ export default function CompanyCareerPage() {
                 </svg>
                 Twitter
               </Button>
-              
+
               <Button
                 variant="outline"
                 size="sm"
@@ -748,7 +747,7 @@ export default function CompanyCareerPage() {
                 </svg>
                 LinkedIn
               </Button>
-              
+
               <Button
                 variant="outline"
                 size="sm"
@@ -768,7 +767,7 @@ export default function CompanyCareerPage() {
                 Copy Link
               </Button>
             </div>
-            
+
             {/* Filters */}
             <div className="flex gap-3">
               <Select value={filterPreferences.workMode} onValueChange={(value) => 
@@ -839,7 +838,7 @@ export default function CompanyCareerPage() {
                   Open Positions ({totalJobs})
                 </h2>
               </div>
-              
+
               <div className="space-y-3">
                 {paginatedJobs.map((job) => (
                   <Card 
@@ -889,7 +888,7 @@ export default function CompanyCareerPage() {
                           )}
                         </div>
                       </div>
-                      
+
                       <div className="flex flex-wrap gap-2 mb-3">
                         <Badge variant="secondary" className="text-xs">
                           {formatJobType(job.jobType)}
@@ -1018,7 +1017,7 @@ export default function CompanyCareerPage() {
                         </Button>
                       )}
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-2 mt-4">
                       <Badge variant="secondary">
                         {formatJobType(selectedJob.jobType)}
@@ -1046,7 +1045,7 @@ export default function CompanyCareerPage() {
                       )}
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent>
                     <div className="space-y-6">
                       <div>
@@ -1117,7 +1116,7 @@ export default function CompanyCareerPage() {
                             </>
                           )}
                         </Button>
-                        
+
                         {!isAuthenticated && (
                           <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
                             <button 

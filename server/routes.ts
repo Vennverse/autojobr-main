@@ -856,8 +856,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`[APPLICATIONS] Extension applications mapped: ${extensionApplications.length}`);
 
-  // Company image upload endpoint
-  app.post('/api/upload/company-image', isAuthenticated, upload.single('file'), async (req: any, res) => {
+  // Configure multer for company image uploads
+  const companyImageUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml'];
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only JPG, PNG, WebP, and SVG are allowed.'));
+      }
+    }
+  });
+
+  // Company image upload endpoint - MUST be before other routes
+  app.post('/api/upload/company-image', isAuthenticated, companyImageUpload.single('file'), async (req: any, res) => {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
@@ -872,12 +888,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { type } = req.body; // 'logo' or 'hero'
       
-      // Validate file type
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml'];
-      if (!allowedTypes.includes(req.file.mimetype)) {
-        return res.status(400).json({ message: "Invalid file type. Only JPG, PNG, WebP, and SVG are allowed." });
-      }
-
       // Validate file size (5MB for logo, 10MB for hero)
       const maxSize = type === 'logo' ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
       if (req.file.size > maxSize) {
@@ -1696,6 +1706,24 @@ ${req.user.firstName} ${req.user.lastName}`,
     } catch (error) {
       console.error('[PUBLIC BG CHECK EXPORT ERROR]:', error);
       handleError(res, error, "Failed to export background check");
+    }
+  });
+
+  // Career page route - PUBLIC for company career pages
+  app.get('/career/:companySlug', async (req: any, res) => {
+    try {
+      const { companySlug } = req.params;
+      
+      // In a real implementation, you would:
+      // 1. Look up the company by slug
+      // 2. Get all their active job postings
+      // 3. Return company info + jobs
+      
+      // For now, redirect to the frontend route that handles this
+      res.redirect(`/company-career-page?company=${encodeURIComponent(companySlug)}`);
+    } catch (error) {
+      console.error('[CAREER PAGE ERROR]:', error);
+      res.status(500).json({ message: 'Failed to load career page' });
     }
   });
 
