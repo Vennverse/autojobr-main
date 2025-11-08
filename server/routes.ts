@@ -856,6 +856,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`[APPLICATIONS] Extension applications mapped: ${extensionApplications.length}`);
 
+  // Ensure uploads directory exists early
+  const uploadsDir = path.join(__dirname, '../uploads');
+  const companyImagesDir = path.join(uploadsDir, 'company-images');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  if (!fs.existsSync(companyImagesDir)) {
+    fs.mkdirSync(companyImagesDir, { recursive: true });
+    console.log('✅ [INIT] Company images directory created');
+  }
+
   // Configure multer for company image uploads
   const companyImageUpload = multer({
     storage: multer.memoryStorage(),
@@ -872,7 +883,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Company image upload endpoint - MUST be before other routes
+  // Company image upload endpoint - CRITICAL: Must be before other routes
   app.post('/api/upload/company-image', isAuthenticated, companyImageUpload.single('file'), async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -899,14 +910,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate unique filename
       const fileExt = path.extname(req.file.originalname);
       const fileName = `${type}_${userId}_${Date.now()}${fileExt}`;
-      const uploadsDir = path.join(__dirname, '../uploads/company-images');
-      
-      // Ensure directory exists
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
-
-      const filePath = path.join(uploadsDir, fileName);
+      const filePath = path.join(companyImagesDir, fileName);
       
       // Write file to disk
       fs.writeFileSync(filePath, req.file.buffer);
@@ -1709,23 +1713,32 @@ ${req.user.firstName} ${req.user.lastName}`,
     }
   });
 
-  // Career page route - PUBLIC for company career pages
-  app.get('/career/:companySlug', async (req: any, res) => {
+  // Career page routes - PUBLIC for company career pages
+  // Handle both /career/:slug and /careers/:slug
+  const handleCareerPage = async (req: any, res: any) => {
     try {
       const { companySlug } = req.params;
       
-      // In a real implementation, you would:
-      // 1. Look up the company by slug
-      // 2. Get all their active job postings
-      // 3. Return company info + jobs
+      console.log(`[CAREER PAGE] Accessing career page for: ${companySlug}`);
       
-      // For now, redirect to the frontend route that handles this
-      res.redirect(`/company-career-page?company=${encodeURIComponent(companySlug)}`);
+      // Frontend handles the actual rendering
+      // Just serve the index.html and let React Router handle it
+      const indexPath = path.join(__dirname, '../dist/client/index.html');
+      
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        // Development mode - redirect to frontend route
+        res.redirect(`/?redirect=/career/${encodeURIComponent(companySlug)}`);
+      }
     } catch (error) {
       console.error('[CAREER PAGE ERROR]:', error);
       res.status(500).json({ message: 'Failed to load career page' });
     }
-  });
+  };
+  
+  app.get('/career/:companySlug', handleCareerPage);
+  app.get('/careers/:companySlug', handleCareerPage);
 
   // Get individual scraped job by ID - PUBLIC for SEO
   app.get('/api/scraped-jobs/:id', async (req: any, res) => {
@@ -1824,10 +1837,15 @@ ${req.user.firstName} ${req.user.lastName}`,
           companyWebsite: companyWebsite || user.companyWebsite,
           profileImageUrl: profileImageUrl || user.profileImageUrl,
           companyLogoUrl: companyLogoUrl || user.companyLogoUrl,
+          industry: industry || user.industry,
+          companySize: companySize || user.companySize,
+          companyDescription: companyDescription || user.companyDescription,
           updatedAt: new Date(),
         })
         .where(eq(schema.users.id, userId))
         .returning();
+
+      console.log(`[RECRUITER PROFILE UPDATE] Updated profile for ${userId} - Company: ${companyName || user.companyName}`);
 
       console.log(`[RECRUITER PROFILE] Updated profile for recruiter ${userId}`);
 
