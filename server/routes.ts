@@ -1664,6 +1664,93 @@ ${req.user.firstName} ${req.user.lastName}`,
   });
 
   // RECRUITER-SPECIFIC ENDPOINTS - Must be authenticated
+  
+  // Get recruiter profile
+  app.get('/api/recruiter/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.userType !== 'recruiter' && user.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      console.log(`[RECRUITER PROFILE] Fetched profile for recruiter ${userId}`);
+      
+      res.json({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        companyName: user.companyName || '',
+        companyWebsite: user.companyWebsite || '',
+        profileImageUrl: user.profileImageUrl || '',
+        planType: user.planType || 'free',
+        subscriptionStatus: user.subscriptionStatus || 'free',
+        createdAt: user.createdAt,
+      });
+    } catch (error) {
+      console.error('[RECRUITER PROFILE ERROR]:', error);
+      handleError(res, error, "Failed to fetch recruiter profile");
+    }
+  });
+
+  // Update recruiter profile
+  app.put('/api/recruiter/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.userType !== 'recruiter' && user.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      const { firstName, lastName, companyName, companyWebsite, profileImageUrl } = req.body;
+
+      const updatedUser = await db
+        .update(users)
+        .set({
+          firstName: firstName || user.firstName,
+          lastName: lastName || user.lastName,
+          companyName: companyName || user.companyName,
+          companyWebsite: companyWebsite || user.companyWebsite,
+          profileImageUrl: profileImageUrl || user.profileImageUrl,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, userId))
+        .returning();
+
+      console.log(`[RECRUITER PROFILE] Updated profile for recruiter ${userId}`);
+
+      res.json({
+        message: "Profile updated successfully",
+        profile: {
+          id: updatedUser[0].id,
+          email: updatedUser[0].email,
+          firstName: updatedUser[0].firstName || '',
+          lastName: updatedUser[0].lastName || '',
+          companyName: updatedUser[0].companyName || '',
+          companyWebsite: updatedUser[0].companyWebsite || '',
+          profileImageUrl: updatedUser[0].profileImageUrl || '',
+          planType: updatedUser[0].planType || 'free',
+          subscriptionStatus: updatedUser[0].subscriptionStatus || 'free',
+          createdAt: updatedUser[0].createdAt,
+        }
+      });
+    } catch (error) {
+      console.error('[RECRUITER PROFILE UPDATE ERROR]:', error);
+      handleError(res, error, "Failed to update recruiter profile");
+    }
+  });
+
   app.get('/api/recruiter/jobs', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
