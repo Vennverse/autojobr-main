@@ -497,6 +497,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Serve static files from uploads directory
   app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+  
+  // Serve company images with proper CORS headers
+  app.use('/uploads/company-images', express.static(path.join(__dirname, '../uploads/company-images'), {
+    setHeaders: (res, filePath) => {
+      res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+  }));
 
   // Ensure uploads directory exists
   const uploadsDir = path.join(__dirname, '../uploads');
@@ -847,6 +855,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
       console.log(`[APPLICATIONS] Extension applications mapped: ${extensionApplications.length}`);
+
+  // Company image upload endpoint
+  app.post('/api/upload/company-image', isAuthenticated, upload.single('file'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const { type } = req.body; // 'logo' or 'hero'
+      
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml'];
+      if (!allowedTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({ message: "Invalid file type. Only JPG, PNG, WebP, and SVG are allowed." });
+      }
+
+      // Validate file size (5MB for logo, 10MB for hero)
+      const maxSize = type === 'logo' ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
+      if (req.file.size > maxSize) {
+        return res.status(400).json({ 
+          message: `File too large. Maximum size is ${type === 'logo' ? '5MB' : '10MB'}.` 
+        });
+      }
+
+      // Generate unique filename
+      const fileExt = path.extname(req.file.originalname);
+      const fileName = `${type}_${userId}_${Date.now()}${fileExt}`;
+      const uploadsDir = path.join(__dirname, '../uploads/company-images');
+      
+      // Ensure directory exists
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      const filePath = path.join(uploadsDir, fileName);
+      
+      // Write file to disk
+      fs.writeFileSync(filePath, req.file.buffer);
+
+      // Generate URL
+      const imageUrl = `/uploads/company-images/${fileName}`;
+
+      console.log(`✅ [IMAGE UPLOAD] ${type} uploaded for recruiter ${userId}: ${imageUrl}`);
+
+      res.json({ 
+        success: true, 
+        url: imageUrl,
+        fileName: fileName,
+        type: type
+      });
+    } catch (error) {
+      console.error('[IMAGE UPLOAD ERROR]:', error);
+      handleError(res, error, "Failed to upload image");
+    }
+  });
+
 
       // 3. Combine and sort by date
       const allApplications = [...platformApplications, ...extensionApplications]

@@ -447,6 +447,51 @@ export default function RecruiterProfile() {
               <CardContent className="space-y-6">
                 <div className="space-y-4">
                   <div>
+
+              {careerPageUrl && (
+                <div className="space-y-4 mt-6 p-4 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <Eye className="w-5 h-5 text-blue-600" />
+                      Career Page Preview
+                    </h4>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(careerPageUrl, '_blank')}
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Open in New Tab
+                    </Button>
+                  </div>
+                  
+                  {/* Mini Preview */}
+                  <div className="bg-white dark:bg-gray-900 rounded border overflow-hidden">
+                    {formData.companyHeroImageUrl && (
+                      <div className="w-full h-32 bg-cover bg-center relative" 
+                           style={{ backgroundImage: `url(${formData.companyHeroImageUrl})` }}>
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50" />
+                      </div>
+                    )}
+                    <div className="p-4 flex items-center gap-4">
+                      {formData.companyLogoUrl ? (
+                        <img src={formData.companyLogoUrl} alt="Logo" className="w-16 h-16 rounded object-contain bg-white border" />
+                      ) : (
+                        <div className="w-16 h-16 rounded bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                          <Building className="w-8 h-8 text-white" />
+                        </div>
+                      )}
+                      <div>
+                        <h3 className="font-bold text-lg">{formData.companyName || 'Your Company'}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {(formData.companyValues?.length || 0) + (formData.companyPerks?.length || 0)} benefits • Hiring Now
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
                     <Label htmlFor="companyLogo">Company Logo</Label>
                     <div className="mt-2 flex items-center gap-4">
                       {formData.companyLogoUrl && (

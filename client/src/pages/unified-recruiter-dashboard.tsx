@@ -60,6 +60,10 @@ import {
   GitBranch,
   Activity,
   Upload, // Import Upload icon
+  Layers, // Import Layers icon for enhanced pipeline
+  Brain, // Import Brain icon for AI tools
+  Settings, // Import Settings icon for advanced tools
+  Shield, // Import Shield icon for verification
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -325,6 +329,11 @@ function RecruiterDashboard() {
     setRecruiterNotes(application.recruiterNotes || "");
   };
 
+  // Placeholder for stats object, assuming it might be fetched or derived
+  const stats = {
+    totalJobs: safeJobPostings.length,
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <RecruiterNavbar user={userFromAuth as any} />
@@ -504,120 +513,144 @@ function RecruiterDashboard() {
         </div>
 
         {/* Quick Actions Panel */}
-        <Card className="mb-8 bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-800">
-          <CardHeader>
-            <CardTitle className="text-xl">Quick Actions</CardTitle>
-            <CardDescription>Access your most-used recruiter tools</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Button
-                onClick={() => setLocation("/enhanced-crm")}
-                className="h-20 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
-                size="lg"
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <Users className="w-6 h-6" />
-                  <span className="text-sm">TouchBase CRM</span>
-                </div>
-              </Button>
+        {/* Enhanced Tools Section */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <Zap className="h-6 w-6 text-yellow-500" />
+            Quick Actions
+          </h2>
+          <Badge variant="outline" className="text-xs">
+            {stats?.totalJobs || 0} Active Jobs
+          </Badge>
+        </div>
 
-              <Button
-                onClick={() => setLocation("/recruiter/post-job")}
-                className="h-20 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
-                size="lg"
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <Plus className="w-6 h-6" />
-                  <span className="text-sm">Post New Job</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Post Job */}
+          <Card className="cursor-pointer hover:shadow-lg transition-all hover:scale-105" onClick={() => setLocation('/recruiter/post-job')}>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                  <Briefcase className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 </div>
-              </Button>
-
-              <Button
-                onClick={() => setShowImportDialog(true)}
-                className="h-20 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
-                size="lg"
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <Upload className="w-6 h-6" />
-                  <span className="text-sm">Import Applicants</span>
+                <div>
+                  <h3 className="font-semibold">Post Job</h3>
+                  <p className="text-sm text-muted-foreground">Create new position</p>
                 </div>
-              </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-              <Button
-                onClick={() => setLocation("/recruiter/interview-assignments")}
-                className="h-20 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                size="lg"
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <Video className="w-6 h-6" />
-                  <span className="text-sm">Assign Interviews</span>
+          {/* Enhanced Pipeline */}
+          <Card className="cursor-pointer hover:shadow-lg transition-all hover:scale-105" onClick={() => setLocation('/recruiter/enhanced-pipeline')}>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                  <Layers className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                 </div>
-              </Button>
-
-              <Button
-                onClick={() => setLocation("/recruiter/pipeline")}
-                className="h-20 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
-                size="lg"
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <Users className="w-6 h-6" />
-                  <span className="text-sm">Manage Pipeline</span>
+                <div>
+                  <h3 className="font-semibold">Pipeline</h3>
+                  <p className="text-sm text-muted-foreground">Drag & drop ATS</p>
                 </div>
-              </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-              <Button
-                onClick={() => setLocation("/premium-targeting")}
-                className="h-20 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white"
-                size="lg"
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <Zap className="w-6 h-6" />
-                  <span className="text-sm">Premium Targeting</span>
+          {/* AI Screening */}
+          <Card className="cursor-pointer hover:shadow-lg transition-all hover:scale-105" onClick={() => setLocation('/ai-recruiter-dashboard')}>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
+                  <Brain className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
-              </Button>
-
-              <Button
-                onClick={() => {
-                  if (typedUser?.companyName?.trim()) {
-                    const companySlug = typedUser.companyName
-                      .trim()
-                      .toLowerCase()
-                      .replace(/[^a-z0-9\s-]/g, '') // Remove special chars except spaces and hyphens
-                      .replace(/\s+/g, '-') // Replace spaces with hyphens
-                      .replace(/-+/g, '-') // Replace multiple hyphens with single
-                      .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
-
-                    if (companySlug) {
-                      window.open(`/career/${companySlug}`, '_blank', 'noopener,noreferrer');
-                    } else {
-                      toast({
-                        title: "Invalid Company Name",
-                        description: "Please update your company name in your profile settings.",
-                        variant: "destructive"
-                      });
-                    }
-                  } else {
-                    toast({
-                      title: "Company Not Set",
-                      description: "Please set your company name in your profile to view the career page.",
-                      variant: "destructive"
-                    });
-                  }
-                }}
-                className="h-20 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
-                size="lg"
-                data-testid="button-career-page-quick"
-                aria-label="Open company career page in new tab"
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <Building className="w-6 h-6" />
-                  <span className="text-sm">Company Career Page</span>
+                <div>
+                  <h3 className="font-semibold">AI Tools</h3>
+                  <p className="text-sm text-muted-foreground">Smart screening</p>
                 </div>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Bulk Actions */}
+          <Card className="cursor-pointer hover:shadow-lg transition-all hover:scale-105" onClick={() => setLocation('/recruiter/ats')}>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-orange-100 dark:bg-orange-900 rounded-lg">
+                  <Zap className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Bulk Email</h3>
+                  <p className="text-sm text-muted-foreground">Multi-candidate</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Advanced Tools Grid */}
+      <div className="mb-6">
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Settings className="h-5 w-5" />
+          Advanced Tools
+        </h2>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <Button 
+            variant="outline" 
+            className="h-auto py-4 flex flex-col items-center gap-2"
+            onClick={() => setLocation('/recruiter/test-management')}
+          >
+            <FileText className="h-5 w-5 text-blue-600" />
+            <span className="text-xs">Tests</span>
+          </Button>
+
+          <Button 
+            variant="outline" 
+            className="h-auto py-4 flex flex-col items-center gap-2"
+            onClick={() => setLocation('/recruiter/scorecards')}
+          >
+            <BarChart3 className="h-5 w-5 text-purple-600" />
+            <span className="text-xs">Scorecards</span>
+          </Button>
+
+          <Button 
+            variant="outline" 
+            className="h-auto py-4 flex flex-col items-center gap-2"
+            onClick={() => setLocation('/recruiter/interview-assignments')}
+          >
+            <Calendar className="h-5 w-5 text-green-600" />
+            <span className="text-xs">Interviews</span>
+          </Button>
+
+          <Button 
+            variant="outline" 
+            className="h-auto py-4 flex flex-col items-center gap-2"
+            onClick={() => setLocation('/recruiter/background-checks')}
+          >
+            <Shield className="h-5 w-5 text-red-600" />
+            <span className="text-xs">Verify</span>
+          </Button>
+
+          <Button 
+            variant="outline" 
+            className="h-auto py-4 flex flex-col items-center gap-2"
+            onClick={() => setLocation('/enhanced-crm-dashboard')}
+          >
+            <Users className="h-5 w-5 text-indigo-600" />
+            <span className="text-xs">CRM</span>
+          </Button>
+
+          <Button 
+            variant="outline" 
+            className="h-auto py-4 flex flex-col items-center gap-2"
+            onClick={() => setLocation('/advanced-analytics-dashboard')}
+          >
+            <TrendingUp className="h-5 w-5 text-yellow-600" />
+            <span className="text-xs">Analytics</span>
+          </Button>
+        </div>
+      </div>
 
         {/* New Features Showcase */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -773,7 +806,7 @@ function RecruiterDashboard() {
                     onClick={async () => {
                       // Try to get company name from user state or fetch from profile
                       let companyName = typedUser?.companyName?.trim();
-                      
+
                       if (!companyName) {
                         // Fetch fresh profile data
                         try {
@@ -788,7 +821,7 @@ function RecruiterDashboard() {
                           console.error('Failed to fetch profile:', err);
                         }
                       }
-                      
+
                       if (companyName) {
                         const companySlug = companyName
                           .toLowerCase()
@@ -826,7 +859,7 @@ function RecruiterDashboard() {
                     onClick={async () => {
                       // Try to get company name from user state or fetch from profile
                       let companyName = typedUser?.companyName?.trim();
-                      
+
                       if (!companyName) {
                         // Fetch fresh profile data
                         try {
@@ -841,7 +874,7 @@ function RecruiterDashboard() {
                           console.error('Failed to fetch profile:', err);
                         }
                       }
-                      
+
                       if (companyName) {
                         const companySlug = companyName
                           .toLowerCase()
