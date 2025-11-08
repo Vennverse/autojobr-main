@@ -40,7 +40,7 @@ interface UserProfile {
   companySize?: string;
   industry?: string;
   createdAt: string;
-  companyLogoUrl?: string; // Added companyLogoUrl field
+  companyLogoUrl?: string;
 }
 
 export default function RecruiterProfile() {
@@ -50,19 +50,16 @@ export default function RecruiterProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<UserProfile>>({});
 
-  // Get user profile
   const { data: profile, isLoading } = useQuery<UserProfile>({
     queryKey: ['/api/recruiter/profile'],
   });
 
-  // Set form data when profile loads
   useEffect(() => {
     if (profile) {
       setFormData(profile);
     }
   }, [profile]);
 
-  // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (data: Partial<UserProfile>) => {
       return await apiRequest('/api/recruiter/profile', 'PUT', data);
@@ -100,9 +97,19 @@ export default function RecruiterProfile() {
   const getPlanBadge = (planType: string) => {
     switch (planType) {
       case 'premium':
-        return <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white"><Crown className="w-3 h-3 mr-1" />Premium</Badge>;
+        return (
+          <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+            <Crown className="w-3 h-3 mr-1" />
+            Premium
+          </Badge>
+        );
       case 'enterprise':
-        return <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white"><Star className="w-3 h-3 mr-1" />Enterprise</Badge>;
+        return (
+          <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white">
+            <Star className="w-3 h-3 mr-1" />
+            Enterprise
+          </Badge>
+        );
       default:
         return <Badge variant="outline">Free</Badge>;
     }
@@ -162,7 +169,6 @@ export default function RecruiterProfile() {
       </div>
 
       <div className="space-y-6">
-        {/* Profile Header */}
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-start gap-6">
@@ -210,7 +216,6 @@ export default function RecruiterProfile() {
           </CardContent>
         </Card>
 
-        {/* Personal Information */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -243,28 +248,33 @@ export default function RecruiterProfile() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email || ''}
-                  disabled
-                  className="bg-gray-50 dark:bg-gray-800"
-                  data-testid="input-email"
-                />
-                <p className="text-xs text-gray-500">Email cannot be changed</p>
+                <Label htmlFor="email">Email</Label>
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-gray-400" />
+                  <Input
+                    id="email"
+                    value={formData.email || ''}
+                    disabled
+                    className="flex-1"
+                    data-testid="input-email"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone || ''}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  disabled={!isEditing}
-                  placeholder="+1 (555) 123-4567"
-                  data-testid="input-phone"
-                />
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-gray-400" />
+                  <Input
+                    id="phone"
+                    value={formData.phone || ''}
+                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                    disabled={!isEditing}
+                    placeholder="+1 (555) 123-4567"
+                    className="flex-1"
+                    data-testid="input-phone"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2 md:col-span-2">
@@ -295,7 +305,6 @@ export default function RecruiterProfile() {
           </CardContent>
         </Card>
 
-        {/* Company Information */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -351,9 +360,8 @@ export default function RecruiterProfile() {
                   data-testid="input-company-size"
                 />
               </div>
-            </div>
 
-            <div className="space-y-2 md:col-span-2">
+              <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="companyDescription">Company Description</Label>
                 <Textarea
                   id="companyDescription"
@@ -377,9 +385,9 @@ export default function RecruiterProfile() {
                   data-testid="input-company-logo"
                 />
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
