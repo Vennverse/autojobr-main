@@ -45,7 +45,7 @@ interface UserProfile {
 export default function RecruiterProfile() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<UserProfile>>({});
 
@@ -182,7 +182,7 @@ export default function RecruiterProfile() {
                   </Button>
                 )}
               </div>
-              
+
               <div className="flex-1 space-y-4">
                 <div className="flex items-center gap-4">
                   <div>
@@ -193,7 +193,7 @@ export default function RecruiterProfile() {
                   </div>
                   {getPlanBadge(profile?.planType || 'free')}
                 </div>
-                
+
                 <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                   <div className="flex items-center gap-1">
                     <Building className="w-4 h-4" />
@@ -229,7 +229,7 @@ export default function RecruiterProfile() {
                   data-testid="input-first-name"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="lastName">Last Name</Label>
                 <Input
@@ -240,7 +240,7 @@ export default function RecruiterProfile() {
                   data-testid="input-last-name"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <Input
@@ -253,7 +253,7 @@ export default function RecruiterProfile() {
                 />
                 <p className="text-xs text-gray-500">Email cannot be changed</p>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
                 <Input
@@ -265,7 +265,7 @@ export default function RecruiterProfile() {
                   data-testid="input-phone"
                 />
               </div>
-              
+
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="location">Location</Label>
                 <Input
@@ -278,7 +278,7 @@ export default function RecruiterProfile() {
                 />
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="bio">Professional Bio</Label>
               <Textarea
@@ -314,7 +314,7 @@ export default function RecruiterProfile() {
                   data-testid="input-company-name"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="companyWebsite">Company Website</Label>
                 <Input
@@ -326,7 +326,7 @@ export default function RecruiterProfile() {
                   data-testid="input-company-website"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="industry">Industry</Label>
                 <Input
@@ -338,7 +338,7 @@ export default function RecruiterProfile() {
                   data-testid="input-industry"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="companySize">Company Size</Label>
                 <Input
@@ -351,7 +351,7 @@ export default function RecruiterProfile() {
                 />
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="companyDescription">Company Description</Label>
               <Textarea

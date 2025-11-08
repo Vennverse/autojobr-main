@@ -770,10 +770,27 @@ function RecruiterDashboard() {
                     variant="outline"
                     className="flex-1"
                     data-testid="button-view-career-page"
-                    onClick={() => {
-                      if (typedUser?.companyName?.trim()) {
-                        const companySlug = typedUser.companyName
-                          .trim()
+                    onClick={async () => {
+                      // Try to get company name from user state or fetch from profile
+                      let companyName = typedUser?.companyName?.trim();
+                      
+                      if (!companyName) {
+                        // Fetch fresh profile data
+                        try {
+                          const profileRes = await fetch('/api/recruiter/profile', {
+                            credentials: 'include'
+                          });
+                          if (profileRes.ok) {
+                            const profileData = await profileRes.json();
+                            companyName = profileData.companyName?.trim();
+                          }
+                        } catch (err) {
+                          console.error('Failed to fetch profile:', err);
+                        }
+                      }
+                      
+                      if (companyName) {
+                        const companySlug = companyName
                           .toLowerCase()
                           .replace(/[^a-z0-9\s-]/g, '')
                           .replace(/\s+/g, '-')
@@ -806,10 +823,27 @@ function RecruiterDashboard() {
                     variant="outline"
                     data-testid="button-copy-career-link"
                     aria-label="Copy career page link to clipboard"
-                    onClick={() => {
-                      if (typedUser?.companyName?.trim()) {
-                        const companySlug = typedUser.companyName
-                          .trim()
+                    onClick={async () => {
+                      // Try to get company name from user state or fetch from profile
+                      let companyName = typedUser?.companyName?.trim();
+                      
+                      if (!companyName) {
+                        // Fetch fresh profile data
+                        try {
+                          const profileRes = await fetch('/api/recruiter/profile', {
+                            credentials: 'include'
+                          });
+                          if (profileRes.ok) {
+                            const profileData = await profileRes.json();
+                            companyName = profileData.companyName?.trim();
+                          }
+                        } catch (err) {
+                          console.error('Failed to fetch profile:', err);
+                        }
+                      }
+                      
+                      if (companyName) {
+                        const companySlug = companyName
                           .toLowerCase()
                           .replace(/[^a-z0-9\s-]/g, '')
                           .replace(/\s+/g, '-')
