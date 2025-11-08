@@ -57,6 +57,26 @@ export const users = pgTable("users", {
   companyName: varchar("company_name"), // For recruiters
   companyWebsite: varchar("company_website"), // For recruiters
   companyLogoUrl: varchar("company_logo_url"), // For recruiters
+  
+  // Career Page Customization Fields (Fortune 500 Quality)
+  companyDescription: text("company_description"),
+  companySize: varchar("company_size"),
+  industry: varchar("industry"),
+  companyHeroImageUrl: varchar("company_hero_image_url"),
+  companyPrimaryColor: varchar("company_primary_color").default("#3b82f6"),
+  companySecondaryColor: varchar("company_secondary_color").default("#1e40af"),
+  companyValues: jsonb("company_values"), // Array of values with icons
+  companyPerks: jsonb("company_perks"), // Array of perks/benefits
+  companyCultureHighlights: text("company_culture_highlights"),
+  companyLinkedInUrl: varchar("company_linkedin_url"),
+  companyTwitterUrl: varchar("company_twitter_url"),
+  companyFacebookUrl: varchar("company_facebook_url"),
+  companyInstagramUrl: varchar("company_instagram_url"),
+  careerPageSlug: varchar("career_page_slug"), // Custom URL slug
+  phone: varchar("phone"),
+  location: varchar("location"),
+  bio: text("bio"),
+  
   stripeCustomerId: varchar("stripe_customer_id"),
   stripeSubscriptionId: varchar("stripe_subscription_id"),
   paypalSubscriptionId: varchar("paypal_subscription_id"),
