@@ -647,19 +647,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get all active job postings for everyone (logged in or not)
         const search = req.query.search as string;
         const category = req.query.category as string;
+        const company = req.query.company as string;
 
-        console.log(`[PLATFORM JOBS] Fetching - search: "${search}", category: "${category}", page: ${page}, limit: ${limit}`);
+        console.log(`[PLATFORM JOBS] Fetching - search: "${search}", category: "${category}", company: "${company}", page: ${page}, limit: ${limit}`);
 
+        const allJobs = await storage.getAllJobPostings();
+        
+        // Apply filters
+        let filteredJobs = allJobs;
+        
+        if (company) {
+          const normalizeCompany = (name: string) => {
+            return name.toLowerCase().trim()
+              .replace(/[-_]/g, ' ')
+              .replace(/[&.,]/g, '')
+              .replace(/\s+/g, ' ')
+              .replace(/\b(inc|llc|ltd|corp|corporation|company|co)\b/g, '')
+              .trim();
+          };
+          
+          const normalizedCompany = normalizeCompany(company);
+          filteredJobs = filteredJobs.filter((job: any) => {
+            const jobCompany = job.companyName || job.company_name || job.company || '';
+            const normalizedJobCompany = normalizeCompany(jobCompany);
+            return normalizedJobCompany.includes(normalizedCompany) || 
+                   normalizedCompany.includes(normalizedJobCompany);
+          });
+        }
+        
         if (search || category) {
           jobPostings = await storage.getJobPostings(page, limit, {
             search,
             category
           });
+          // Apply company filter if exists
+          if (company) {
+            const normalizeCompany = (name: string) => {
+              return name.toLowerCase().trim()
+                .replace(/[-_]/g, ' ')
+                .replace(/[&.,]/g, '')
+                .replace(/\s+/g, ' ')
+                .replace(/\b(inc|llc|ltd|corp|corporation|company|co)\b/g, '')
+                .trim();
+            };
+            
+            const normalizedCompany = normalizeCompany(company);
+            jobPostings = jobPostings.filter((job: any) => {
+              const jobCompany = job.companyName || job.company_name || job.company || '';
+              const normalizedJobCompany = normalizeCompany(jobCompany);
+              return normalizedJobCompany.includes(normalizedCompany) || 
+                     normalizedCompany.includes(normalizedJobCompany);
+            });
+          }
           totalCount = jobPostings.length;
         } else {
-          const allJobs = await storage.getAllJobPostings();
-          totalCount = allJobs.length;
-          jobPostings = allJobs.slice(offset, offset + limit);
+          totalCount = filteredJobs.length;
+          jobPostings = filteredJobs.slice(offset, offset + limit);
         }
         const userInfo = userId ? `authenticated ${userId}` : 'anonymous';
         console.log(`[PLATFORM JOBS] ${userInfo} - page ${page}, ${jobPostings.length}/${totalCount} jobs`);
@@ -761,6 +804,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Company image upload setup - use existing uploadsDir from line 510
+  const companyImagesDir = path.join(__dirname, '../uploads/company-images');
+  if (!fs.existsSync(companyImagesDir)) {
+    fs.mkdirSync(companyImagesDir, { recursive: true });
+    console.log('✅ [INIT] Company images directory created');
+  }
+
+  // Configure multer for company image uploads
+  const companyImageUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml'];
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only JPG, PNG, WebP, and SVG are allowed.'));
+      }
+    }
+  });
+
+  // Company image upload endpoint
+  app.post('/api/upload/company-image', isAuthenticated, companyImageUpload.single('file'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const { type } = req.body; // 'logo' or 'hero'
+      
+      // Validate file size (5MB for logo, 10MB for hero)
+      const maxSize = type === 'logo' ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
+      if (req.file.size > maxSize) {
+        return res.status(400).json({ 
+          message: `File too large. Maximum size is ${type === 'logo' ? '5MB' : '10MB'}.` 
+        });
+      }
+
+      // Generate unique filename
+      const fileExt = path.extname(req.file.originalname);
+      const fileName = `${type}_${userId}_${Date.now()}${fileExt}`;
+      const filePath = path.join(companyImagesDir, fileName);
+      
+      // Write file to disk
+      fs.writeFileSync(filePath, req.file.buffer);
+
+      // Generate URL
+      const imageUrl = `/uploads/company-images/${fileName}`;
+
+      console.log(`✅ [IMAGE UPLOAD] ${type} uploaded for recruiter ${userId}: ${imageUrl}`);
+
+      res.json({ 
+        success: true, 
+        url: imageUrl,
+        fileName: fileName,
+        type: type
+      });
+    } catch (error) {
+      console.error('[IMAGE UPLOAD ERROR]:', error);
+      handleError(res, error, "Failed to upload image");
+    }
+  });
+
   // Get user's applications with job details - COMBINED from platform AND extension
   app.get('/api/applications', isAuthenticated, async (req: any, res) => {
     try {
@@ -855,83 +970,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
       console.log(`[APPLICATIONS] Extension applications mapped: ${extensionApplications.length}`);
-
-  // Ensure uploads directory exists early
-  const uploadsDir = path.join(__dirname, '../uploads');
-  const companyImagesDir = path.join(uploadsDir, 'company-images');
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
-  if (!fs.existsSync(companyImagesDir)) {
-    fs.mkdirSync(companyImagesDir, { recursive: true });
-    console.log('✅ [INIT] Company images directory created');
-  }
-
-  // Configure multer for company image uploads
-  const companyImageUpload = multer({
-    storage: multer.memoryStorage(),
-    limits: {
-      fileSize: 10 * 1024 * 1024, // 10MB limit
-    },
-    fileFilter: (req, file, cb) => {
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml'];
-      if (allowedTypes.includes(file.mimetype)) {
-        cb(null, true);
-      } else {
-        cb(new Error('Invalid file type. Only JPG, PNG, WebP, and SVG are allowed.'));
-      }
-    }
-  });
-
-  // Company image upload endpoint - CRITICAL: Must be before other routes
-  app.post('/api/upload/company-image', isAuthenticated, companyImageUpload.single('file'), async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-
-      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
-        return res.status(403).json({ message: "Access denied - recruiter role required" });
-      }
-
-      if (!req.file) {
-        return res.status(400).json({ message: "No file uploaded" });
-      }
-
-      const { type } = req.body; // 'logo' or 'hero'
-      
-      // Validate file size (5MB for logo, 10MB for hero)
-      const maxSize = type === 'logo' ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
-      if (req.file.size > maxSize) {
-        return res.status(400).json({ 
-          message: `File too large. Maximum size is ${type === 'logo' ? '5MB' : '10MB'}.` 
-        });
-      }
-
-      // Generate unique filename
-      const fileExt = path.extname(req.file.originalname);
-      const fileName = `${type}_${userId}_${Date.now()}${fileExt}`;
-      const filePath = path.join(companyImagesDir, fileName);
-      
-      // Write file to disk
-      fs.writeFileSync(filePath, req.file.buffer);
-
-      // Generate URL
-      const imageUrl = `/uploads/company-images/${fileName}`;
-
-      console.log(`✅ [IMAGE UPLOAD] ${type} uploaded for recruiter ${userId}: ${imageUrl}`);
-
-      res.json({ 
-        success: true, 
-        url: imageUrl,
-        fileName: fileName,
-        type: type
-      });
-    } catch (error) {
-      console.error('[IMAGE UPLOAD ERROR]:', error);
-      handleError(res, error, "Failed to upload image");
-    }
-  });
-
 
       // 3. Combine and sort by date
       const allApplications = [...platformApplications, ...extensionApplications]
@@ -1713,32 +1751,8 @@ ${req.user.firstName} ${req.user.lastName}`,
     }
   });
 
-  // Career page routes - PUBLIC for company career pages
-  // Handle both /career/:slug and /careers/:slug
-  const handleCareerPage = async (req: any, res: any) => {
-    try {
-      const { companySlug } = req.params;
-      
-      console.log(`[CAREER PAGE] Accessing career page for: ${companySlug}`);
-      
-      // Frontend handles the actual rendering
-      // Just serve the index.html and let React Router handle it
-      const indexPath = path.join(__dirname, '../dist/client/index.html');
-      
-      if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-      } else {
-        // Development mode - redirect to frontend route
-        res.redirect(`/?redirect=/career/${encodeURIComponent(companySlug)}`);
-      }
-    } catch (error) {
-      console.error('[CAREER PAGE ERROR]:', error);
-      res.status(500).json({ message: 'Failed to load career page' });
-    }
-  };
-  
-  app.get('/career/:companySlug', handleCareerPage);
-  app.get('/careers/:companySlug', handleCareerPage);
+  // Career page routes removed - let frontend router handle /career/:slug and /careers/:slug
+  // The frontend App.tsx has routes for these at lines 376-377
 
   // Get individual scraped job by ID - PUBLIC for SEO
   app.get('/api/scraped-jobs/:id', async (req: any, res) => {

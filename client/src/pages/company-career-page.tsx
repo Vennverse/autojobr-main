@@ -188,14 +188,15 @@ interface CompanyInfo {
 
 export default function CompanyCareerPage() {
   const params = useParams();
-  // Get company from URL path or query parameter
-  const pathCompany = useLocation().pathname.split('/career/')[1];
-  const queryCompany = new URLSearchParams(useLocation().search).get('company');
-  const companyName = pathCompany || queryCompany || '';
+  const [location, setLocation] = useLocation();
+  
+  // Get company from URL path or query parameter (handle both /career/ and /careers/)
+  const pathCompany = (location.split('/career/')[1] || location.split('/careers/')[1])?.split('?')[0];
+  const queryCompany = new URLSearchParams(location.split('?')[1] || '').get('company');
+  const companyName = decodeURIComponent(pathCompany || queryCompany || '');
 
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
-  const [_, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
   // State management
