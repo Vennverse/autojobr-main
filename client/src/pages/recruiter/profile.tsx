@@ -381,9 +381,6 @@ export default function RecruiterProfile() {
           </Card>
         </div>
       </div>
-    );
-  }
-      </div>
     </div>
   );
 }
