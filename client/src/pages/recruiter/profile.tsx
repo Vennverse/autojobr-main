@@ -377,9 +377,12 @@ export default function RecruiterProfile() {
                   data-testid="input-company-logo"
                 />
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
       </div>
     </div>
   );
