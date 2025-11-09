@@ -154,8 +154,7 @@ export default function RecruiterPremium() {
   const [selectedTier, setSelectedTier] = useState<PricingTier | null>(null);
   const [selectedBillingCycle, setSelectedBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [paymentGateway, setPaymentGateway] = useState<'paypal' | 'razorpay' | null>(null);
-  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
+  const [paymentGateway, setPaymentGateway] = useState<'paypal' | 'razorpay' | null>('razorpay');
 
   // Fetch user data for email
   const { data: user } = useQuery<{email?: string}>({
@@ -166,12 +165,6 @@ export default function RecruiterPremium() {
   const { data: subscriptionData } = useQuery({
     queryKey: ['/api/subscription/status'],
   });
-
-  // Set payment gateway to Razorpay for all users
-  useEffect(() => {
-    setPaymentGateway('razorpay');
-    setIsLoadingLocation(false);
-  }, []);
 
   const handleSelectTier = (tier: PricingTier) => {
     // For free tier, no payment needed
@@ -535,72 +528,65 @@ export default function RecruiterPremium() {
           </DialogHeader>
 
           <div className="space-y-6 mt-4">
-            {isLoadingLocation ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                <p className="text-sm text-muted-foreground">Setting up payment...</p>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-4">
-                  <label className="text-sm font-medium">Select Payment Method:</label>
-                  <SimplePaymentGatewaySelector
-                    selectedGateway={paymentGateway}
-                    onGatewayChange={setPaymentGateway}
-                  />
-                </div>
+            {/* Always show payment gateway selector */}
+            <div className="space-y-4">
+              <label className="text-sm font-medium">Select Payment Method:</label>
+              <SimplePaymentGatewaySelector
+                selectedGateway={paymentGateway}
+                onGatewayChange={setPaymentGateway}
+              />
+            </div>
 
-                {paymentGateway === 'paypal' && user?.email && selectedTier && (
-                  <PayPalSubscriptionButton
-                    tierId={getSelectedTierId()}
-                    amount={getSelectedPrice().toString()}
-                    currency="USD"
-                    planName={selectedTier.name}
-                    userType="recruiter"
-                    onSuccess={() => {
-                      toast({
-                        title: "Subscription Activated!",
-                        description: "Welcome to premium! Your features are now unlocked.",
-                      });
-                      queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
-                      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-                      setShowPaymentDialog(false);
-                    }}
-                    onError={(error) => {
-                      toast({
-                        title: "Payment Failed",
-                        description: error,
-                        variant: "destructive",
-                      });
-                    }}
-                  />
-                )}
+            {/* Show payment buttons based on selected gateway */}
+            {paymentGateway === 'paypal' && user?.email && selectedTier && (
+              <PayPalSubscriptionButton
+                tierId={getSelectedTierId()}
+                amount={getSelectedPrice().toString()}
+                currency="USD"
+                planName={selectedTier.name}
+                userType="recruiter"
+                onSuccess={() => {
+                  toast({
+                    title: "Subscription Activated!",
+                    description: "Welcome to premium! Your features are now unlocked.",
+                  });
+                  queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
+                  queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+                  setShowPaymentDialog(false);
+                }}
+                onError={(error) => {
+                  toast({
+                    title: "Payment Failed",
+                    description: error,
+                    variant: "destructive",
+                  });
+                }}
+              />
+            )}
 
-                {paymentGateway === 'razorpay' && selectedTier && user?.email && (
-                  <RazorpaySubscriptionButton
-                    tierId={getSelectedTierId()}
-                    tierName={selectedTier.name}
-                    price={getSelectedPrice()}
-                    userEmail={user.email}
-                    onSuccess={() => {
-                      toast({
-                        title: "Subscription Activated!",
-                        description: "Welcome to premium! Your features are now unlocked.",
-                      });
-                      queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
-                      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-                      setShowPaymentDialog(false);
-                    }}
-                    onError={(error) => {
-                      toast({
-                        title: "Payment Failed",
-                        description: error,
-                        variant: "destructive",
-                      });
-                    }}
-                  />
-                )}
-              </>
+            {paymentGateway === 'razorpay' && selectedTier && user?.email && (
+              <RazorpaySubscriptionButton
+                tierId={getSelectedTierId()}
+                tierName={selectedTier.name}
+                price={getSelectedPrice()}
+                userEmail={user.email}
+                onSuccess={() => {
+                  toast({
+                    title: "Subscription Activated!",
+                    description: "Welcome to premium! Your features are now unlocked.",
+                  });
+                  queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
+                  queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+                  setShowPaymentDialog(false);
+                }}
+                onError={(error) => {
+                  toast({
+                    title: "Payment Failed",
+                    description: error,
+                    variant: "destructive",
+                  });
+                }}
+              />
             )}
           </div>
         </DialogContent>
