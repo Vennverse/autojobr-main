@@ -156,6 +156,20 @@ export default function RecruiterPremium() {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [paymentGateway, setPaymentGateway] = useState<'paypal' | 'razorpay' | null>('razorpay');
 
+  // Add perspective CSS to document
+  React.useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .perspective-1000 {
+        perspective: 1000px;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   // Fetch user data for email
   const { data: user } = useQuery<{email?: string}>({
     queryKey: ['/api/user']
@@ -269,8 +283,8 @@ export default function RecruiterPremium() {
           <span>Cancel Anytime</span>
         </div>
 
-        {/* Pricing Cards */}
-        <div className="grid lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
+        {/* Pricing Cards - Enhanced 3D Standing Design */}
+        <div className="grid lg:grid-cols-4 gap-8 max-w-7xl mx-auto perspective-1000">
           {pricingTiers.map((tier) => {
             // Convert tier.id to backend format for comparison
             const backendTierId = tier.isFree ? 'free' : `recruiter_${tier.id}_monthly`;
@@ -281,15 +295,25 @@ export default function RecruiterPremium() {
             return (
               <Card 
                 key={tier.id}
-                className={`relative transition-all duration-300 hover:scale-105 ${
-                  tier.isPopular ? `${getCardGlow(tier.color)} scale-105` : 'border-muted'
-                } ${isCurrentPlan ? 'ring-2 ring-primary' : ''}`}
+                className={`relative transition-all duration-500 hover:-translate-y-4 hover:shadow-2xl transform-gpu ${
+                  tier.isPopular 
+                    ? `${getCardGlow(tier.color)} scale-105 shadow-2xl border-2` 
+                    : 'border-muted hover:border-primary/30 shadow-lg'
+                } ${isCurrentPlan ? 'ring-2 ring-primary shadow-primary/50' : ''} 
+                bg-gradient-to-br from-card/95 to-card/80 backdrop-blur-sm overflow-hidden`}
+                style={{
+                  transformStyle: 'preserve-3d',
+                  transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
                 data-testid={`card-tier-${tier.id}`}
               >
+                {/* Decorative Gradient Overlay */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+                
                 {/* Popular Badge */}
                 {tier.isPopular && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
-                    <Badge className="bg-green-500 hover:bg-green-600 text-white px-4 py-1 text-sm font-semibold" data-testid="badge-most-popular">
+                    <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-4 py-1.5 text-sm font-semibold shadow-lg animate-pulse" data-testid="badge-most-popular">
                       <Sparkles className="w-3 h-3 mr-1 inline" />
                       MOST POPULAR
                     </Badge>
@@ -303,20 +327,24 @@ export default function RecruiterPremium() {
                   </Badge>
                 )}
 
-                <CardHeader className="space-y-4 pt-8">
+                <CardHeader className="space-y-4 pt-8 pb-6 bg-gradient-to-b from-muted/30 to-transparent">
                   {/* Plan Name */}
-                  <div className="space-y-2">
-                    <CardTitle className="text-2xl font-bold text-center" data-testid={`text-tier-name-${tier.id}`}>
+                  <div className="space-y-3">
+                    <CardTitle className="text-3xl font-extrabold text-center tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text" data-testid={`text-tier-name-${tier.id}`}>
                       {tier.name}
                     </CardTitle>
                     <div className="text-center">
-                      <Badge variant={getBadgeVariant(tier.color)} className="text-xs" data-testid={`badge-plan-${tier.id}`}>
+                      <Badge 
+                        variant={getBadgeVariant(tier.color)} 
+                        className={`text-xs px-3 py-1 ${tier.isPopular ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 dark:from-green-900/50 dark:to-emerald-900/50 dark:text-green-300 border-green-300 dark:border-green-700' : ''}`}
+                        data-testid={`badge-plan-${tier.id}`}
+                      >
                         {tier.badge}
                       </Badge>
                     </div>
                     {tier.subBadge && (
                       <div className="text-center">
-                        <Badge variant="outline" className="text-xs border-green-500 text-green-600 dark:text-green-400" data-testid={`sub-badge-${tier.id}`}>
+                        <Badge variant="outline" className="text-xs border-green-500/50 text-green-600 dark:text-green-400 px-3 py-1" data-testid={`sub-badge-${tier.id}`}>
                           {tier.subBadge}
                         </Badge>
                       </div>
@@ -324,15 +352,21 @@ export default function RecruiterPremium() {
                   </div>
 
                   {/* Price */}
-                  <div className="text-center space-y-1">
-                    <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-5xl font-bold" data-testid={`text-price-${tier.id}`}>
+                  <div className="text-center space-y-2 py-4">
+                    <div className="flex items-baseline justify-center gap-2">
+                      <span className={`text-6xl font-extrabold tracking-tight ${
+                        tier.isPopular 
+                          ? 'bg-gradient-to-br from-green-600 to-emerald-600 dark:from-green-400 dark:to-emerald-400 bg-clip-text text-transparent' 
+                          : 'text-foreground'
+                      }`} data-testid={`text-price-${tier.id}`}>
                         ${displayPrice}
                       </span>
-                      {!tier.isFree && <span className="text-muted-foreground text-lg">/ {priceLabel}</span>}
+                      {!tier.isFree && <span className="text-muted-foreground text-xl font-medium">/ {priceLabel}</span>}
                     </div>
                     {tier.perDayPrice && (
-                      <p className="text-sm text-muted-foreground">{tier.perDayPrice}</p>
+                      <p className="text-sm text-muted-foreground font-medium bg-muted/50 rounded-full px-4 py-1 inline-block">
+                        {tier.perDayPrice}
+                      </p>
                     )}
                   </div>
 
@@ -365,10 +399,10 @@ export default function RecruiterPremium() {
                   {/* CTA Button */}
                   {!isCurrentPlan ? (
                     <Button 
-                      className={`w-full h-12 text-base font-semibold ${
-                        tier.isFree ? 'bg-gray-600 hover:bg-gray-700' :
-                        tier.isPopular ? 'bg-green-600 hover:bg-green-700' : 
-                        tier.isPremium ? 'bg-blue-600 hover:bg-blue-700' : ''
+                      className={`w-full h-14 text-base font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 ${
+                        tier.isFree ? 'bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800' :
+                        tier.isPopular ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' : 
+                        tier.isPremium ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700' : ''
                       }`}
                       onClick={() => handleSelectTier(tier)}
                       data-testid={`button-select-${tier.id}`}
@@ -378,7 +412,7 @@ export default function RecruiterPremium() {
                     </Button>
                   ) : (
                     <Button 
-                      className="w-full h-12"
+                      className="w-full h-14 border-2 border-primary/50 bg-primary/5"
                       variant="outline"
                       disabled
                       data-testid="button-current-plan"
