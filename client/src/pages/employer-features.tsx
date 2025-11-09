@@ -175,28 +175,47 @@ const successStories = [
 
 const pricingPlans = [
   {
+    name: "FREE",
+    price: "$0",
+    description: "Perfect to get started",
+    features: [
+      "Platform-maintained career page",
+      "1 job posting at a time",
+      "Basic candidate search",
+      "Standard email support",
+      "Core analytics dashboard",
+      "Professional branding"
+    ],
+    cta: "Get Started Free",
+    popular: false,
+    isFree: true,
+    savings: "Always free, no credit card required"
+  },
+  {
     name: "Starter",
-    price: "$99",
+    price: "$10",
+    perMonth: true,
     description: "Perfect for small teams",
     features: [
+      "Everything in FREE, plus:",
       "Up to 5 job postings/month",
-      "Basic candidate matching",
-      "Standard support",
-      "Core analytics",
-      "Email integration"
+      "Basic AI candidate matching",
+      "Priority support",
+      "Enhanced analytics"
     ],
     cta: "Start Free Trial",
     popular: false,
-    savings: "vs $300/month on other platforms"
+    savings: "vs $99/month on other platforms"
   },
   {
     name: "Professional", 
-    price: "$299",
+    price: "$20",
+    perMonth: true,
     description: "For growing companies",
     features: [
+      "Everything in STARTER, plus:",
       "Unlimited job postings",
-      "Advanced AI matching",
-      "AI candidate scoring & ranking",
+      "Advanced AI matching & scoring",
       "Job description optimization",
       "Custom assessments",
       "Video interviews",
@@ -208,14 +227,15 @@ const pricingPlans = [
     ],
     cta: "Start Free Trial",
     popular: true,
-    savings: "vs $800/month on other platforms"
+    savings: "vs $299/month on other platforms"
   },
   {
     name: "Enterprise",
-    price: "Custom",
+    price: "$40",
+    perMonth: true,
     description: "For large organizations",
     features: [
-      "Everything in Professional",
+      "Everything in PROFESSIONAL, plus:",
       "AI-powered hiring predictions",
       "Custom AI model training",
       "Advanced integrations",
@@ -226,9 +246,9 @@ const pricingPlans = [
       "White-label options",
       "24/7 phone support"
     ],
-    cta: "Contact Sales",
+    cta: "Start Free Trial",
     popular: false,
-    savings: "50-70% cost reduction typical"
+    savings: "vs $800/month on other platforms"
   }
 ];
 
@@ -283,7 +303,7 @@ const competitorComparison = [
   },
   { 
     feature: "Starting price", 
-    autojobr: "From $99/mo", 
+    autojobr: "FREE (then $10/mo)", 
     competitor1: "From $300/mo", 
     competitor2: "From $250/mo" 
   }
@@ -677,9 +697,23 @@ export default function RecruiterFeaturesPage() {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16">
             {pricingPlans.map((plan, index) => (
-              <Card key={index} className={`relative border-0 ${plan.popular ? 'ring-2 ring-blue-500 bg-white dark:bg-slate-900' : 'bg-white/80 dark:bg-slate-800/80'} backdrop-blur`}>
+              <Card key={index} className={`relative border-0 ${
+                plan.isFree 
+                  ? 'ring-2 ring-green-500 bg-green-50/30 dark:bg-green-900/20' 
+                  : plan.popular 
+                  ? 'ring-2 ring-blue-500 bg-white dark:bg-slate-900' 
+                  : 'bg-white/80 dark:bg-slate-800/80'
+              } backdrop-blur`}>
+                {plan.isFree && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
+                      <Globe className="w-3 h-3 mr-1" />
+                      FREE Forever
+                    </Badge>
+                  </div>
+                )}
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                     <Badge className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
@@ -693,7 +727,7 @@ export default function RecruiterFeaturesPage() {
                     <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{plan.name}</h3>
                     <div className="text-4xl font-bold text-slate-900 dark:text-white mb-2">
                       {plan.price}
-                      {plan.price !== "Custom" && <span className="text-lg text-slate-500">/month</span>}
+                      {plan.perMonth && <span className="text-lg text-slate-500">/month</span>}
                     </div>
                     <p className="text-slate-600 dark:text-slate-300 mb-2">{plan.description}</p>
                     <p className="text-sm text-green-600 dark:text-green-400 font-semibold">{plan.savings}</p>
