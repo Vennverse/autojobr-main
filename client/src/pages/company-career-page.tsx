@@ -243,6 +243,17 @@ export default function CompanyCareerPage() {
   });
 
 
+  // Fetch company info to get company logo
+  const { data: companyData } = useQuery({
+    queryKey: ["/api/company", companyName],
+    queryFn: async () => {
+      const response = await fetch(`/api/company/${encodeURIComponent(companyName)}`);
+      if (!response.ok) return null;
+      return response.json();
+    },
+    enabled: !!companyName
+  });
+
   // Use only platform jobs with additional filtering
   const allJobsUnsorted = platformJobs.map((job: any) => ({
     ...job,
@@ -271,17 +282,20 @@ export default function CompanyCareerPage() {
     return true;
   });
 
-  // Get company info from the first job with improved logo resolution
+  // Get company info with logo from company data (priority) or job postings (fallback)
   const companyInfo: CompanyInfo = {
     name: companyName,
-    logo: allJobsUnsorted[0]?.companyLogo || 
+    logo: companyData?.companyLogoUrl || 
+          allJobsUnsorted[0]?.companyLogo || 
           allJobsUnsorted[0]?.company_logo || 
           allJobsUnsorted[0]?.logo ||
           // Check other jobs for logos if first job doesn't have one
           allJobsUnsorted.find(job => job.companyLogo || job.company_logo || job.logo)?.companyLogo ||
           allJobsUnsorted.find(job => job.companyLogo || job.company_logo || job.logo)?.company_logo ||
           allJobsUnsorted.find(job => job.companyLogo || job.company_logo || job.logo)?.logo,
-    totalJobs: allJobsUnsorted.length
+    totalJobs: allJobsUnsorted.length,
+    website: companyData?.companyWebsite,
+    description: companyData?.companyDescription
   };
 
   // Get user profile for compatibility scoring (only if authenticated)

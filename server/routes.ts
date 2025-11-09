@@ -1754,6 +1754,47 @@ ${req.user.firstName} ${req.user.lastName}`,
   // Career page routes removed - let frontend router handle /career/:slug and /careers/:slug
   // The frontend App.tsx has routes for these at lines 376-377
 
+  // Get company info by company name - PUBLIC for career pages
+  app.get('/api/company/:companyName', async (req: any, res) => {
+    try {
+      const companyName = decodeURIComponent(req.params.companyName);
+      
+      console.log('[COMPANY INFO] Fetching info for:', companyName);
+
+      // Find recruiter by company name
+      const [recruiter] = await db
+        .select({
+          companyName: schema.users.companyName,
+          companyLogoUrl: schema.users.companyLogoUrl,
+          companyWebsite: schema.users.companyWebsite,
+          companyDescription: schema.users.companyDescription,
+          industry: schema.users.industry,
+          companySize: schema.users.companySize
+        })
+        .from(schema.users)
+        .where(
+          and(
+            eq(schema.users.userType, 'recruiter'),
+            sql`LOWER(${schema.users.companyName}) = LOWER(${companyName})`
+          )
+        )
+        .limit(1);
+
+      if (!recruiter) {
+        return res.status(404).json({ message: 'Company not found' });
+      }
+
+      console.log('[COMPANY INFO] Found company:', recruiter.companyName, 'Logo:', recruiter.companyLogoUrl);
+      res.json(recruiter);
+    } catch (error) {
+      console.error('[COMPANY INFO ERROR]:', error);
+      res.status(500).json({ 
+        message: 'Failed to fetch company info',
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // Get individual scraped job by ID - PUBLIC for SEO
   app.get('/api/scraped-jobs/:id', async (req: any, res) => {
     try {
