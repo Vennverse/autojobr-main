@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -151,10 +151,16 @@ const pricingTiers: PricingTier[] = [
 export default function RecruiterPremium() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('[RecruiterPremium] Component mounted');
+  }, []);
+  
   const [selectedTier, setSelectedTier] = useState<PricingTier | null>(null);
   const [selectedBillingCycle, setSelectedBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [paymentGateway, setPaymentGateway] = useState<'paypal' | 'razorpay' | null>('razorpay');
+  const [paymentGateway, setPaymentGateway] = useState<'paypal' | 'razorpay'>('razorpay');
 
   // Add perspective CSS to document
   React.useEffect(() => {
@@ -562,17 +568,17 @@ export default function RecruiterPremium() {
           </DialogHeader>
 
           <div className="space-y-6 mt-4">
-            {/* Always show payment gateway selector */}
-            <div className="space-y-4">
-              <label className="text-sm font-medium">Select Payment Method:</label>
+            {/* Payment gateway selector */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium block">Select Payment Method:</label>
               <SimplePaymentGatewaySelector
                 selectedGateway={paymentGateway}
-                onGatewayChange={setPaymentGateway}
+                onGatewayChange={(gateway) => setPaymentGateway(gateway as 'paypal' | 'razorpay')}
               />
             </div>
 
             {/* Show payment buttons based on selected gateway */}
-            {paymentGateway === 'paypal' && user?.email && selectedTier && (
+            {paymentGateway === 'paypal' && user?.email && selectedTier ? (
               <PayPalSubscriptionButton
                 tierId={getSelectedTierId()}
                 amount={getSelectedPrice().toString()}
@@ -598,7 +604,7 @@ export default function RecruiterPremium() {
               />
             )}
 
-            {paymentGateway === 'razorpay' && selectedTier && user?.email && (
+            ) : paymentGateway === 'razorpay' && selectedTier && user?.email ? (
               <RazorpaySubscriptionButton
                 tierId={getSelectedTierId()}
                 tierName={selectedTier.name}
@@ -621,7 +627,7 @@ export default function RecruiterPremium() {
                   });
                 }}
               />
-            )}
+            ) : null}
           </div>
         </DialogContent>
       </Dialog>
