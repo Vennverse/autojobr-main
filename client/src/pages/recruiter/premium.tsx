@@ -1,628 +1,610 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { Crown, Check, X, Target, Users, BrainCircuit, Zap, Building2, Mail, CreditCard } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { RecruiterNavbar } from "@/components/RecruiterNavbar";
+import { 
+  Check, 
+  Crown, 
+  Zap,
+  Sparkles,
+  Building2,
+  Target,
+  Users,
+  BrainCircuit,
+  Briefcase,
+  Video,
+  Award,
+  Gift,
+  Coffee,
+  Globe,
+  Heart,
+  TrendingUp,
+  Shield,
+  Mail
+} from "lucide-react";
 import PayPalSubscriptionButton from "@/components/PayPalSubscriptionButton";
+import SimplePaymentGatewaySelector from "@/components/SimplePaymentGatewaySelector";
+import RazorpaySubscriptionButton from "@/components/RazorpaySubscriptionButton";
+import { RecruiterNavbar } from "@/components/RecruiterNavbar";
 
-interface RecruiterSubscriptionData {
-  subscription: {
-    planType: string;
-    subscriptionStatus: string;
-    subscriptionEndDate?: string;
-  };
-  usage: {
-    jobPostings: number;
-    premiumTargeting: number;
-    candidateMessages: number;
-    resumeViews: number;
-  };
-  limits: {
-    jobPostings: number;
-    premiumTargeting: number;
-    candidateMessages: number;
-    resumeViews: number;
-  } | null;
+interface PricingTier {
+  id: string;
+  name: string;
+  badge: string;
+  subBadge?: string;
+  monthlyPrice: number;
+  yearlyPrice?: number;
+  yearlyDiscount?: number;
+  perDayPrice?: string;
+  tagline: string;
+  highlights: string[];
+  softClose: string;
+  ctaText: string;
+  isPopular?: boolean;
+  isPremium?: boolean;
+  isFree?: boolean;
+  color: string;
 }
+
+const pricingTiers: PricingTier[] = [
+  {
+    id: "free",
+    name: "FREE",
+    badge: "Always Free",
+    monthlyPrice: 0,
+    perDayPrice: "$0/day",
+    tagline: "Get started with essential recruiting tools.",
+    highlights: [
+      "Free Career Page (Platform-Maintained)",
+      "Showcase your company brand",
+      "Attract quality candidates organically",
+      "Post up to 3 jobs per month",
+      "Basic candidate search",
+      "Email support",
+      "Perfect for testing the waters"
+    ],
+    softClose: "Great for startups and small teams exploring hiring.",
+    ctaText: "Start Free Today",
+    isFree: true,
+    color: "gray"
+  },
+  {
+    id: "starter",
+    name: "STARTER",
+    badge: "Best Value",
+    subBadge: "Most Popular for Small Teams",
+    monthlyPrice: 10,
+    perDayPrice: "$0.33/day",
+    tagline: "Essential tools for small recruiting teams.",
+    highlights: [
+      "Everything in FREE, plus:",
+      "Free Career Page (Enhanced Features)",
+      "Up to 10 active job postings",
+      "AI-powered candidate matching",
+      "Advanced candidate search filters",
+      "Email & chat support",
+      "Basic analytics dashboard",
+      "Mobile app access"
+    ],
+    softClose: "Perfect for growing teams hiring regularly.",
+    ctaText: "Get Started — $10/mo",
+    isPopular: true,
+    color: "green"
+  },
+  {
+    id: "professional",
+    name: "PROFESSIONAL",
+    badge: "Most Popular",
+    subBadge: "Cancel Anytime",
+    monthlyPrice: 20,
+    perDayPrice: "$0.67/day",
+    tagline: "Advanced recruiting with AI-powered features.",
+    highlights: [
+      "Everything in STARTER, plus:",
+      "Unlimited job postings",
+      "Premium AI candidate scoring & ranking",
+      "Automated candidate screening",
+      "Video interview integration",
+      "Custom assessment creation",
+      "Advanced analytics & reporting",
+      "Team collaboration tools",
+      "Priority support",
+      "API access"
+    ],
+    softClose: "Smart choice for professional recruiting teams.",
+    ctaText: "Upgrade to Pro — $20/mo",
+    isPremium: true,
+    color: "blue"
+  },
+  {
+    id: "enterprise",
+    name: "ENTERPRISE",
+    badge: "Premium Experience",
+    subBadge: "For serious hiring operations",
+    monthlyPrice: 40,
+    perDayPrice: "$1.33/day",
+    tagline: "Complete hiring platform with white-glove service.",
+    highlights: [
+      "Everything in PROFESSIONAL, plus:",
+      "White-label career pages",
+      "Custom AI model training",
+      "Advanced hiring predictions",
+      "Background check integration",
+      "Dedicated account manager",
+      "Custom integrations & API",
+      "SLA guarantees",
+      "Advanced security & compliance",
+      "24/7 priority phone support",
+      "Onboarding & training"
+    ],
+    softClose: "Designed for enterprises scaling their hiring.",
+    ctaText: "Contact Sales — $40/mo",
+    isPremium: true,
+    color: "purple"
+  }
+];
 
 export default function RecruiterPremium() {
   const { toast } = useToast();
-  const [pendingTargetingJob, setPendingTargetingJob] = useState<any>(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'stripe' | 'paypal' | 'razorpay'>('paypal');
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const queryClient = useQueryClient();
+  const [selectedTier, setSelectedTier] = useState<PricingTier | null>(null);
+  const [selectedBillingCycle, setSelectedBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [paymentGateway, setPaymentGateway] = useState<'paypal' | 'razorpay' | null>(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
 
-  // Check for pending targeting job from Premium Targeting page
-  useEffect(() => {
-    const pending = localStorage.getItem('pendingTargetingJob');
-    if (pending) {
-      setPendingTargetingJob(JSON.parse(pending));
-    }
-  }, []);
+  // Fetch user data for email
+  const { data: user } = useQuery<{email?: string}>({
+    queryKey: ['/api/user']
+  });
 
-  const { data: subscriptionData, isLoading } = useQuery<RecruiterSubscriptionData>({
+  // Fetch current subscription
+  const { data: subscriptionData } = useQuery({
     queryKey: ['/api/subscription/status'],
   });
 
-  const upgradeMutation = useMutation({
-    mutationFn: async (paymentData: any) => {
-      return apiRequest('/api/subscription/upgrade', 'POST', paymentData);
-    },
-    onSuccess: async (response) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
-      
-      // If there's a pending targeting job, create it now
-      if (pendingTargetingJob) {
-        try {
-          await apiRequest('/api/jobs/targeted', 'POST', pendingTargetingJob);
-          localStorage.removeItem('pendingTargetingJob');
-          toast({
-            title: "Premium Targeting Job Created!",
-            description: `Your targeted job posting "${pendingTargetingJob.title}" is now live with premium targeting.`,
-          });
-          // Redirect to dashboard
-          window.location.href = '/';
-        } catch (error) {
-          toast({
-            title: "Job Creation Failed", 
-            description: "Premium subscription activated but job creation failed. Please try posting again.",
-            variant: "destructive"
-          });
-        }
-      } else {
-        toast({
-          title: "Upgraded Successfully!",
-          description: "Welcome to AutoJobr Premium for Recruiters! Enjoy unlimited access to all features.",
-        });
-      }
-    },
-    onError: (error: Error) => {
+  // Set payment gateway to Razorpay for all users
+  useEffect(() => {
+    setPaymentGateway('razorpay');
+    setIsLoadingLocation(false);
+  }, []);
+
+  const handleSelectTier = (tier: PricingTier) => {
+    // For free tier, no payment needed
+    if (tier.isFree) {
       toast({
-        title: "Upgrade Failed",
-        description: error.message,
-        variant: "destructive",
+        title: "Already on Free Plan!",
+        description: "You're already enjoying all FREE tier benefits including your platform-maintained career page.",
       });
-    },
-  });
-
-  const cancelMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest('/api/subscription/cancel', 'POST');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
-      toast({
-        title: "Subscription Canceled",
-        description: "Your subscription has been canceled. You'll retain premium features until the end of your billing period.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Cancellation Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleStripePayment = async () => {
-    try {
-      const response = await apiRequest('/api/payments/stripe/create-checkout', 'POST', {
-        amount: 4900, // $49 in cents
-        currency: 'usd',
-        userType: 'recruiter'
-      });
-      
-      if (response.url) {
-        window.location.href = response.url;
-      } else {
-        throw new Error('Failed to create Stripe checkout session');
-      }
-    } catch (error) {
-      console.error('Stripe payment error:', error);
-      throw error;
+      return;
     }
-  };
-
-  const handlePayPalPayment = async () => {
-    try {
-      const response = await apiRequest('/api/payments/paypal/create-order', 'POST', {
-        amount: '49.00',
-        currency: 'USD',
-        userType: 'recruiter'
-      });
-      
-      if (response.approvalUrl) {
-        window.location.href = response.approvalUrl;
-      } else {
-        throw new Error('Failed to create PayPal order');
-      }
-    } catch (error) {
-      console.error('PayPal payment error:', error);
-      throw error;
-    }
-  };
-
-  const handleRazorpayPayment = async () => {
-    try {
-      const response = await apiRequest('/api/payments/razorpay/create-order', 'POST', {
-        amount: 4900, // $49 in cents
-        currency: 'USD',
-        userType: 'recruiter'
-      });
-      
-      if (response.order_id) {
-        // Initialize Razorpay checkout
-        const options = {
-          key: response.key_id,
-          amount: response.amount,
-          currency: response.currency,
-          order_id: response.order_id,
-          name: 'AutoJobr Premium',
-          description: 'Recruiter Premium Subscription',
-          handler: function (response: any) {
-            upgradeMutation.mutate({
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpayOrderId: response.razorpay_order_id,
-              razorpaySignature: response.razorpay_signature,
-              paymentMethod: 'razorpay',
-              amount: 49
-            });
-          },
-        };
-        
-        const rzp = new (window as any).Razorpay(options);
-        rzp.open();
-      }
-    } catch (error) {
-      console.error('Razorpay payment error:', error);
-      throw error;
-    }
-  };
-
-  const handleUpgrade = async () => {
-    setIsProcessingPayment(true);
     
-    try {
-      if (selectedPaymentMethod === 'stripe') {
-        await handleStripePayment();
-      } else if (selectedPaymentMethod === 'paypal') {
-        await handlePayPalPayment();
-      } else if (selectedPaymentMethod === 'razorpay') {
-        await handleRazorpayPayment();
-      }
-    } catch (error) {
-      console.error('Payment error:', error);
-      toast({
-        title: "Payment Failed",
-        description: "There was an error processing your payment. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessingPayment(false);
-    }
+    setSelectedTier(tier);
+    setSelectedBillingCycle('monthly'); // Always monthly for recruiters
+    setShowPaymentDialog(true);
+  };
+  
+  const getSelectedTierId = () => {
+    if (!selectedTier) return '';
+    // Backend expects underscore format: recruiter_starter_monthly
+    return `recruiter_${selectedTier.id}_monthly`;
+  };
+  
+  const getSelectedPrice = () => {
+    if (!selectedTier) return 0;
+    return selectedTier.monthlyPrice;
   };
 
-  const getUsagePercentage = (used: number, limit: number) => {
-    if (limit === -1) return 0; // Unlimited
-    return Math.min((used / limit) * 100, 100);
+  const getCardGlow = (color: string) => {
+    const glowMap = {
+      green: "shadow-lg shadow-green-500/20 border-green-500/50",
+      gray: "shadow-sm border-gray-300/50",
+      blue: "shadow-lg shadow-blue-500/20 border-blue-500/50",
+      purple: "shadow-lg shadow-purple-500/20 border-purple-500/50"
+    };
+    return glowMap[color as keyof typeof glowMap] || "";
   };
 
-  const getUsageColor = (used: number, limit: number) => {
-    if (limit === -1) return "bg-green-500"; // Unlimited
-    const percentage = (used / limit) * 100;
-    if (percentage >= 90) return "bg-red-500";
-    if (percentage >= 70) return "bg-yellow-500";
-    return "bg-green-500";
+  const getBadgeVariant = (color: string) => {
+    if (color === "green") return "default";
+    if (color === "blue") return "secondary";
+    return "outline";
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <RecruiterNavbar />
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto">
-            <div className="animate-pulse space-y-6">
-              <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const isPremium = subscriptionData?.subscription.planType === 'premium';
-  const isActive = subscriptionData?.subscription.subscriptionStatus === 'active';
+  const currentPlanType = subscriptionData?.subscription?.planType || 'free';
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20" data-testid="recruiter-premium-page">
       <RecruiterNavbar />
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-2">Recruiter Premium</h1>
-            <p className="text-muted-foreground text-lg">
-              Unlock powerful recruiting tools and unlimited access to premium features
-            </p>
+      <div className="container mx-auto px-4 py-12 space-y-12">
+        {/* Header */}
+        <div className="text-center space-y-4 max-w-3xl mx-auto">
+          <div className="flex items-center justify-center gap-2">
+            <Crown className="w-10 h-10 text-yellow-500" />
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent" data-testid="text-page-title">
+              Recruiter Premium Plans
+            </h1>
           </div>
-
-          {/* Premium Targeting Notification */}
-          {pendingTargetingJob && (
-            <Card className="mb-6 border-purple-200 bg-purple-50 dark:bg-purple-950/20">
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-3">
-                  <Target className="h-5 w-5 text-purple-600 mt-1" />
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-purple-900 dark:text-purple-100">Premium Targeting Job Pending</h3>
-                    <p className="text-sm text-purple-700 dark:text-purple-200 mt-1">
-                      Job "{pendingTargetingJob.title}" ready to post with premium targeting for ${pendingTargetingJob.estimatedCost}. 
-                      Upgrade to Premium to activate targeted candidate matching.
-                    </p>
-                  </div>
-                  <Badge variant="secondary" className="bg-purple-100 text-purple-800">
-                    ${pendingTargetingJob.estimatedCost}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="grid lg:grid-cols-3 gap-8 mb-8">
-            {/* Current Plan Status */}
-            <div className="lg:col-span-1">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-blue-500" />
-                    Current Plan
-                  </CardTitle>
-                  <CardDescription>
-                    Your current subscription status and usage
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Status</span>
-                      <Badge variant={isPremium && isActive ? "default" : "secondary"}>
-                        {isPremium && isActive ? "Premium" : "Basic"}
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Price</span>
-                      <span className="text-lg font-bold">
-                        {isPremium ? "$49/month" : "Free"}
-                      </span>
-                    </div>
-
-                    {subscriptionData?.subscription.subscriptionEndDate && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Renewal</span>
-                        <span className="text-sm">
-                          {new Date(subscriptionData.subscription.subscriptionEndDate).toLocaleDateString()}
-                        </span>
-                      </div>
-                    )}
-
-                    <Separator />
-
-                    {/* Usage Statistics */}
-                    {subscriptionData?.usage && (
-                      <div className="space-y-3">
-                        <h4 className="font-semibold">Usage This Month</h4>
-                        
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>Job Postings</span>
-                            <span>{subscriptionData.usage.jobPostings}/{subscriptionData.limits?.jobPostings === -1 ? '∞' : subscriptionData.limits?.jobPostings}</span>
-                          </div>
-                          <Progress 
-                            value={getUsagePercentage(subscriptionData.usage.jobPostings, subscriptionData.limits?.jobPostings || 0)} 
-                            className="h-2"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>Premium Targeting</span>
-                            <span>{subscriptionData.usage.premiumTargeting}/{subscriptionData.limits?.premiumTargeting === -1 ? '∞' : subscriptionData.limits?.premiumTargeting}</span>
-                          </div>
-                          <Progress 
-                            value={getUsagePercentage(subscriptionData.usage.premiumTargeting, subscriptionData.limits?.premiumTargeting || 0)} 
-                            className="h-2"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>Resume Views</span>
-                            <span>{subscriptionData.usage.resumeViews}/{subscriptionData.limits?.resumeViews === -1 ? '∞' : subscriptionData.limits?.resumeViews}</span>
-                          </div>
-                          <Progress 
-                            value={getUsagePercentage(subscriptionData.usage.resumeViews, subscriptionData.limits?.resumeViews || 0)} 
-                            className="h-2"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {isPremium && isActive && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => cancelMutation.mutate()}
-                        className="w-full"
-                        disabled={cancelMutation.isPending}
-                      >
-                        Cancel Subscription
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Premium Plan Features */}
-            <div className="lg:col-span-2">
-              <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-2xl">
-                    <Crown className="h-6 w-6 text-amber-500" />
-                    Premium Plan
-                    <Badge className="bg-amber-100 text-amber-800">Most Popular</Badge>
-                  </CardTitle>
-                  <CardDescription className="text-lg">
-                    Everything you need to find and hire the best talent
-                  </CardDescription>
-                  <div className="text-3xl font-bold text-blue-600">
-                    $49<span className="text-lg font-normal text-muted-foreground">/month</span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid md:grid-cols-2 gap-6 mb-6">
-                    {/* Core Features */}
-                    <div>
-                      <h4 className="font-semibold mb-3 flex items-center gap-2">
-                        <Zap className="h-4 w-4 text-blue-500" />
-                        Core Features
-                      </h4>
-                      <ul className="space-y-2 text-sm">
-                        <li className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-green-500" />
-                          Unlimited job postings
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-green-500" />
-                          Unlimited candidate applications
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-green-500" />
-                          Advanced resume analytics
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-green-500" />
-                          Background check integration
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-green-500" />
-                          Priority support
-                        </li>
-                      </ul>
-                    </div>
-
-                    {/* Premium Features */}
-                    <div>
-                      <h4 className="font-semibold mb-3 flex items-center gap-2">
-                        <BrainCircuit className="h-4 w-4 text-purple-500" />
-                        AI-Powered Features
-                      </h4>
-                      <ul className="space-y-2 text-sm">
-                        <li className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-green-500" />
-                          Premium targeting & AI matching
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-green-500" />
-                          Automated candidate screening
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-green-500" />
-                          Custom assessment creation
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-green-500" />
-                          Advanced analytics dashboard
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-green-500" />
-                          API access & integrations
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  {!isPremium && (
-                    <>
-                      <Separator className="mb-6" />
-                      
-                      {/* Payment Methods */}
-                      <div className="space-y-4">
-                        <h4 className="font-semibold">Choose Payment Method</h4>
-                        <div className="grid grid-cols-3 gap-3">
-                          <Button
-                            variant={selectedPaymentMethod === 'paypal' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setSelectedPaymentMethod('paypal')}
-                            className="flex items-center gap-2"
-                          >
-                            <CreditCard className="h-4 w-4" />
-                            PayPal
-                          </Button>
-                          <Button
-                            variant={selectedPaymentMethod === 'stripe' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setSelectedPaymentMethod('stripe')}
-                            className="flex items-center gap-2"
-                          >
-                            <CreditCard className="h-4 w-4" />
-                            Stripe
-                          </Button>
-                          <Button
-                            variant={selectedPaymentMethod === 'razorpay' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setSelectedPaymentMethod('razorpay')}
-                            className="flex items-center gap-2"
-                          >
-                            <CreditCard className="h-4 w-4" />
-                            Razorpay
-                          </Button>
-                        </div>
-
-                        {/* Payment Button */}
-                        {selectedPaymentMethod === 'paypal' ? (
-                          <PayPalSubscriptionButton
-                            tierId="recruiter-premium"
-                            amount="49.00"
-                            currency="USD"
-                            planName="Recruiter Premium"
-                            userType="recruiter"
-                            onSuccess={(data) => {
-                              upgradeMutation.mutate({
-                                paypalOrderId: data.orderId,
-                                paymentMethod: 'paypal',
-                                amount: 49
-                              });
-                            }}
-                            onError={(error) => {
-                              toast({
-                                title: "Payment Failed",
-                                description: error.message || "PayPal payment failed. Please try again.",
-                                variant: "destructive",
-                              });
-                            }}
-                            className="w-full"
-                          />
-                        ) : (
-                          <Button
-                            onClick={handleUpgrade}
-                            disabled={isProcessingPayment || upgradeMutation.isPending}
-                            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-                            size="lg"
-                          >
-                            {isProcessingPayment || upgradeMutation.isPending ? (
-                              <>Processing...</>
-                            ) : (
-                              <>
-                                <Crown className="w-5 h-5 mr-2" />
-                                Upgrade to Premium - $49/month
-                              </>
-                            )}
-                          </Button>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+          <p className="text-xl text-muted-foreground" data-testid="text-page-description">
+            Find and hire the best talent with AI-powered recruiting tools
+          </p>
+          <div className="flex items-center justify-center gap-2 text-sm text-green-600 dark:text-green-400">
+            <Coffee className="w-4 h-4" />
+            <span className="font-medium">Starting at just $0.33/day — less than a coffee</span>
           </div>
+        </div>
 
-          {/* Feature Comparison */}
-          <Card>
+        {/* Current Subscription Status */}
+        {subscriptionData && currentPlanType !== 'free' && (
+          <Card className="max-w-2xl mx-auto border-primary/50 bg-primary/5" data-testid="card-current-subscription">
             <CardHeader>
-              <CardTitle>Feature Comparison</CardTitle>
-              <CardDescription>
-                See what's included in each plan
-              </CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Crown className="w-5 h-5 text-yellow-500" />
+                Active Subscription
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-4">Feature</th>
-                      <th className="text-center py-3 px-4">Basic (Free)</th>
-                      <th className="text-center py-3 px-4">Premium ($49/mo)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-sm">
-                    <tr className="border-b">
-                      <td className="py-3 px-4">Job Postings</td>
-                      <td className="text-center py-3 px-4">2 active jobs</td>
-                      <td className="text-center py-3 px-4">
-                        <Check className="h-4 w-4 text-green-500 mx-auto" />
-                        Unlimited
-                      </td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-3 px-4">Applicants per Job</td>
-                      <td className="text-center py-3 px-4">20 applicants</td>
-                      <td className="text-center py-3 px-4">
-                        <Check className="h-4 w-4 text-green-500 mx-auto" />
-                        Unlimited
-                      </td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-3 px-4">Premium Targeting</td>
-                      <td className="text-center py-3 px-4">
-                        <X className="h-4 w-4 text-red-500 mx-auto" />
-                      </td>
-                      <td className="text-center py-3 px-4">
-                        <Check className="h-4 w-4 text-green-500 mx-auto" />
-                      </td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-3 px-4">Custom Assessments</td>
-                      <td className="text-center py-3 px-4">
-                        <X className="h-4 w-4 text-red-500 mx-auto" />
-                      </td>
-                      <td className="text-center py-3 px-4">
-                        <Check className="h-4 w-4 text-green-500 mx-auto" />
-                      </td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-3 px-4">Advanced Analytics</td>
-                      <td className="text-center py-3 px-4">Basic</td>
-                      <td className="text-center py-3 px-4">
-                        <Check className="h-4 w-4 text-green-500 mx-auto" />
-                        Advanced
-                      </td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-3 px-4">API Access</td>
-                      <td className="text-center py-3 px-4">
-                        <X className="h-4 w-4 text-red-500 mx-auto" />
-                      </td>
-                      <td className="text-center py-3 px-4">
-                        <Check className="h-4 w-4 text-green-500 mx-auto" />
-                      </td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-3 px-4">Priority Support</td>
-                      <td className="text-center py-3 px-4">
-                        <X className="h-4 w-4 text-red-500 mx-auto" />
-                      </td>
-                      <td className="text-center py-3 px-4">
-                        <Check className="h-4 w-4 text-green-500 mx-auto" />
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Current Plan:</span>
+                    <Badge data-testid="badge-current-plan">{currentPlanType.toUpperCase()}</Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Status:</span>
+                    <Badge 
+                      variant={subscriptionData.subscription?.subscriptionStatus === 'active' ? 'default' : 'secondary'} 
+                      data-testid="badge-subscription-status"
+                    >
+                      {subscriptionData.subscription?.subscriptionStatus || 'active'}
+                    </Badge>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Monthly Billing Only for Recruiters */}
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Badge variant="secondary">Monthly Billing</Badge>
+          <span>•</span>
+          <span>Cancel Anytime</span>
+        </div>
+
+        {/* Pricing Cards */}
+        <div className="grid lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
+          {pricingTiers.map((tier) => {
+            // Convert tier.id to backend format for comparison
+            const backendTierId = tier.isFree ? 'free' : `recruiter_${tier.id}_monthly`;
+            const isCurrentPlan = currentPlanType === backendTierId || currentPlanType === tier.id;
+            const displayPrice = tier.monthlyPrice;
+            const priceLabel = 'month';
+
+            return (
+              <Card 
+                key={tier.id}
+                className={`relative transition-all duration-300 hover:scale-105 ${
+                  tier.isPopular ? `${getCardGlow(tier.color)} scale-105` : 'border-muted'
+                } ${isCurrentPlan ? 'ring-2 ring-primary' : ''}`}
+                data-testid={`card-tier-${tier.id}`}
+              >
+                {/* Popular Badge */}
+                {tier.isPopular && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
+                    <Badge className="bg-green-500 hover:bg-green-600 text-white px-4 py-1 text-sm font-semibold" data-testid="badge-most-popular">
+                      <Sparkles className="w-3 h-3 mr-1 inline" />
+                      MOST POPULAR
+                    </Badge>
+                  </div>
+                )}
+
+                {/* Current Plan Badge */}
+                {isCurrentPlan && (
+                  <Badge className="absolute -top-3 right-4 bg-primary" data-testid="badge-your-plan">
+                    Your Plan
+                  </Badge>
+                )}
+
+                <CardHeader className="space-y-4 pt-8">
+                  {/* Plan Name */}
+                  <div className="space-y-2">
+                    <CardTitle className="text-2xl font-bold text-center" data-testid={`text-tier-name-${tier.id}`}>
+                      {tier.name}
+                    </CardTitle>
+                    <div className="text-center">
+                      <Badge variant={getBadgeVariant(tier.color)} className="text-xs" data-testid={`badge-plan-${tier.id}`}>
+                        {tier.badge}
+                      </Badge>
+                    </div>
+                    {tier.subBadge && (
+                      <div className="text-center">
+                        <Badge variant="outline" className="text-xs border-green-500 text-green-600 dark:text-green-400" data-testid={`sub-badge-${tier.id}`}>
+                          {tier.subBadge}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Price */}
+                  <div className="text-center space-y-1">
+                    <div className="flex items-baseline justify-center gap-1">
+                      <span className="text-5xl font-bold" data-testid={`text-price-${tier.id}`}>
+                        ${displayPrice}
+                      </span>
+                      {!tier.isFree && <span className="text-muted-foreground text-lg">/ {priceLabel}</span>}
+                    </div>
+                    {tier.perDayPrice && (
+                      <p className="text-sm text-muted-foreground">{tier.perDayPrice}</p>
+                    )}
+                  </div>
+
+                  {/* Tagline */}
+                  <CardDescription className="text-center text-base font-medium" data-testid={`text-tagline-${tier.id}`}>
+                    {tier.tagline}
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="space-y-6">
+                  <Separator />
+
+                  {/* Highlights */}
+                  <div className="space-y-3">
+                    {tier.highlights.map((highlight, idx) => (
+                      <div key={idx} className="flex items-start gap-2" data-testid={`highlight-${tier.id}-${idx}`}>
+                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm leading-relaxed">{highlight}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Separator />
+
+                  {/* Soft Close */}
+                  <p className="text-sm text-center text-muted-foreground italic" data-testid={`text-soft-close-${tier.id}`}>
+                    {tier.softClose}
+                  </p>
+
+                  {/* CTA Button */}
+                  {!isCurrentPlan ? (
+                    <Button 
+                      className={`w-full h-12 text-base font-semibold ${
+                        tier.isFree ? 'bg-gray-600 hover:bg-gray-700' :
+                        tier.isPopular ? 'bg-green-600 hover:bg-green-700' : 
+                        tier.isPremium ? 'bg-blue-600 hover:bg-blue-700' : ''
+                      }`}
+                      onClick={() => handleSelectTier(tier)}
+                      data-testid={`button-select-${tier.id}`}
+                    >
+                      <Zap className="w-5 h-5 mr-2" />
+                      {tier.ctaText}
+                    </Button>
+                  ) : (
+                    <Button 
+                      className="w-full h-12"
+                      variant="outline"
+                      disabled
+                      data-testid="button-current-plan"
+                    >
+                      <Check className="w-5 h-5 mr-2" />
+                      Your Current Plan
+                    </Button>
+                  )}
+
+                  {!tier.isFree && (
+                    <p className="text-xs text-center text-muted-foreground">
+                      Auto-renew • Cancel anytime
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Free Career Page Highlight */}
+        <Card className="max-w-4xl mx-auto bg-gradient-to-r from-green-500/5 to-blue-500/5 border-green-500/20" data-testid="card-free-career-page">
+          <CardContent className="py-8">
+            <div className="flex items-start gap-4">
+              <Globe className="w-12 h-12 text-green-500 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
+                  FREE Career Page For All Plans
+                  <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    Platform-Maintained
+                  </Badge>
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  Every plan includes a beautiful, professional career page maintained by our platform. 
+                  Showcase your company brand, culture, and open positions to attract quality candidates organically — no extra cost!
+                </p>
+                <div className="grid md:grid-cols-3 gap-4 mt-4">
+                  <div className="flex items-center gap-2">
+                    <Heart className="w-5 h-5 text-green-500" />
+                    <span className="text-sm">Customizable Branding</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-green-500" />
+                    <span className="text-sm">Always Up-to-Date</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-green-500" />
+                    <span className="text-sm">SEO Optimized</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Conversion Boost Strip */}
+        <Card className="max-w-4xl mx-auto bg-gradient-to-r from-primary/5 to-purple-500/5 border-primary/20" data-testid="card-conversion-boost">
+          <CardContent className="py-8">
+            <h3 className="text-2xl font-bold text-center mb-6">
+              Why Top Recruiters Choose AutoJobr:
+            </h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="flex items-start gap-3">
+                <Sparkles className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <p className="font-semibold text-lg">"Hire 3× Faster with AI"</p>
+                  <p className="text-sm text-muted-foreground mt-1">Average recruiter fills positions 65% faster with AI-powered matching.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Award className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <p className="font-semibold text-lg">Unbeatable Value</p>
+                  <p className="text-sm text-muted-foreground mt-1">Competitors charge 5–10× more for similar features.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Target className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <p className="font-semibold text-lg">Proven ROI</p>
+                  <p className="text-sm text-muted-foreground mt-1">Professional tier users report 40% higher quality hires.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Gift className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <p className="font-semibold text-lg">Risk-Free</p>
+                  <p className="text-sm text-muted-foreground mt-1">Cancel anytime. No hidden fees. No commitments.</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Features Showcase */}
+        <div className="max-w-6xl mx-auto">
+          <h3 className="text-3xl font-bold text-center mb-8">What You Get With Premium</h3>
+          <div className="grid md:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader>
+                <BrainCircuit className="w-10 h-10 text-primary mb-2" />
+                <CardTitle>AI-Powered Matching</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Advanced AI algorithms match your jobs with the perfect candidates automatically.
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <Video className="w-10 h-10 text-primary mb-2" />
+                <CardTitle>Video Interviews</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Conduct one-way and live video interviews directly through the platform.
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <TrendingUp className="w-10 h-10 text-primary mb-2" />
+                <CardTitle>Advanced Analytics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Track hiring metrics, candidate quality, and optimize your recruiting process.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
+
+      {/* Payment Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className="sm:max-w-md" data-testid="dialog-payment">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              Complete Your Subscription
+            </DialogTitle>
+            <DialogDescription>
+              You've selected: <strong>{selectedTier?.name}</strong> at ${getSelectedPrice()}/month
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 mt-4">
+            {isLoadingLocation ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                <p className="text-sm text-muted-foreground">Setting up payment...</p>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-4">
+                  <label className="text-sm font-medium">Select Payment Method:</label>
+                  <SimplePaymentGatewaySelector
+                    selectedGateway={paymentGateway}
+                    onGatewayChange={setPaymentGateway}
+                  />
+                </div>
+
+                {paymentGateway === 'paypal' && user?.email && selectedTier && (
+                  <PayPalSubscriptionButton
+                    tierId={getSelectedTierId()}
+                    amount={getSelectedPrice().toString()}
+                    currency="USD"
+                    planName={selectedTier.name}
+                    userType="recruiter"
+                    onSuccess={() => {
+                      toast({
+                        title: "Subscription Activated!",
+                        description: "Welcome to premium! Your features are now unlocked.",
+                      });
+                      queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
+                      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+                      setShowPaymentDialog(false);
+                    }}
+                    onError={(error) => {
+                      toast({
+                        title: "Payment Failed",
+                        description: error,
+                        variant: "destructive",
+                      });
+                    }}
+                  />
+                )}
+
+                {paymentGateway === 'razorpay' && selectedTier && user?.email && (
+                  <RazorpaySubscriptionButton
+                    tierId={getSelectedTierId()}
+                    tierName={selectedTier.name}
+                    price={getSelectedPrice()}
+                    userEmail={user.email}
+                    onSuccess={() => {
+                      toast({
+                        title: "Subscription Activated!",
+                        description: "Welcome to premium! Your features are now unlocked.",
+                      });
+                      queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
+                      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+                      setShowPaymentDialog(false);
+                    }}
+                    onError={(error) => {
+                      toast({
+                        title: "Payment Failed",
+                        description: error,
+                        variant: "destructive",
+                      });
+                    }}
+                  />
+                )}
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
