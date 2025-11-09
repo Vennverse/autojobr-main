@@ -289,8 +289,8 @@ export default function RecruiterPremium() {
           <span>Cancel Anytime</span>
         </div>
 
-        {/* Pricing Cards - Enhanced 3D Standing Design */}
-        <div className="grid lg:grid-cols-4 gap-8 max-w-7xl mx-auto perspective-1000">
+        {/* Pricing Cards - Clean Professional Design */}
+        <div className="grid lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
           {pricingTiers.map((tier) => {
             // Convert tier.id to backend format for comparison
             const backendTierId = tier.isFree ? 'free' : `recruiter_${tier.id}_monthly`;
@@ -301,138 +301,93 @@ export default function RecruiterPremium() {
             return (
               <Card 
                 key={tier.id}
-                className={`relative transition-all duration-500 hover:-translate-y-4 hover:shadow-2xl transform-gpu ${
+                className={`relative transition-all duration-300 hover:shadow-xl ${
                   tier.isPopular 
-                    ? `${getCardGlow(tier.color)} scale-105 shadow-2xl border-2` 
-                    : 'border-muted hover:border-primary/30 shadow-lg'
-                } ${isCurrentPlan ? 'ring-2 ring-primary shadow-primary/50' : ''} 
-                bg-gradient-to-br from-card/95 to-card/80 backdrop-blur-sm overflow-hidden`}
-                style={{
-                  transformStyle: 'preserve-3d',
-                  transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}
+                    ? 'border-2 border-primary shadow-lg scale-105' 
+                    : 'border hover:border-primary/50'
+                } ${isCurrentPlan ? 'ring-2 ring-primary' : ''} bg-card`}
                 data-testid={`card-tier-${tier.id}`}
               >
-                {/* Decorative Gradient Overlay */}
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-                
                 {/* Popular Badge */}
                 {tier.isPopular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
-                    <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-4 py-1.5 text-sm font-semibold shadow-lg animate-pulse" data-testid="badge-most-popular">
-                      <Sparkles className="w-3 h-3 mr-1 inline" />
-                      MOST POPULAR
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                    <Badge className="bg-primary text-primary-foreground px-3 py-1" data-testid="badge-most-popular">
+                      Popular
                     </Badge>
                   </div>
                 )}
 
                 {/* Current Plan Badge */}
                 {isCurrentPlan && (
-                  <Badge className="absolute -top-3 right-4 bg-primary" data-testid="badge-your-plan">
-                    Your Plan
+                  <Badge className="absolute -top-3 right-4 bg-green-600 text-white" data-testid="badge-your-plan">
+                    Current Plan
                   </Badge>
                 )}
 
-                <CardHeader className="space-y-4 pt-8 pb-6 bg-gradient-to-b from-muted/30 to-transparent">
-                  {/* Plan Name */}
-                  <div className="space-y-3">
-                    <CardTitle className="text-3xl font-extrabold text-center tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text" data-testid={`text-tier-name-${tier.id}`}>
+                <CardHeader className="space-y-4 pt-8 pb-4">
+                  {/* Plan Name & Tagline */}
+                  <div className="space-y-2">
+                    <CardTitle className="text-2xl font-bold text-center" data-testid={`text-tier-name-${tier.id}`}>
                       {tier.name}
                     </CardTitle>
-                    <div className="text-center">
-                      <Badge 
-                        variant={getBadgeVariant(tier.color)} 
-                        className={`text-xs px-3 py-1 ${tier.isPopular ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 dark:from-green-900/50 dark:to-emerald-900/50 dark:text-green-300 border-green-300 dark:border-green-700' : ''}`}
-                        data-testid={`badge-plan-${tier.id}`}
-                      >
-                        {tier.badge}
-                      </Badge>
-                    </div>
-                    {tier.subBadge && (
-                      <div className="text-center">
-                        <Badge variant="outline" className="text-xs border-green-500/50 text-green-600 dark:text-green-400 px-3 py-1" data-testid={`sub-badge-${tier.id}`}>
-                          {tier.subBadge}
-                        </Badge>
-                      </div>
-                    )}
+                    <CardDescription className="text-center text-sm" data-testid={`text-tagline-${tier.id}`}>
+                      {tier.tagline}
+                    </CardDescription>
                   </div>
 
                   {/* Price */}
-                  <div className="text-center space-y-2 py-4">
-                    <div className="flex items-baseline justify-center gap-2">
-                      <span className={`text-6xl font-extrabold tracking-tight ${
-                        tier.isPopular 
-                          ? 'bg-gradient-to-br from-green-600 to-emerald-600 dark:from-green-400 dark:to-emerald-400 bg-clip-text text-transparent' 
-                          : 'text-foreground'
-                      }`} data-testid={`text-price-${tier.id}`}>
+                  <div className="text-center py-4">
+                    <div className="flex items-baseline justify-center gap-1">
+                      <span className="text-5xl font-bold" data-testid={`text-price-${tier.id}`}>
                         ${displayPrice}
                       </span>
-                      {!tier.isFree && <span className="text-muted-foreground text-xl font-medium">/ {priceLabel}</span>}
+                      {!tier.isFree && <span className="text-muted-foreground text-lg">/{priceLabel}</span>}
                     </div>
                     {tier.perDayPrice && (
-                      <p className="text-sm text-muted-foreground font-medium bg-muted/50 rounded-full px-4 py-1 inline-block">
+                      <p className="text-xs text-muted-foreground mt-2">
                         {tier.perDayPrice}
                       </p>
                     )}
                   </div>
-
-                  {/* Tagline */}
-                  <CardDescription className="text-center text-base font-medium" data-testid={`text-tagline-${tier.id}`}>
-                    {tier.tagline}
-                  </CardDescription>
                 </CardHeader>
 
-                <CardContent className="space-y-6">
-                  <Separator />
-
-                  {/* Highlights */}
-                  <div className="space-y-3">
-                    {tier.highlights.map((highlight, idx) => (
-                      <div key={idx} className="flex items-start gap-2" data-testid={`highlight-${tier.id}-${idx}`}>
-                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm leading-relaxed">{highlight}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <Separator />
-
-                  {/* Soft Close */}
-                  <p className="text-sm text-center text-muted-foreground italic" data-testid={`text-soft-close-${tier.id}`}>
-                    {tier.softClose}
-                  </p>
-
+                <CardContent className="space-y-4">
                   {/* CTA Button */}
                   {!isCurrentPlan ? (
                     <Button 
-                      className={`w-full h-14 text-base font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 ${
-                        tier.isFree ? 'bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800' :
-                        tier.isPopular ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' : 
-                        tier.isPremium ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700' : ''
+                      className={`w-full h-12 font-semibold ${
+                        tier.isPopular 
+                          ? 'bg-primary hover:bg-primary/90' 
+                          : 'bg-secondary hover:bg-secondary/80'
                       }`}
                       onClick={() => handleSelectTier(tier)}
                       data-testid={`button-select-${tier.id}`}
                     >
-                      <Zap className="w-5 h-5 mr-2" />
-                      {tier.ctaText}
+                      {tier.isFree ? 'Current Plan' : 'Start Free Trial'}
                     </Button>
                   ) : (
                     <Button 
-                      className="w-full h-14 border-2 border-primary/50 bg-primary/5"
+                      className="w-full h-12"
                       variant="outline"
                       disabled
                       data-testid="button-current-plan"
                     >
-                      <Check className="w-5 h-5 mr-2" />
-                      Your Current Plan
+                      <Check className="w-4 h-4 mr-2" />
+                      Current Plan
                     </Button>
                   )}
 
-                  {!tier.isFree && (
-                    <p className="text-xs text-center text-muted-foreground">
-                      Auto-renew • Cancel anytime
-                    </p>
-                  )}
+                  <Separator />
+
+                  {/* Features List */}
+                  <div className="space-y-2.5">
+                    {tier.highlights.slice(0, 8).map((highlight, idx) => (
+                      <div key={idx} className="flex items-start gap-2" data-testid={`highlight-${tier.id}-${idx}`}>
+                        <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                        <span className="text-sm text-muted-foreground leading-tight">{highlight}</span>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             );
@@ -568,7 +523,7 @@ export default function RecruiterPremium() {
           </DialogHeader>
 
           <div className="space-y-6 mt-4">
-            {/* Payment gateway selector */}
+            {/* Payment gateway selector - Always visible */}
             <div className="space-y-3">
               <label className="text-sm font-medium block">Select Payment Method:</label>
               <SimplePaymentGatewaySelector
@@ -578,7 +533,7 @@ export default function RecruiterPremium() {
             </div>
 
             {/* Show payment buttons based on selected gateway */}
-            {paymentGateway === 'paypal' && user?.email && selectedTier ? (
+            {paymentGateway === 'paypal' && user?.email && selectedTier && (
               <PayPalSubscriptionButton
                 tierId={getSelectedTierId()}
                 amount={getSelectedPrice().toString()}
@@ -604,7 +559,7 @@ export default function RecruiterPremium() {
               />
             )}
 
-            ) : paymentGateway === 'razorpay' && selectedTier && user?.email ? (
+            {paymentGateway === 'razorpay' && selectedTier && user?.email && (
               <RazorpaySubscriptionButton
                 tierId={getSelectedTierId()}
                 tierName={selectedTier.name}
@@ -627,7 +582,7 @@ export default function RecruiterPremium() {
                   });
                 }}
               />
-            ) : null}
+            )}
           </div>
         </DialogContent>
       </Dialog>
