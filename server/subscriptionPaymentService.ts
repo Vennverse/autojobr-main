@@ -161,17 +161,23 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
   },
 
   // Recruiter Plans
+  // FREE TIER (default - no entry needed here, handled by free plan in subscriptionService.ts)
+  
+  // STARTER - $10/month
   {
     id: 'recruiter_starter_monthly',
     name: 'Recruiter Starter',
-    price: 49.99,
+    price: 10,
     currency: 'USD',
     billingCycle: 'monthly',
     userType: 'recruiter',
     features: [
-      'Job Posting',
-      'Candidate Search',
-      'Basic Analytics',
+      'FREE Professional Career Page (We maintain it!)',
+      'Up to 5 Active Job Postings',
+      'Candidate Search & Filtering',
+      'Basic AI Resume Scoring',
+      'Virtual Interview Assignments (50)',
+      'Basic Analytics Dashboard',
       'Email Support'
     ],
     limits: {
@@ -180,19 +186,24 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
       interviews: 50
     }
   },
+  
+  // PROFESSIONAL - $20/month (Most Popular)
   {
     id: 'recruiter_professional_monthly',
     name: 'Recruiter Professional',
-    price: 99.99,
+    price: 20,
     currency: 'USD',
     billingCycle: 'monthly',
     userType: 'recruiter',
     features: [
-      'Everything in Starter',
-      'Virtual Interview Assignments',
-      'Coding Test Creation',
-      'Advanced Analytics',
-      'Priority Support'
+      'Everything in Starter, plus:',
+      'FREE Professional Career Page (We maintain it!)',
+      'Up to 20 Active Job Postings',
+      'Virtual Interview Assignments (200)',
+      'Custom Coding Test Creation',
+      'Advanced AI Candidate Matching',
+      'Advanced Analytics & Reports',
+      'Priority Email Support'
     ],
     limits: {
       jobPostings: 20,
@@ -200,19 +211,25 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
       interviews: 200
     }
   },
+  
+  // ENTERPRISE - $40/month
   {
     id: 'recruiter_enterprise_monthly',
     name: 'Recruiter Enterprise',
-    price: 199.99,
+    price: 40,
     currency: 'USD',
     billingCycle: 'monthly',
     userType: 'recruiter',
     features: [
-      'Everything in Professional',
+      'Everything in Professional, plus:',
+      'FREE Fortune 500-Quality Career Page (We maintain it!)',
       'Unlimited Job Postings',
-      'Custom Branding',
-      'API Access',
-      'Dedicated Support'
+      'Unlimited Virtual Interviews',
+      'Custom Company Branding',
+      'API Access & Integrations',
+      'Bulk Candidate Operations',
+      'Dedicated Account Manager',
+      'Priority Support (24-hour response)'
     ],
     limits: {
       jobPostings: -1, // Unlimited
