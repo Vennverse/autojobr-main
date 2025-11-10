@@ -32,7 +32,7 @@ import {
   HelpCircle,
   FileText
 } from "lucide-react";
-import logoImage from "@assets/generated_images/AutoJobr_professional_logo_17c702fa_optimized.png";
+import logoImage from "/favicon.svg";
 
 // Top companies in referral network
 const topCompanies = [
