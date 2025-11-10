@@ -1,11 +1,13 @@
+
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Navbar } from "@/components/navbar";
 import { RecruiterNavbar } from "@/components/RecruiterNavbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -95,27 +97,6 @@ const integrations: Integration[] = [
     ]
   },
   {
-    id: "openai",
-    name: "OpenAI",
-    icon: <SiOpenai className="w-12 h-12 text-black dark:text-white" />,
-    category: "AI/ML",
-    description: "Power your app with GPT-4 and AI capabilities",
-    longDescription: "Integrate OpenAI's powerful language models for resume analysis, cover letter generation, interview preparation, and more.",
-    rating: 5.0,
-    installs: "8.1k",
-    status: "active",
-    isPremium: true,
-    pricing: "Usage-based",
-    setupTime: "3 min",
-    features: [
-      "GPT-4 integration",
-      "Resume analysis",
-      "Cover letter generation",
-      "Interview prep",
-      "Career coaching AI"
-    ]
-  },
-  {
     id: "google-workspace",
     name: "Google Workspace",
     icon: <SiGoogle className="w-12 h-12 text-red-600" />,
@@ -156,160 +137,12 @@ const integrations: Integration[] = [
       "Network insights",
       "OAuth login"
     ]
-  },
-  {
-    id: "zapier",
-    name: "Zapier",
-    icon: <SiZapier className="w-12 h-12 text-orange-600" />,
-    category: "Automation",
-    description: "Connect with 5,000+ apps via Zapier",
-    longDescription: "Unlock unlimited automation possibilities by connecting AutoJobr with 5,000+ apps through Zapier. Create custom workflows without code.",
-    rating: 4.8,
-    installs: "1.9k",
-    status: "coming-soon",
-    isPremium: true,
-    pricing: "Coming Soon",
-    setupTime: "10 min",
-    features: [
-      "5,000+ app connections",
-      "Custom workflows",
-      "No-code automation",
-      "Trigger-based actions",
-      "Real-time sync"
-    ]
-  },
-  {
-    id: "slack",
-    name: "Slack",
-    icon: <SiSlack className="w-12 h-12 text-purple-600" />,
-    category: "Communication",
-    description: "Get notifications and collaborate in Slack",
-    longDescription: "Receive real-time notifications in Slack for new applications, interviews, and candidate updates. Enable team collaboration directly in your workspace.",
-    rating: 4.7,
-    installs: "2.1k",
-    status: "coming-soon",
-    isPremium: false,
-    pricing: "Free",
-    setupTime: "3 min",
-    features: [
-      "Real-time notifications",
-      "Team collaboration",
-      "Custom alerts",
-      "Slash commands",
-      "Bot integration"
-    ]
-  },
-  {
-    id: "notion",
-    name: "Notion",
-    icon: <SiNotion className="w-12 h-12 text-black dark:text-white" />,
-    category: "Productivity",
-    description: "Sync candidates and jobs to Notion databases",
-    longDescription: "Integrate with Notion to manage your recruitment pipeline, candidate notes, and job descriptions in your Notion workspace.",
-    rating: 4.9,
-    installs: "1.5k",
-    status: "coming-soon",
-    isPremium: true,
-    pricing: "Pro plan",
-    setupTime: "8 min",
-    features: [
-      "Database sync",
-      "Pipeline management",
-      "Note taking",
-      "Template library",
-      "Two-way sync"
-    ]
-  },
-  {
-    id: "airtable",
-    name: "Airtable",
-    icon: <SiAirtable className="w-12 h-12 text-yellow-600" />,
-    category: "Database",
-    description: "Export data to Airtable bases",
-    longDescription: "Export your candidate data, applications, and analytics to Airtable for advanced reporting and custom views.",
-    rating: 4.6,
-    installs: "980",
-    status: "beta",
-    isPremium: true,
-    pricing: "Pro plan",
-    setupTime: "6 min",
-    features: [
-      "Data export",
-      "Custom views",
-      "Advanced filtering",
-      "Collaboration",
-      "API access"
-    ]
-  },
-  {
-    id: "calendly",
-    name: "Calendly",
-    icon: <Calendar className="w-12 h-12 text-blue-600" />,
-    category: "Scheduling",
-    description: "Schedule interviews with Calendly integration",
-    longDescription: "Streamline interview scheduling with Calendly. Let candidates book interview slots automatically based on your availability.",
-    rating: 4.8,
-    installs: "3.2k",
-    status: "active",
-    isPremium: false,
-    pricing: "Free",
-    setupTime: "4 min",
-    features: [
-      "Auto scheduling",
-      "Calendar sync",
-      "Email reminders",
-      "Custom availability",
-      "Time zone detection"
-    ]
-  },
-  {
-    id: "sendgrid",
-    name: "SendGrid",
-    icon: <Mail className="w-12 h-12 text-blue-600" />,
-    category: "Email",
-    description: "Send transactional and marketing emails",
-    longDescription: "Integrate SendGrid for reliable email delivery. Send application confirmations, interview invites, and marketing campaigns.",
-    rating: 4.5,
-    installs: "4.1k",
-    status: "active",
-    isPremium: false,
-    pricing: "Free",
-    setupTime: "5 min",
-    features: [
-      "Transactional emails",
-      "Email templates",
-      "Delivery analytics",
-      "A/B testing",
-      "SMTP relay"
-    ]
-  },
-  {
-    id: "zoom",
-    name: "Zoom",
-    icon: <Video className="w-12 h-12 text-blue-600" />,
-    category: "Video",
-    description: "Conduct video interviews via Zoom",
-    longDescription: "Host virtual interviews with Zoom integration. Automatically create meeting links and send invites to candidates.",
-    rating: 4.7,
-    installs: "5.6k",
-    status: "coming-soon",
-    isPremium: true,
-    pricing: "Pro plan",
-    setupTime: "5 min",
-    features: [
-      "Meeting creation",
-      "Auto invites",
-      "Recording",
-      "Screen sharing",
-      "Waiting rooms"
-    ]
   }
 ];
 
 const categories = [
   "All",
   "Payments",
-  "AI/ML",
   "Productivity",
   "Communication",
   "Social",
@@ -322,11 +155,11 @@ const categories = [
 
 export default function IntegrationMarketplace() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
   const [showDialog, setShowDialog] = useState(false);
-  const [activeIntegrations, setActiveIntegrations] = useState<any[]>([]); // Assuming this state will hold connected integrations
 
   // Fetch user data to determine user type
   const { data: user } = useQuery<{userType?: string; planType?: string}>({
@@ -346,19 +179,6 @@ export default function IntegrationMarketplace() {
   });
 
   const handleConnect = (integration: Integration) => {
-    // Check if already connected
-    const isConnected = activeIntegrations.some((int: any) => 
-      int.platformName === integration.id || int.integrationId === integration.id
-    );
-
-    if (isConnected) {
-      toast({
-        title: "Already Connected",
-        description: `${integration.name} is already connected to your account.`,
-      });
-      return;
-    }
-
     if (integration.isPremium && !isPremium) {
       toast({
         title: "Premium Feature",
@@ -395,8 +215,6 @@ export default function IntegrationMarketplace() {
       title: "🎉 Integration Connected!",
       description: `${selectedIntegration.name} has been added to your account. Configure it in Settings.`,
     });
-    // Add the integration to activeIntegrations state
-    setActiveIntegrations(prev => [...prev, selectedIntegration]);
     setShowDialog(false);
   };
 
@@ -404,16 +222,16 @@ export default function IntegrationMarketplace() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {isRecruiter ? <RecruiterNavbar /> : <Navbar />}
 
-      <div className="container mx-auto px-4 py-12 space-y-8" data-testid="integration-marketplace-page">
+      <div className="container mx-auto px-4 py-12 space-y-8">
         {/* Header */}
         <div className="text-center space-y-4 max-w-3xl mx-auto">
           <div className="flex items-center justify-center gap-2">
             <Zap className="w-10 h-10 text-primary" />
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent" data-testid="text-page-title">
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
               Integration Marketplace
             </h1>
           </div>
-          <p className="text-xl text-muted-foreground" data-testid="text-page-description">
+          <p className="text-xl text-muted-foreground">
             Connect AutoJobr with your favorite tools and supercharge your workflow
           </p>
           <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
@@ -442,7 +260,6 @@ export default function IntegrationMarketplace() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 h-12 text-base"
-              data-testid="input-search"
             />
           </div>
 
@@ -455,48 +272,11 @@ export default function IntegrationMarketplace() {
                 variant={selectedCategory === category ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedCategory(category)}
-                data-testid={`button-category-${category.toLowerCase()}`}
               >
                 {category}
               </Button>
             ))}
           </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-primary">12</div>
-                <div className="text-sm text-muted-foreground mt-1">Integrations</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-green-600">9</div>
-                <div className="text-sm text-muted-foreground mt-1">Active</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-600">2</div>
-                <div className="text-sm text-muted-foreground mt-1">Beta</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600">3</div>
-                <div className="text-sm text-muted-foreground mt-1">Coming Soon</div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Integration Cards */}
@@ -506,7 +286,6 @@ export default function IntegrationMarketplace() {
               key={integration.id}
               className="relative hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => handleConnect(integration)}
-              data-testid={`card-integration-${integration.id}`}
             >
               {integration.isPremium && (
                 <Badge className="absolute top-4 right-4 bg-yellow-500 text-white">
@@ -519,7 +298,7 @@ export default function IntegrationMarketplace() {
                   <div className="flex items-center gap-3">
                     {integration.icon}
                     <div>
-                      <CardTitle className="text-xl" data-testid={`text-integration-name-${integration.id}`}>
+                      <CardTitle className="text-xl">
                         {integration.name}
                       </CardTitle>
                       <Badge variant="outline" className="mt-1 text-xs">
@@ -528,7 +307,7 @@ export default function IntegrationMarketplace() {
                     </div>
                   </div>
                 </div>
-                <CardDescription data-testid={`text-description-${integration.id}`}>
+                <CardDescription>
                   {integration.description}
                 </CardDescription>
               </CardHeader>
@@ -574,7 +353,6 @@ export default function IntegrationMarketplace() {
                 <Button 
                   className="w-full"
                   variant={integration.status === 'active' ? 'default' : 'outline'}
-                  data-testid={`button-connect-${integration.id}`}
                 >
                   {integration.status === 'active' ? 'Connect Now' : 'Learn More'}
                   <ArrowRight className="w-4 h-4 ml-2" />
@@ -597,7 +375,7 @@ export default function IntegrationMarketplace() {
 
       {/* Integration Detail Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="sm:max-w-2xl" data-testid="dialog-integration-detail">
+        <DialogContent className="sm:max-w-2xl">
           {selectedIntegration && (
             <>
               <DialogHeader>
@@ -616,30 +394,6 @@ export default function IntegrationMarketplace() {
               </DialogHeader>
 
               <div className="space-y-6 mt-6">
-                {/* Stats */}
-                <div className="flex items-center gap-6 text-sm">
-                  <div className="flex items-center gap-1">
-                    <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                    <span className="font-medium">{selectedIntegration.rating} rating</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Users className="w-5 h-5 text-muted-foreground" />
-                    <span>{selectedIntegration.installs} installs</span>
-                  </div>
-                  {selectedIntegration.pricing && (
-                    <div className="flex items-center gap-1">
-                      <CreditCard className="w-5 h-5 text-muted-foreground" />
-                      <span>{selectedIntegration.pricing}</span>
-                    </div>
-                  )}
-                  {selectedIntegration.setupTime && (
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-5 h-5 text-muted-foreground" />
-                      <span>{selectedIntegration.setupTime} setup</span>
-                    </div>
-                  )}
-                </div>
-
                 {/* Features */}
                 <div>
                   <h4 className="font-semibold mb-3">Key Features:</h4>
@@ -659,7 +413,6 @@ export default function IntegrationMarketplace() {
                     className="flex-1"
                     onClick={installIntegration}
                     disabled={selectedIntegration.status !== 'active'}
-                    data-testid="button-install-integration"
                   >
                     {selectedIntegration.status === 'active' ? (
                       <>
@@ -673,7 +426,6 @@ export default function IntegrationMarketplace() {
                   <Button 
                     variant="outline"
                     onClick={() => setShowDialog(false)}
-                    data-testid="button-cancel"
                   >
                     Cancel
                   </Button>
