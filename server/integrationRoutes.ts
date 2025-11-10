@@ -3,6 +3,7 @@ import { db } from "./db";
 import { userIntegrations } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { isAuthenticated } from "./auth";
+import { EncryptionService } from "./encryptionService";
 
 const router = Router();
 
@@ -131,11 +132,23 @@ router.get("/user-integrations", isAuthenticated, async (req: Request, res: Resp
       .from(userIntegrations)
       .where(eq(userIntegrations.userId, userId));
     
-    // Map integrations with their feature links
+    // Map integrations with their feature links and redact sensitive fields
     const integrationsWithFeatures = integrations.map(integration => ({
-      ...integration,
+      id: integration.id,
+      userId: integration.userId,
+      integrationId: integration.integrationId,
+      isEnabled: integration.isEnabled,
+      config: integration.config,
+      lastSyncedAt: integration.lastSyncedAt,
+      createdAt: integration.createdAt,
+      updatedAt: integration.updatedAt,
       features: INTEGRATION_FEATURES[integration.integrationId]?.features || [],
-      setupRequired: INTEGRATION_FEATURES[integration.integrationId]?.requiresSetup || false
+      setupRequired: INTEGRATION_FEATURES[integration.integrationId]?.requiresSetup || false,
+      // Redact sensitive fields - only show if configured
+      hasApiKey: !!integration.apiKey,
+      hasApiSecret: !!integration.apiSecret,
+      hasAccessToken: !!integration.accessToken,
+      hasRefreshToken: !!integration.refreshToken
     }));
     
     res.json(integrationsWithFeatures);
@@ -161,10 +174,39 @@ router.get("/integration-features/:integrationId", (req: Request, res: Response)
 router.post("/user-integrations", isAuthenticated, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
-    const { integrationId, apiKey, apiSecret, accessToken, refreshToken, config } = req.body;
+    const { integrationId, config: clientConfig } = req.body;
     
     if (!integrationId) {
       return res.status(400).json({ message: "Integration ID is required" });
+    }
+
+    // Get integration setup requirements
+    const integrationSetup = INTEGRATION_FEATURES[integrationId];
+    if (!integrationSetup) {
+      return res.status(404).json({ message: "Integration not found" });
+    }
+
+    // Validate required setup fields
+    if (integrationSetup.requiresSetup && integrationSetup.setupFields.length > 0) {
+      const missingFields = integrationSetup.setupFields.filter(
+        field => !clientConfig || !clientConfig[field]
+      );
+      
+      if (missingFields.length > 0) {
+        return res.status(400).json({ 
+          message: `Missing required fields: ${missingFields.join(', ')}` 
+        });
+      }
+    }
+
+    // Encrypt sensitive fields
+    const encryptedConfig: any = { ...clientConfig };
+    const sensitiveFields = ['apiKey', 'apiSecret', 'accessToken', 'refreshToken', 'webhookUrl'];
+    
+    for (const field of sensitiveFields) {
+      if (encryptedConfig[field]) {
+        encryptedConfig[field] = EncryptionService.encrypt(encryptedConfig[field]);
+      }
     }
     
     // Check if integration already exists
@@ -182,17 +224,17 @@ router.post("/user-integrations", isAuthenticated, async (req: Request, res: Res
       await db
         .update(userIntegrations)
         .set({
-          apiKey,
-          apiSecret,
-          accessToken,
-          refreshToken,
-          config,
+          config: encryptedConfig,
           isEnabled: true,
           updatedAt: new Date()
         })
         .where(eq(userIntegrations.id, existing[0].id));
       
-      return res.json({ message: "Integration updated successfully", integration: existing[0] });
+      return res.json({ 
+        message: "Integration updated successfully",
+        integrationId,
+        isEnabled: true
+      });
     }
     
     // Create new integration
@@ -201,16 +243,16 @@ router.post("/user-integrations", isAuthenticated, async (req: Request, res: Res
       .values({
         userId,
         integrationId,
-        apiKey,
-        apiSecret,
-        accessToken,
-        refreshToken,
-        config,
+        config: encryptedConfig,
         isEnabled: true
       })
       .returning();
     
-    res.json({ message: "Integration enabled successfully", integration: newIntegration });
+    res.json({ 
+      message: "Integration enabled successfully",
+      integrationId: newIntegration.integrationId,
+      isEnabled: newIntegration.isEnabled
+    });
   } catch (error) {
     console.error("Error enabling integration:", error);
     res.status(500).json({ message: "Failed to enable integration" });
