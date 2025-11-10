@@ -311,4 +311,214 @@ router.delete("/user-integrations/:integrationId", isAuthenticated, async (req: 
   }
 });
 
+// Export CRM contacts to Airtable (EXAMPLE OF ACTUAL INTEGRATION)
+router.post("/export/airtable/crm-contacts", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { contacts } = req.body;
+
+    if (!contacts || contacts.length === 0) {
+      return res.status(400).json({ message: "No contacts to export" });
+    }
+
+    // Import IntegrationService
+    const { IntegrationService } = await import("./integrationService.js");
+    
+    // Export to Airtable
+    const success = await IntegrationService.exportToAirtable(
+      userId,
+      "CRM Contacts",
+      contacts
+    );
+
+    if (!success) {
+      return res.status(400).json({ 
+        message: "Airtable not configured or export failed. Please configure Airtable in Integration Marketplace."
+      });
+    }
+
+    res.json({ 
+      message: "Successfully exported to Airtable",
+      count: contacts.length
+    });
+  } catch (error) {
+    console.error("Error exporting to Airtable:", error);
+    res.status(500).json({ message: "Failed to export to Airtable" });
+  }
+});
+
+// Send Slack notification (EXAMPLE OF ACTUAL INTEGRATION)
+router.post("/notify/slack", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { message, title, color, fields } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ message: "Message is required" });
+    }
+
+    // Import IntegrationService
+    const { IntegrationService } = await import("./integrationService.js");
+    
+    // Send Slack notification
+    const success = await IntegrationService.sendSlackNotification(
+      userId,
+      message,
+      { title, color, fields }
+    );
+
+    if (!success) {
+      return res.status(400).json({ 
+        message: "Slack not configured or notification failed. Please configure Slack in Integration Marketplace."
+      });
+    }
+
+    res.json({ message: "Notification sent to Slack" });
+  } catch (error) {
+    console.error("Error sending Slack notification:", error);
+    res.status(500).json({ message: "Failed to send Slack notification" });
+  }
+});
+
+// Post job to LinkedIn
+router.post("/post/linkedin", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { title, description, location, company } = req.body;
+
+    if (!title || !description) {
+      return res.status(400).json({ message: "Title and description are required" });
+    }
+
+    const { IntegrationService } = await import("./integrationService.js");
+    
+    const success = await IntegrationService.postToLinkedIn(userId, {
+      title,
+      description,
+      location,
+      company
+    });
+
+    if (!success) {
+      return res.status(400).json({ 
+        message: "LinkedIn not configured or posting failed. Please configure LinkedIn in Integration Marketplace."
+      });
+    }
+
+    res.json({ message: "Job posted to LinkedIn successfully" });
+  } catch (error) {
+    console.error("Error posting to LinkedIn:", error);
+    res.status(500).json({ message: "Failed to post to LinkedIn" });
+  }
+});
+
+// Create Calendly meeting
+router.post("/schedule/calendly", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { name, email, startTime, endTime } = req.body;
+
+    if (!name || !email || !startTime || !endTime) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const { IntegrationService } = await import("./integrationService.js");
+    
+    const result = await IntegrationService.createCalendlyMeeting(userId, {
+      name,
+      email,
+      startTime,
+      endTime
+    });
+
+    if (!result.success) {
+      return res.status(400).json({ 
+        message: "Calendly not configured or scheduling failed. Please configure Calendly in Integration Marketplace."
+      });
+    }
+
+    res.json({ 
+      message: "Meeting scheduled via Calendly",
+      meetingUrl: result.meetingUrl
+    });
+  } catch (error) {
+    console.error("Error creating Calendly meeting:", error);
+    res.status(500).json({ message: "Failed to create Calendly meeting" });
+  }
+});
+
+// Create Zoom meeting
+router.post("/schedule/zoom", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { topic, startTime, duration, agenda } = req.body;
+
+    if (!topic || !startTime || !duration) {
+      return res.status(400).json({ message: "Topic, start time, and duration are required" });
+    }
+
+    const { IntegrationService } = await import("./integrationService.js");
+    
+    const result = await IntegrationService.createZoomMeeting(userId, {
+      topic,
+      startTime,
+      duration,
+      agenda
+    });
+
+    if (!result.success) {
+      return res.status(400).json({ 
+        message: "Zoom not configured or meeting creation failed. Please configure Zoom in Integration Marketplace."
+      });
+    }
+
+    res.json({ 
+      message: "Zoom meeting created successfully",
+      meetingUrl: result.meetingUrl,
+      meetingId: result.meetingId,
+      password: result.password
+    });
+  } catch (error) {
+    console.error("Error creating Zoom meeting:", error);
+    res.status(500).json({ message: "Failed to create Zoom meeting" });
+  }
+});
+
+// Create Google Meet
+router.post("/schedule/google-meet", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { summary, description, startTime, endTime, attendees } = req.body;
+
+    if (!summary || !startTime || !endTime) {
+      return res.status(400).json({ message: "Summary, start time, and end time are required" });
+    }
+
+    const { IntegrationService } = await import("./integrationService.js");
+    
+    const result = await IntegrationService.createGoogleMeet(userId, {
+      summary,
+      description,
+      startTime,
+      endTime,
+      attendees
+    });
+
+    if (!result.success) {
+      return res.status(400).json({ 
+        message: "Google Workspace not configured or meeting creation failed. Please configure Google Workspace in Integration Marketplace."
+      });
+    }
+
+    res.json({ 
+      message: "Google Meet created successfully",
+      meetingUrl: result.meetingUrl,
+      eventId: result.eventId
+    });
+  } catch (error) {
+    console.error("Error creating Google Meet:", error);
+    res.status(500).json({ message: "Failed to create Google Meet" });
+  }
+});
+
 export default router;

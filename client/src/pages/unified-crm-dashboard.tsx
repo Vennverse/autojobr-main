@@ -21,9 +21,11 @@ import { insertCrmContactSchema } from "@shared/schema";
 import {
   Users, Building2, Phone, Mail, Calendar, Clock, Plus,
   Search, Filter, Tag, TrendingUp, AlertCircle, CheckCircle,
-  MoreVertical, Edit, Trash2, MessageSquare, ArrowRight, Target, Zap
+  MoreVertical, Edit, Trash2, MessageSquare, ArrowRight, Target, Zap,
+  Download, Send
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { SiAirtable, SiSlack } from "react-icons/si";
 
 export default function UnifiedCrmDashboard() {
   const { toast } = useToast();
@@ -120,6 +122,48 @@ export default function UnifiedCrmDashboard() {
       setShowInteractionDialog(false);
       resetInteractionForm();
       toast({ title: "✅ Interaction Logged", description: "Interaction recorded successfully" });
+    },
+  });
+
+  // Export to Airtable mutation (INTEGRATION)
+  const exportToAirtableMutation = useMutation({
+    mutationFn: async () => {
+      const contacts = contactsData?.contacts || [];
+      return await apiRequest("/api/integrations/export/airtable/crm-contacts", "POST", { contacts });
+    },
+    onSuccess: (data: any) => {
+      toast({ 
+        title: "📊 Exported to Airtable", 
+        description: `Successfully exported ${data.count} contacts to Airtable`
+      });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Export Failed", 
+        description: error.message || "Please configure Airtable in Integration Marketplace",
+        variant: "destructive"
+      });
+    },
+  });
+
+  // Send Slack notification mutation (INTEGRATION)
+  const sendSlackNotificationMutation = useMutation({
+    mutationFn: async (message: string) => {
+      return await apiRequest("/api/integrations/notify/slack", "POST", {
+        title: "CRM Update",
+        message,
+        color: "#36a64f"
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "📢 Sent to Slack", description: "Notification sent successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Notification Failed", 
+        description: error.message || "Please configure Slack in Integration Marketplace",
+        variant: "destructive"
+      });
     },
   });
 
@@ -493,6 +537,27 @@ export default function UnifiedCrmDashboard() {
                         className="pl-10 w-64"
                       />
                     </div>
+                    {/* INTEGRATION BUTTONS */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => exportToAirtableMutation.mutate()}
+                      disabled={exportToAirtableMutation.isPending || !contactsData?.contacts?.length}
+                      data-testid="button-export-airtable"
+                    >
+                      <SiAirtable className="w-4 h-4 mr-2" />
+                      {exportToAirtableMutation.isPending ? "Exporting..." : "Export to Airtable"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => sendSlackNotificationMutation.mutate(`${contactsData?.contacts?.length || 0} contacts in CRM`)}
+                      disabled={sendSlackNotificationMutation.isPending}
+                      data-testid="button-notify-slack"
+                    >
+                      <SiSlack className="w-4 h-4 mr-2" />
+                      {sendSlackNotificationMutation.isPending ? "Sending..." : "Notify Team"}
+                    </Button>
                   </div>
                 </div>
               </CardHeader>
