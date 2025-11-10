@@ -10426,6 +10426,71 @@ Return ONLY the JSON object, no additional text.`;
     }
   });
 
+  // ============= INTEGRATIONS MARKETPLACE =============
+  const { IntegrationService } = await import('./integrationService');
+
+  app.get('/api/integrations/available', isAuthenticated, async (req: any, res) => {
+    try {
+      const category = req.query.category as string | undefined;
+      const integrations = IntegrationService.getAvailableIntegrations(category);
+      res.json(integrations);
+    } catch (error) {
+      handleError(res, error, 'Failed to fetch integrations');
+    }
+  });
+
+  app.get('/api/integrations/active', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const integrations = await IntegrationService.getUserIntegrations(userId);
+      res.json(integrations);
+    } catch (error) {
+      handleError(res, error, 'Failed to fetch active integrations');
+    }
+  });
+
+  app.post('/api/integrations/connect', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { integrationId, config } = req.body;
+      
+      const integration = await IntegrationService.saveIntegration(userId, integrationId, config);
+      res.json({ success: true, integration });
+    } catch (error) {
+      handleError(res, error, 'Failed to connect integration');
+    }
+  });
+
+  app.post('/api/integrations/test', isAuthenticated, async (req: any, res) => {
+    try {
+      const { integrationId, config } = req.body;
+      const result = await IntegrationService.testConnection(integrationId, config);
+      res.json(result);
+    } catch (error) {
+      handleError(res, error, 'Failed to test connection');
+    }
+  });
+
+  app.post('/api/integrations/:id/sync', isAuthenticated, async (req: any, res) => {
+    try {
+      const integrationId = parseInt(req.params.id);
+      const result = await IntegrationService.syncIntegration(integrationId);
+      res.json(result);
+    } catch (error) {
+      handleError(res, error, 'Failed to sync integration');
+    }
+  });
+
+  app.post('/api/integrations/:id/disconnect', isAuthenticated, async (req: any, res) => {
+    try {
+      const integrationId = parseInt(req.params.id);
+      await IntegrationService.disableIntegration(integrationId);
+      res.json({ success: true });
+    } catch (error) {
+      handleError(res, error, 'Failed to disconnect integration');
+    }
+  });
+
   // ============= ENHANCED CRM FEATURES (HubSpot-level) =============
   const { EnhancedCrmService } = await import('./enhancedCrmService');
 
