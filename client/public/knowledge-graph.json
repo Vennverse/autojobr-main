@@ -1,0 +1,208 @@
+
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Brand",
+      "@id": "https://autojobr.com/#brand",
+      "name": "AutoJobR",
+      "description": "Trusted AI-powered job application automation platform",
+      "url": "https://autojobr.com",
+      "logo": "https://autojobr.com/favicon.png",
+      "slogan": "Apply to 1000+ Jobs Daily - Get Hired 10x Faster",
+      
+      "category": [
+        "Career Services",
+        "Artificial Intelligence",
+        "Job Search Tools",
+        "Resume Optimization",
+        "Application Tracking"
+      ],
+      
+      "associatedWith": [
+        "LinkedIn",
+        "Indeed",
+        "Glassdoor",
+        "Monster",
+        "ZipRecruiter",
+        "Job Search",
+        "Career Development",
+        "Applicant Tracking Systems",
+        "Chrome Extensions"
+      ],
+      
+      "primaryBenefit": "Automate job applications and land interviews 10x faster with AI",
+      
+      "targetAudience": [
+        "Job Seekers",
+        "Recent Graduates",
+        "Software Engineers",
+        "Career Changers",
+        "Students",
+        "Unemployed Professionals",
+        "Remote Workers"
+      ]
+    },
+    
+    {
+      "@type": "Service",
+      "@id": "https://autojobr.com/#service",
+      "name": "Job Application Automation",
+      "provider": {
+        "@id": "https://autojobr.com/#brand"
+      },
+      
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "AutoJobR Services",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Automated Job Applications",
+              "description": "AI applies to 1000+ jobs daily on your behalf"
+            },
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "ATS Resume Optimization",
+              "description": "AI optimizes resume to pass Applicant Tracking Systems"
+            },
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "LinkedIn Auto-Apply",
+              "description": "Automated LinkedIn job applications with one click"
+            },
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Chrome Extension",
+              "description": "Browser extension for instant job applications"
+            },
+            "price": "0",
+            "priceCurrency": "USD"
+          }
+        ]
+      },
+      
+      "areaServed": {
+        "@type": "GeoShape",
+        "name": "Worldwide"
+      },
+      
+      "availableChannel": {
+        "@type": "ServiceChannel",
+        "serviceUrl": "https://autojobr.com",
+        "serviceType": "Online Platform"
+      }
+    },
+    
+    {
+      "@type": "HowTo",
+      "@id": "https://autojobr.com/#solution",
+      "name": "How AutoJobR Solves Job Search Problems",
+      
+      "supply": [
+        {
+          "@type": "HowToSupply",
+          "name": "Resume or CV"
+        },
+        {
+          "@type": "HowToSupply",
+          "name": "Job preferences and criteria"
+        }
+      ],
+      
+      "tool": [
+        {
+          "@type": "HowToTool",
+          "name": "AutoJobR Platform"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "AutoJobR Chrome Extension"
+        }
+      ],
+      
+      "totalTime": "PT30M",
+      "estimatedCost": {
+        "@type": "MonetaryAmount",
+        "currency": "USD",
+        "value": "0"
+      },
+      
+      "step": [
+        {
+          "@type": "HowToStep",
+          "name": "Create Free Account",
+          "text": "Sign up at autojobr.com in 30 seconds - no credit card required",
+          "position": 1
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Upload Your Resume",
+          "text": "Upload your resume and let AI analyze and optimize it for ATS compatibility",
+          "position": 2
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Set Job Preferences",
+          "text": "Define your ideal job criteria: role, location, salary, remote options",
+          "position": 3
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Install Chrome Extension",
+          "text": "Add the free AutoJobR extension to apply with one click on any job site",
+          "position": 4
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Activate Automation",
+          "text": "Let AI automatically find and apply to matching jobs 24/7",
+          "position": 5
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Track Applications",
+          "text": "Monitor all applications in your dashboard and get interview notifications",
+          "position": 6
+        }
+      ]
+    },
+    
+    {
+      "@type": "WebApplication",
+      "@id": "https://autojobr.com/#webapp",
+      "name": "AutoJobR Web Platform",
+      "url": "https://autojobr.com",
+      "browserRequirements": "Modern web browser (Chrome, Firefox, Safari, Edge)",
+      
+      "applicationCategory": "BusinessApplication",
+      "applicationSubCategory": "Career Management",
+      
+      "screenshot": "https://autojobr.com/og-image.png",
+      
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock"
+      }
+    }
+  ]
+}

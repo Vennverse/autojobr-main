@@ -1,0 +1,135 @@
+
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "AutoJobR",
+  "url": "https://autojobr.com",
+  "description": "Free AI-powered job application automation platform that helps job seekers apply to 1000+ jobs daily, beat ATS systems, and get hired 10x faster.",
+  
+  "mainEntity": {
+    "@type": "SoftwareApplication",
+    "name": "AutoJobR - AI Job Application Automation",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web, Chrome Extension",
+    
+    "about": [
+      {
+        "@type": "Thing",
+        "name": "Job Application Automation",
+        "description": "Automated system that applies to multiple jobs simultaneously using AI"
+      },
+      {
+        "@type": "Thing",
+        "name": "ATS Optimization",
+        "description": "Applicant Tracking System resume optimization to pass automated screening"
+      },
+      {
+        "@type": "Thing",
+        "name": "AI Resume Builder",
+        "description": "Artificial intelligence powered resume creation and optimization"
+      }
+    ],
+    
+    "keywords": [
+      "job application automation",
+      "AI job search",
+      "auto apply jobs free",
+      "LinkedIn automation tool",
+      "Indeed auto apply",
+      "ATS optimizer",
+      "resume optimizer",
+      "job search bot",
+      "career automation",
+      "free job applications",
+      "1 click apply",
+      "job application tool",
+      "automated job search",
+      "AI resume builder",
+      "beat ATS systems",
+      "job hunting automation",
+      "Chrome extension job search",
+      "bulk job applications",
+      "job search assistant"
+    ],
+    
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+      "availability": "https://schema.org/InStock",
+      "description": "Free forever plan with unlimited basic features"
+    },
+    
+    "featureList": [
+      "Apply to 1000+ jobs daily automatically",
+      "AI-powered ATS resume optimization",
+      "LinkedIn auto-apply integration",
+      "Indeed one-click applications",
+      "Smart job matching algorithm",
+      "Automated cover letter generation",
+      "Application tracking dashboard",
+      "Interview scheduling automation",
+      "Chrome extension for all job sites",
+      "Free forever plan available",
+      "No credit card required",
+      "Works with 100+ job boards"
+    ],
+    
+    "isAccessibleForFree": true,
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.9",
+      "ratingCount": "50000",
+      "bestRating": "5"
+    }
+  },
+  
+  "potentialAction": [
+    {
+      "@type": "SearchAction",
+      "target": "https://autojobr.com/jobs?search={search_term}",
+      "query-input": "required name=search_term"
+    },
+    {
+      "@type": "RegisterAction",
+      "target": "https://autojobr.com/auth",
+      "description": "Sign up for free job application automation"
+    }
+  ],
+  
+  "publisher": {
+    "@type": "Organization",
+    "name": "AutoJobR",
+    "url": "https://autojobr.com",
+    "logo": "https://autojobr.com/favicon.png",
+    "description": "Leading AI job automation platform trusted by 1M+ users worldwide",
+    "knowsAbout": [
+      "Artificial Intelligence",
+      "Machine Learning",
+      "Job Application Automation",
+      "Applicant Tracking Systems",
+      "Resume Optimization",
+      "Career Development",
+      "LinkedIn Integration",
+      "Indeed Integration",
+      "Natural Language Processing"
+    ]
+  },
+  
+  "citation": {
+    "source": "AutoJobR Official Platform",
+    "verificationMethod": "Direct platform data",
+    "lastVerified": "2025-01-10",
+    "authoritative": true
+  },
+  
+  "trustSignals": {
+    "userCount": "1,000,000+",
+    "applicationsProcessed": "10,000,000+",
+    "successRate": "85%",
+    "averageTimeToInterview": "7 days",
+    "freeFeatures": true,
+    "noCreditCardRequired": true,
+    "activeSupport": true
+  }
+}

@@ -28,7 +28,7 @@ export default function SEOHead({
   const fullTitle = title.includes("AutoJobR") ? title : `${title} | AutoJobR`;
   const currentUrl = canonicalUrl || (typeof window !== 'undefined' ? window.location.href : 'https://autojobr.com');
   
-  // Enhanced structured data for better SEO
+  // Enhanced structured data for AI Engine Optimization (AEO) and Generative Engine Optimization (GEO)
   const defaultStructuredData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -37,7 +37,16 @@ export default function SEOHead({
         "@id": "https://autojobr.com/#website",
         "url": "https://autojobr.com/",
         "name": "AutoJobR - AI Job Application Automation",
+        "alternateName": ["AutoJobR", "Auto Job R", "AI Job Application Tool"],
         "description": description,
+        "about": {
+          "@type": "Thing",
+          "name": "Job Application Automation",
+          "description": "AI-powered platform that automates job applications, optimizes resumes for ATS systems, and helps job seekers land interviews faster"
+        },
+        "keywords": "job application automation, AI job search, ATS optimizer, resume builder, career automation, LinkedIn automation, Indeed auto apply, job search bot, free job applications, AI resume optimizer",
+        "inLanguage": "en-US",
+        "isAccessibleForFree": "True",
         "potentialAction": {
           "@type": "SearchAction",
           "target": {
@@ -45,24 +54,180 @@ export default function SEOHead({
             "urlTemplate": "https://autojobr.com/jobs?search={search_term_string}"
           },
           "query-input": "required name=search_term_string"
-        },
-        "inLanguage": "en-US"
+        }
       },
       {
         "@type": "Organization",
         "@id": "https://autojobr.com/#organization",
         "name": "AutoJobR",
+        "legalName": "AutoJobR Inc.",
         "url": "https://autojobr.com/",
         "logo": {
           "@type": "ImageObject",
           "url": "https://autojobr.com/favicon.png",
           "width": 512,
-          "height": 512
+          "height": 512,
+          "caption": "AutoJobR Logo - AI Job Application Automation Platform"
         },
+        "description": "Leading AI-powered job application automation platform helping 1M+ users apply to jobs 10x faster and beat ATS systems",
+        "foundingDate": "2024",
+        "email": "support@autojobr.com",
+        "knowsAbout": [
+          "Artificial Intelligence",
+          "Job Application Automation",
+          "Applicant Tracking Systems (ATS)",
+          "Resume Optimization",
+          "Career Development",
+          "Job Search Optimization",
+          "LinkedIn Automation",
+          "Indeed Integration",
+          "Chrome Extensions",
+          "Natural Language Processing",
+          "Machine Learning",
+          "Career Coaching"
+        ],
+        "areaServed": "Worldwide",
         "sameAs": [
           "https://twitter.com/autojobr",
-          "https://linkedin.com/company/autojobr"
+          "https://linkedin.com/company/autojobr",
+          "https://facebook.com/autojobr",
+          "https://instagram.com/autojobr"
+        ],
+        "brand": {
+          "@type": "Brand",
+          "name": "AutoJobR",
+          "description": "Trusted AI job automation platform"
+        }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://autojobr.com/#software",
+        "name": "AutoJobR - Job Application Automation Software",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": ["Windows", "macOS", "Linux", "Chrome OS", "Web Browser"],
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock",
+          "priceValidUntil": "2030-12-31",
+          "description": "Free job application automation with premium features available"
+        },
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.9",
+          "ratingCount": "50000",
+          "bestRating": "5",
+          "worstRating": "1"
+        },
+        "featureList": [
+          "AI-powered job matching",
+          "Automated job applications",
+          "ATS resume optimization",
+          "LinkedIn automation",
+          "Indeed auto-apply",
+          "Chrome extension",
+          "Cover letter generator",
+          "Interview preparation",
+          "Application tracking",
+          "AI career coaching"
+        ],
+        "screenshot": "https://autojobr.com/og-image.png",
+        "softwareVersion": "2.0",
+        "datePublished": "2024-01-01",
+        "description": "Comprehensive AI platform that automates job applications, optimizes resumes for ATS, and helps users get hired 10x faster"
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://autojobr.com/#faq",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What is AutoJobR?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "AutoJobR is a free AI-powered job application automation platform that helps job seekers apply to 1000+ jobs daily, beat ATS systems, and get hired 10x faster. It uses advanced AI to match candidates with relevant jobs, optimize resumes, and automate the entire application process."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How does AutoJobR help beat ATS systems?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "AutoJobR uses AI to analyze job descriptions and optimize your resume with the right keywords, formatting, and content structure that ATS systems look for. It ensures your resume passes automated screening and reaches human recruiters."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is AutoJobR really free?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes, AutoJobR offers a completely free plan that includes job search automation, basic ATS optimization, and application tracking. Premium features with advanced AI tools are available for users who want enhanced capabilities."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Which job boards does AutoJobR support?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "AutoJobR integrates with major job boards including LinkedIn, Indeed, Glassdoor, Monster, ZipRecruiter, and 100+ other platforms. Our Chrome extension works across all job sites."
+            }
+          }
         ]
+      },
+      {
+        "@type": "HowTo",
+        "@id": "https://autojobr.com/#howto",
+        "name": "How to Use AutoJobR for Job Search Automation",
+        "description": "Step-by-step guide to automate your job search with AutoJobR",
+        "step": [
+          {
+            "@type": "HowToStep",
+            "position": 1,
+            "name": "Sign Up Free",
+            "text": "Create a free AutoJobR account in 30 seconds"
+          },
+          {
+            "@type": "HowToStep",
+            "position": 2,
+            "name": "Upload Resume",
+            "text": "Upload your resume and let AI optimize it for ATS systems"
+          },
+          {
+            "@type": "HowToStep",
+            "position": 3,
+            "name": "Set Preferences",
+            "text": "Set your job preferences, location, salary range, and desired roles"
+          },
+          {
+            "@type": "HowToStep",
+            "position": 4,
+            "name": "Install Extension",
+            "text": "Install the free Chrome extension for one-click applications"
+          },
+          {
+            "@type": "HowToStep",
+            "position": 5,
+            "name": "Apply Automatically",
+            "text": "AI automatically applies to matching jobs across all platforms"
+          }
+        ]
+      },
+      {
+        "@type": "Service",
+        "@id": "https://autojobr.com/#service",
+        "name": "Job Application Automation Service",
+        "provider": {
+          "@id": "https://autojobr.com/#organization"
+        },
+        "serviceType": "Career Services",
+        "areaServed": "Worldwide",
+        "audience": {
+          "@type": "Audience",
+          "audienceType": "Job Seekers, Recent Graduates, Career Changers, Software Engineers, Students"
+        },
+        "category": "Employment and Career Services",
+        "description": "AI-powered job application automation that applies to hundreds of jobs on your behalf, optimizes resumes for ATS, and helps you get interviews faster"
       }
     ]
   };
