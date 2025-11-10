@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Building, MapPin, DollarSign, Users, Clock, Briefcase, Mail, CheckCircle, X, Sparkles } from "lucide-react";
+import { SiLinkedin } from "react-icons/si";
 import { useLocation } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -146,18 +147,59 @@ export default function PostJob() {
     mutationFn: async (jobData: any) => {
       return await apiRequest("/api/recruiter/jobs", "POST", jobData);
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       toast({
         title: "Job Posted Successfully",
         description: "Your job posting is now live and candidates can apply.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/recruiter/jobs'] });
+      
+      // Show LinkedIn posting option
+      if (data?.job) {
+        toast({
+          title: "Share on LinkedIn?",
+          description: "You can also post this job to LinkedIn with one click.",
+          action: (
+            <Button
+              size="sm"
+              onClick={() => postToLinkedInMutation.mutate({
+                title: data.job.title,
+                description: data.job.description,
+                location: data.job.location,
+                company: data.job.companyName
+              })}
+            >
+              Post to LinkedIn
+            </Button>
+          ),
+        });
+      }
+      
       setLocation('/recruiter-dashboard');
     },
     onError: (error: any) => {
       toast({
         title: "Failed to Post Job",
         description: error.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const postToLinkedInMutation = useMutation({
+    mutationFn: async (jobData: any) => {
+      return await apiRequest("/api/integrations/post/linkedin", "POST", jobData);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Posted to LinkedIn",
+        description: "Your job has been successfully posted to LinkedIn!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "LinkedIn Posting Failed",
+        description: error.message || "Please configure LinkedIn integration in Integration Marketplace.",
         variant: "destructive",
       });
     },
@@ -734,22 +776,52 @@ export default function PostJob() {
               </Card>
 
               {/* Submit */}
-              <div className="flex gap-4 justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setLocation('/recruiter-dashboard')}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={createJobMutation.isPending}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {createJobMutation.isPending ? "Posting..." : "Post Job"}
-                </Button>
-              </div>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex gap-4 justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setLocation('/recruiter-dashboard')}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      disabled={createJobMutation.isPending}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {createJobMutation.isPending ? "Posting..." : "Post Job"}
+                    </Button>
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      💡 After posting, you can share this job to LinkedIn instantly
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={!formData.title || !formData.description || postToLinkedInMutation.isPending}
+                      onClick={() => postToLinkedInMutation.mutate({
+                        title: formData.title,
+                        description: formData.description,
+                        location: formData.location,
+                        company: formData.companyName
+                      })}
+                      className="w-full"
+                    >
+                      <SiLinkedin className="w-4 h-4 mr-2 text-[#0077B5]" />
+                      {postToLinkedInMutation.isPending ? "Posting to LinkedIn..." : "Also Post to LinkedIn"}
+                    </Button>
+                    <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+                      Requires LinkedIn integration setup in Integration Marketplace
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
             </form>
           </div>
         </div>
