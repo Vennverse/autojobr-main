@@ -326,6 +326,7 @@ export default function IntegrationMarketplace() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
   const [showDialog, setShowDialog] = useState(false);
+  const [activeIntegrations, setActiveIntegrations] = useState<any[]>([]); // Assuming this state will hold connected integrations
 
   // Fetch user data to determine user type
   const { data: user } = useQuery<{userType?: string; planType?: string}>({
@@ -345,6 +346,19 @@ export default function IntegrationMarketplace() {
   });
 
   const handleConnect = (integration: Integration) => {
+    // Check if already connected
+    const isConnected = activeIntegrations.some((int: any) => 
+      int.platformName === integration.id || int.integrationId === integration.id
+    );
+
+    if (isConnected) {
+      toast({
+        title: "Already Connected",
+        description: `${integration.name} is already connected to your account.`,
+      });
+      return;
+    }
+
     if (integration.isPremium && !isPremium) {
       toast({
         title: "Premium Feature",
@@ -381,13 +395,15 @@ export default function IntegrationMarketplace() {
       title: "🎉 Integration Connected!",
       description: `${selectedIntegration.name} has been added to your account. Configure it in Settings.`,
     });
+    // Add the integration to activeIntegrations state
+    setActiveIntegrations(prev => [...prev, selectedIntegration]);
     setShowDialog(false);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {isRecruiter ? <RecruiterNavbar /> : <Navbar />}
-      
+
       <div className="container mx-auto px-4 py-12 space-y-8" data-testid="integration-marketplace-page">
         {/* Header */}
         <div className="text-center space-y-4 max-w-3xl mx-auto">
@@ -497,7 +513,7 @@ export default function IntegrationMarketplace() {
                   Premium
                 </Badge>
               )}
-              
+
               <CardHeader className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">

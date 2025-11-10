@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanquery/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -151,30 +151,18 @@ const pricingTiers: PricingTier[] = [
 export default function RecruiterPremium() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   // Debug logging
   useEffect(() => {
     console.log('[RecruiterPremium] Component mounted');
   }, []);
-  
+
   const [selectedTier, setSelectedTier] = useState<PricingTier | null>(null);
   const [selectedBillingCycle, setSelectedBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [paymentGateway, setPaymentGateway] = useState<'stripe' | 'paypal' | 'razorpay' | null>(null);
-
-  // Add perspective CSS to document
-  React.useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = `
-      .perspective-1000 {
-        perspective: 1000px;
-      }
-    `;
-    document.head.appendChild(style);
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
+  const [paymentGateway, setPaymentGateway] = useState<'paypal' | 'razorpay' | null>(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
   // Fetch user data for email
   const { data: user } = useQuery<{email?: string}>({
@@ -186,6 +174,31 @@ export default function RecruiterPremium() {
     queryKey: ['/api/subscription/status'],
   });
 
+  // Detect user location and set default payment gateway
+  useEffect(() => {
+    const detectLocation = async () => {
+      try {
+        // Try to detect country from IP
+        const response = await fetch('https://ipapi.co/json/');
+        const data = await response.json();
+
+        // Set default payment gateway based on location
+        if (data.country_code === 'IN') {
+          setPaymentGateway('razorpay');
+        } else {
+          setPaymentGateway('paypal');
+        }
+      } catch (error) {
+        // Default to PayPal if detection fails
+        setPaymentGateway('paypal');
+      } finally {
+        setIsLoadingLocation(false);
+      }
+    };
+
+    detectLocation();
+  }, []);
+
   const handleSelectTier = (tier: PricingTier) => {
     // For free tier, no payment needed
     if (tier.isFree) {
@@ -195,18 +208,18 @@ export default function RecruiterPremium() {
       });
       return;
     }
-    
+
     setSelectedTier(tier);
     setSelectedBillingCycle('monthly'); // Always monthly for recruiters
     setShowPaymentDialog(true);
   };
-  
+
   const getSelectedTierId = () => {
     if (!selectedTier) return '';
     // Backend expects underscore format: recruiter_starter_monthly
     return `recruiter_${selectedTier.id}_monthly`;
   };
-  
+
   const getSelectedPrice = () => {
     if (!selectedTier) return 0;
     return selectedTier.monthlyPrice;
