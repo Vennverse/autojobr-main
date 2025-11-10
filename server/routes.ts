@@ -3953,6 +3953,113 @@ Return only the improved job description text, no additional formatting or expla
     }
   });
 
+  // ===== INTEGRATION ROUTES =====
+  // Get available integrations
+  app.get('/api/integrations/available', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      const { IntegrationService } = await import('./integrationService.js');
+      const category = req.query.category as string;
+      const integrations = IntegrationService.getAvailableIntegrations(category);
+
+      res.json(integrations);
+    } catch (error) {
+      console.error('[INTEGRATIONS] Get available error:', error);
+      handleError(res, error, 'Failed to fetch available integrations');
+    }
+  });
+
+  // Connect new integration
+  app.post('/api/integrations/connect', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      const { integrationId, config } = req.body;
+      const { IntegrationService } = await import('./integrationService.js');
+
+      const savedIntegration = await IntegrationService.saveIntegration(userId, integrationId, config);
+      
+      console.log(`✅ [INTEGRATIONS] ${integrationId} connected for recruiter ${userId}`);
+      res.json({ success: true, integration: savedIntegration });
+    } catch (error) {
+      console.error('[INTEGRATIONS] Connect error:', error);
+      handleError(res, error, 'Failed to connect integration');
+    }
+  });
+
+  // Test integration connection
+  app.post('/api/integrations/test', isAuthenticated, async (req: any, res) => {
+    try {
+      const { integrationId, config } = req.body;
+      const { IntegrationService } = await import('./integrationService.js');
+
+      const result = await IntegrationService.testConnection(integrationId, config);
+      res.json(result);
+    } catch (error) {
+      console.error('[INTEGRATIONS] Test connection error:', error);
+      handleError(res, error, 'Failed to test integration connection');
+    }
+  });
+
+  // Get active integrations
+  app.get('/api/integrations/active', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      const { IntegrationService } = await import('./integrationService.js');
+      const integrations = await IntegrationService.getUserIntegrations(userId);
+
+      res.json(integrations);
+    } catch (error) {
+      console.error('[INTEGRATIONS] Get active error:', error);
+      handleError(res, error, 'Failed to fetch active integrations');
+    }
+  });
+
+  // Sync integration data
+  app.post('/api/integrations/:id/sync', isAuthenticated, async (req: any, res) => {
+    try {
+      const integrationId = parseInt(req.params.id);
+      const { IntegrationService } = await import('./integrationService.js');
+
+      const result = await IntegrationService.syncIntegration(integrationId);
+      res.json(result);
+    } catch (error) {
+      console.error('[INTEGRATIONS] Sync error:', error);
+      handleError(res, error, 'Failed to sync integration');
+    }
+  });
+
+  // Disconnect integration
+  app.post('/api/integrations/:id/disconnect', isAuthenticated, async (req: any, res) => {
+    try {
+      const integrationId = parseInt(req.params.id);
+      const { IntegrationService } = await import('./integrationService.js');
+
+      await IntegrationService.disableIntegration(integrationId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[INTEGRATIONS] Disconnect error:', error);
+      handleError(res, error, 'Failed to disconnect integration');
+    }
+  });
+
   // ===== MOUNT PAYMENT ROUTES =====
   const { paymentRoutes } = await import('./paymentRoutes.js');
   app.use('/api/payments', paymentRoutes);
