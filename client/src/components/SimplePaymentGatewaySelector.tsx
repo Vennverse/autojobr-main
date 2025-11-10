@@ -1,11 +1,11 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, CheckCircle, AlertCircle } from "lucide-react";
-import { SiPaypal } from "react-icons/si";
+import { SiPaypal, SiStripe } from "react-icons/si";
 
 interface SimplePaymentGatewaySelectorProps {
-  selectedGateway: 'paypal' | 'razorpay' | null;
-  onGatewayChange: (gateway: 'paypal' | 'razorpay') => void;
+  selectedGateway: 'stripe' | 'paypal' | 'razorpay' | null;
+  onGatewayChange: (gateway: 'stripe' | 'paypal' | 'razorpay') => void;
 }
 
 export default function SimplePaymentGatewaySelector({
@@ -14,22 +14,31 @@ export default function SimplePaymentGatewaySelector({
 }: SimplePaymentGatewaySelectorProps) {
   const paymentGateways = [
     {
+      id: 'stripe',
+      name: 'Stripe',
+      icon: <SiStripe className="w-6 h-6 text-blue-600" />,
+      description: 'Credit/Debit Cards (International)',
+      status: 'active',
+      badge: 'Most Secure',
+      badgeColor: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+    },
+    {
       id: 'paypal',
       name: 'PayPal',
       icon: <SiPaypal className="w-6 h-6 text-blue-600" />,
       description: 'Pay securely with PayPal (International)',
       status: 'active',
       badge: 'Recommended',
-      badgeColor: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+      badgeColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
     },
     {
       id: 'razorpay',
       name: 'Razorpay',
-      icon: <CreditCard className="w-6 h-6 text-blue-600" />,
+      icon: <CreditCard className="w-6 h-6 text-purple-600" />,
       description: 'Cards, UPI, Netbanking (India)',
       status: 'active',
       badge: 'Popular in India',
-      badgeColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+      badgeColor: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
     }
   ];
 
@@ -44,7 +53,7 @@ export default function SimplePaymentGatewaySelector({
                 ? 'border-primary bg-primary/5'
                 : 'border-border hover:border-primary/50'
             }`}
-            onClick={() => onGatewayChange(gateway.id as 'paypal' | 'razorpay')}
+            onClick={() => onGatewayChange(gateway.id as 'stripe' | 'paypal' | 'razorpay')}
             data-testid={`gateway-option-${gateway.id}`}
           >
             <div className="flex items-center justify-between">

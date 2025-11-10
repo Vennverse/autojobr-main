@@ -160,7 +160,7 @@ export default function RecruiterPremium() {
   const [selectedTier, setSelectedTier] = useState<PricingTier | null>(null);
   const [selectedBillingCycle, setSelectedBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [paymentGateway, setPaymentGateway] = useState<'paypal' | 'razorpay'>('razorpay');
+  const [paymentGateway, setPaymentGateway] = useState<'stripe' | 'paypal' | 'razorpay' | null>(null);
 
   // Add perspective CSS to document
   React.useEffect(() => {
@@ -523,16 +523,37 @@ export default function RecruiterPremium() {
           </DialogHeader>
 
           <div className="space-y-6 mt-4">
-            {/* Payment gateway selector - Always visible */}
+            {/* Payment gateway selector */}
             <div className="space-y-3">
               <label className="text-sm font-medium block">Select Payment Method:</label>
               <SimplePaymentGatewaySelector
                 selectedGateway={paymentGateway}
-                onGatewayChange={(gateway) => setPaymentGateway(gateway as 'paypal' | 'razorpay')}
+                onGatewayChange={setPaymentGateway}
               />
             </div>
 
             {/* Show payment buttons based on selected gateway */}
+            {paymentGateway === 'stripe' && user?.email && selectedTier && (
+              <div className="p-4 border-2 border-blue-500/20 bg-blue-50 dark:bg-blue-950/20 rounded-lg text-center">
+                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Stripe Payment</h4>
+                <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
+                  Secure credit card payment via Stripe
+                </p>
+                <Button 
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  onClick={() => {
+                    toast({
+                      title: "Coming Soon",
+                      description: "Stripe integration will be available shortly. Please use PayPal or Razorpay for now.",
+                    });
+                  }}
+                  data-testid="button-stripe-payment"
+                >
+                  Pay with Stripe
+                </Button>
+              </div>
+            )}
+
             {paymentGateway === 'paypal' && user?.email && selectedTier && (
               <PayPalSubscriptionButton
                 tierId={getSelectedTierId()}
@@ -582,6 +603,12 @@ export default function RecruiterPremium() {
                   });
                 }}
               />
+            )}
+
+            {!paymentGateway && (
+              <div className="text-center py-8 text-muted-foreground">
+                <p className="text-sm">Please select a payment method above to continue</p>
+              </div>
             )}
           </div>
         </DialogContent>
