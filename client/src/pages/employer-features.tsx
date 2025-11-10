@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -39,6 +38,27 @@ import {
 } from "lucide-react";
 import logoImage from "@assets/generated_images/AutoJobr_professional_logo_17c702fa.png";
 import dashboardMockup from "@assets/generated_images/Recruitment_dashboard_mockup_2b680657.png";
+
+// Dummy integration data - replace with actual service call if needed
+const integrations = [
+  { name: "Gmail", category: "Email", logo: "https://upload.wikimedia.org/wikipedia/commons/4/4e/Gmail_Icon.svg" },
+  { name: "Outlook", category: "Email", logo: "https://upload.wikimedia.org/wikipedia/commons/f/f1/Microsoft_Outlook_2013_logo.svg" },
+  { name: "Slack", category: "Communication", logo: "https://upload.wikimedia.org/wikipedia/commons/d/d5/Slack_icon.svg" },
+  { name: "Microsoft Teams", category: "Communication", logo: "https://upload.wikimedia.org/wikipedia/commons/0/0b/Microsoft_Teams_logo.svg" },
+  { name: "Zoom", category: "Video Conferencing", logo: "https://upload.wikimedia.org/wikipedia/commons/c/c7/Zoom_icon_2020.svg" },
+  { name: "Google Calendar", category: "Scheduling", logo: "https://upload.wikimedia.org/wikipedia/commons/d/de/Google_Calendar_icon.svg" },
+  { name: "Calendly", category: "Scheduling", logo: "https://upload.wikimedia.org/wikipedia/commons/1/1b/Calendly_logo.svg" },
+  { name: "Asana", category: "Project Management", logo: "https://upload.wikimedia.org/wikipedia/commons/c/cb/Asana_logo.svg" },
+  { name: "Trello", category: "Project Management", logo: "https://upload.wikimedia.org/wikipedia/commons/0/09/Trello_logo.svg" },
+  { name: "Jira", category: "Project Management", logo: "https://upload.wikimedia.org/wikipedia/commons/8/8a/Jira_logo_blue.svg" },
+  { name: "Google Drive", category: "Storage", logo: "https://upload.wikimedia.org/wikipedia/commons/1/10/Google_Drive_logo.svg" },
+  { name: "Dropbox", category: "Storage", logo: "https://upload.wikimedia.org/wikipedia/commons/7/7c/Dropbox_Icon.svg" },
+  { name: "Salesforce", category: "CRM", logo: "https://upload.wikimedia.org/wikipedia/commons/0/0a/Salesforce_logo.svg" },
+  { name: "HubSpot", category: "CRM", logo: "https://upload.wikimedia.org/wikipedia/commons/1/19/HubSpot_Logo.svg" },
+  { name: "Zapier", category: "Automation", logo: "https://upload.wikimedia.org/wikipedia/commons/a/a5/Zapier_logo.svg" },
+  { name: "Workday", category: "HRIS", logo: "https://upload.wikimedia.org/wikipedia/commons/b/b4/Workday_logo.svg" },
+];
+
 
 const recruiterStats = [
   { label: "Time Saved", value: "60%", icon: Clock },
@@ -358,7 +378,7 @@ export default function RecruiterFeaturesPage() {
                 AutoJobr
               </span>
             </Link>
-            
+
             <nav className="hidden md:flex space-x-8">
               <a href="#ai-features" className="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors">
                 AI Features
@@ -376,7 +396,7 @@ export default function RecruiterFeaturesPage() {
                 For Job Seekers
               </Link>
             </nav>
-            
+
             <div className="flex items-center space-x-4">
               <Link href="/auth">
                 <Button variant="ghost" size="sm">
@@ -402,18 +422,18 @@ export default function RecruiterFeaturesPage() {
                 <Cpu className="w-3 h-3 mr-1" />
                 AI-Powered Recruitment Platform
               </Badge>
-              
+
               <h1 className="text-5xl md:text-7xl font-bold text-slate-900 dark:text-white mb-6 leading-tight">
                 Hire Top Talent
                 <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent"> 3x Faster</span>
                 <br />
                 with AI
               </h1>
-              
+
               <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-8 max-w-4xl mx-auto leading-relaxed">
                 Transform your recruitment process with AI-powered candidate scoring, automated screening, intelligent job optimization, and predictive hiring analytics. Reduce time-to-hire by 60% while improving hire quality.
               </p>
-              
+
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
                 <Link href="/auth">
                   <Button size="lg" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-lg">
@@ -427,7 +447,7 @@ export default function RecruiterFeaturesPage() {
                   Book AI Demo
                 </Button>
               </div>
-              
+
               <div className="flex justify-center space-x-8 text-sm text-slate-500 dark:text-slate-400">
                 <div className="flex items-center">
                   <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
@@ -487,7 +507,7 @@ export default function RecruiterFeaturesPage() {
               Leverage cutting-edge AI technology to revolutionize your hiring process and find the perfect candidates faster than ever.
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {aiPoweredFeatures.map((feature, index) => {
               const Icon = feature.icon;
@@ -534,7 +554,7 @@ export default function RecruiterFeaturesPage() {
               Advanced recruitment tools designed to streamline your hiring process and deliver exceptional results.
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {recruiterFeatures.map((feature, index) => {
               const Icon = feature.icon;
@@ -573,7 +593,7 @@ export default function RecruiterFeaturesPage() {
               <p className="text-xl text-slate-300 mb-8 leading-relaxed">
                 Our AI-powered dashboard gives you complete visibility into candidate quality, automated scoring, and predictive insights. Make data-driven hiring decisions that accelerate your recruitment success.
               </p>
-              
+
               <div className="space-y-4 mb-8">
                 <div className="flex items-center">
                   <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center mr-3">
@@ -600,7 +620,7 @@ export default function RecruiterFeaturesPage() {
                   <span>Automated screening and assessment tools</span>
                 </div>
               </div>
-              
+
               <div className="flex space-x-4">
                 <Link href="/auth">
                   <Button size="lg" className="bg-white text-slate-900 hover:bg-slate-100">
@@ -614,7 +634,7 @@ export default function RecruiterFeaturesPage() {
                 </Button>
               </div>
             </div>
-            
+
             <div className="relative">
               <img 
                 src={dashboardMockup} 
@@ -639,7 +659,7 @@ export default function RecruiterFeaturesPage() {
               See how leading companies are transforming their hiring with our AI-powered platform
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {successStories.map((story, index) => (
               <Card key={index} className="border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur">
@@ -649,7 +669,7 @@ export default function RecruiterFeaturesPage() {
                     <p className="text-slate-600 dark:text-slate-300 text-sm mb-1">{story.industry}</p>
                     <p className="text-slate-500 text-sm">{story.size}</p>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-3 mb-6">
                     <div className="flex justify-between items-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                       <span className="text-sm text-slate-600 dark:text-slate-300">Time to Hire</span>
@@ -664,11 +684,11 @@ export default function RecruiterFeaturesPage() {
                       <span className="font-bold text-purple-600 dark:text-purple-400">{story.results.costSaving}</span>
                     </div>
                   </div>
-                  
+
                   <blockquote className="text-slate-600 dark:text-slate-300 italic mb-4">
                     "{story.quote}"
                   </blockquote>
-                  
+
                   <div className="flex items-center">
                     <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold mr-3">
                       {story.name.split(' ').map(n => n[0]).join('')}
@@ -696,7 +716,7 @@ export default function RecruiterFeaturesPage() {
               Choose the plan that fits your hiring needs. Start with a free trial, upgrade when ready.
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16">
             {pricingPlans.map((plan, index) => (
               <Card key={index} className={`relative border-0 ${
@@ -732,7 +752,7 @@ export default function RecruiterFeaturesPage() {
                     <p className="text-slate-600 dark:text-slate-300 mb-2">{plan.description}</p>
                     <p className="text-sm text-green-600 dark:text-green-400 font-semibold">{plan.savings}</p>
                   </div>
-                  
+
                   <ul className="space-y-3 mb-8">
                     {plan.features.map((feature, featureIndex) => (
                       <li key={featureIndex} className="flex items-center">
@@ -743,7 +763,7 @@ export default function RecruiterFeaturesPage() {
                       </li>
                     ))}
                   </ul>
-                  
+
                   <Link href="/auth">
                     <Button 
                       className={`w-full ${plan.popular 
@@ -822,6 +842,65 @@ export default function RecruiterFeaturesPage() {
         </div>
       </section>
 
+      {/* Integrations Showcase */}
+      <section className="py-24 bg-white/50 dark:bg-slate-800/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border-blue-200">
+              <Globe className="w-3 h-3 mr-1" />
+              Seamless Integrations
+            </Badge>
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
+              Connect Your Favorite Tools
+            </h2>
+            <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
+              Integrate AutoJobr with your existing HR stack to streamline your recruitment workflow and enhance productivity.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-6">
+            {integrations.map((integration, idx) => (
+              <Card 
+                key={idx} 
+                className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group cursor-pointer border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur"
+              >
+                <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
+                  <div className="w-12 h-12 mb-3 rounded-lg overflow-hidden flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                    <img 
+                      src={integration.logo} 
+                      alt={`${integration.name} logo`}
+                      className="w-10 h-10 object-contain"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        // Fallback to a generic avatar if the image fails to load
+                        target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(integration.name)}&background=random&size=128&color=fff`;
+                      }}
+                    />
+                  </div>
+                  <h4 className="font-semibold text-sm mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    {integration.name}
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    {integration.category}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="text-center mt-12">
+            <Button 
+              size="lg" 
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-xl px-8 py-4 text-lg"
+              onClick={() => setLocation('/integrations-marketplace')}
+            >
+              <Globe className="mr-2 h-5 w-5" />
+              Explore Integrations Marketplace
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-24 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
@@ -832,7 +911,7 @@ export default function RecruiterFeaturesPage() {
             Join 2,500+ companies using AutoJobr's AI-powered recruitment platform to hire faster, smarter, and more effectively. 
             Start your free trial today - no setup fees, no commitments.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
             <Link href="/auth">
               <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 shadow-xl px-8 py-4 text-lg">
@@ -845,7 +924,7 @@ export default function RecruiterFeaturesPage() {
               Schedule AI Demo
             </Button>
           </div>
-          
+
           <div className="text-blue-100 text-sm">
             <CheckCircle className="w-4 h-4 inline mr-2" />
             14-day free trial • Full AI features • No setup fees • Cancel anytime • Implementation support included
@@ -874,7 +953,7 @@ export default function RecruiterFeaturesPage() {
                 </Badge>
               </div>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">AI Platform</h4>
               <ul className="space-y-2 text-slate-400">
@@ -884,7 +963,7 @@ export default function RecruiterFeaturesPage() {
                 <li><a href="#" className="hover:text-white transition-colors">API</a></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Support</h4>
               <ul className="space-y-2 text-slate-400">
@@ -894,7 +973,7 @@ export default function RecruiterFeaturesPage() {
                 <li><a href="#" className="hover:text-white transition-colors">Contact Sales</a></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Company</h4>
               <ul className="space-y-2 text-slate-400">
@@ -904,7 +983,7 @@ export default function RecruiterFeaturesPage() {
                 <li><a href="#" className="hover:text-white transition-colors">Security</a></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Legal</h4>
               <ul className="space-y-2 text-slate-400">
@@ -916,7 +995,7 @@ export default function RecruiterFeaturesPage() {
               </ul>
             </div>
           </div>
-          
+
           <div className="border-t border-slate-800 pt-8 text-center text-slate-400">
             <p>&copy; 2025 AutoJobr. All rights reserved. Transforming recruitment with AI.</p>
           </div>
