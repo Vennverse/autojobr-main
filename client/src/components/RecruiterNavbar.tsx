@@ -41,7 +41,8 @@ import {
   DollarSign,
   Award,
   Sparkles,
-  BriefcaseBusiness
+  BriefcaseBusiness,
+  Network
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -125,7 +126,7 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
       // Even on error, clear everything for security
       queryClient.clear();
       sessionStorage.clear();
-      
+
       const theme = localStorage.getItem('theme');
       localStorage.clear();
       if (theme) localStorage.setItem('theme', theme);
@@ -190,13 +191,7 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
       icon: TrendingUp,
       current: location === "/advanced-analytics-dashboard"
     },
-    {
-      name: "Messages",
-      href: "/chat",
-      icon: MessageCircle,
-      current: location === "/chat" || location === "/messaging",
-      badge: unreadCount > 0 ? unreadCount : undefined
-    }
+    // Removed Messages link
   ];
 
   const canAccessFeature = (isPremium: boolean) => {
@@ -221,7 +216,7 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
               </div>
 
               {/* Desktop Navigation */}
-              <div className="hidden md:ml-8 md:flex md:space-x-1">
+              <div className="hidden md:ml-6 md:flex md:space-x-1 md:flex-1">
                 {navigationItems.map((item) => {
                   const Icon = item.icon;
                   const canAccess = canAccessFeature(item.premium || false);
@@ -256,7 +251,7 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
 
             {/* Right side */}
             <div className="hidden md:ml-6 md:flex md:items-center md:space-x-3">
-              
+
               {/* More Tools Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -292,7 +287,7 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
                       <span>Test Management</span>
                     </Link>
                   </DropdownMenuItem>
-                  
+
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel className="font-semibold">🎯 Sourcing & Targeting</DropdownMenuLabel>
                   <DropdownMenuItem asChild>
@@ -314,7 +309,7 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
                       <span>Bidder System</span>
                     </Link>
                   </DropdownMenuItem>
-                  
+
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel className="font-semibold">⚙️ Management Tools</DropdownMenuLabel>
                   <DropdownMenuItem asChild>
@@ -333,6 +328,13 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
                     <Link href="/admin/sso-configuration" className="w-full flex items-center cursor-pointer">
                       <Settings className="mr-2 h-4 w-4" />
                       <span>SSO Configuration</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  {/* Integration Marketplace */}
+                  <DropdownMenuItem asChild>
+                    <Link href="/integration-marketplace" className="w-full flex items-center cursor-pointer">
+                      <Network className="mr-2 h-4 w-4" />
+                      <span>Integration Marketplace</span>
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -419,16 +421,7 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
 
             {/* Mobile menu button */}
             <div className="md:hidden flex items-center space-x-2">
-              {unreadCount > 0 && (
-                <Link href="/chat">
-                  <button className="relative p-2 text-gray-400 hover:text-gray-500">
-                    <Bell className="h-5 w-5" />
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  </button>
-                </Link>
-              )}
+              {/* Removed Bell icon related to Messages */}
               <Button
                 variant="ghost"
                 size="sm"
