@@ -1,0 +1,72 @@
+
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-01-11",
+  "ats": {
+    "workday": {
+      "urls": ["*://workforcenow.adp.com/mascsr/*/*/recruitment/*", "*://*.myworkdayjobs.com/*"],
+      "selectors": {
+        "firstName": [
+          ".//input[@aria-label='First Name']",
+          ".//input[@id='personalInfomationFirstName']"
+        ],
+        "lastName": [
+          ".//input[@aria-label='Last Name']",
+          ".//input[@id='personalInfomationLastName']"
+        ],
+        "email": [
+          ".//input[@aria-label='Email']",
+          ".//input[@id='personalInfomationEmail']"
+        ],
+        "phone": [
+          ".//input[@aria-label='Phone Number']",
+          ".//input[@placeholder='Phone Number']"
+        ]
+      },
+      "multiPage": true,
+      "submitSelector": ".//button[contains(., 'Submit')]"
+    },
+    "greenhouse": {
+      "urls": ["*://*.greenhouse.io/*/jobs/*", "*://boards.greenhouse.io/*/jobs/*"],
+      "selectors": {
+        "firstName": [
+          "#first_name",
+          "input[name='job_application[first_name]']"
+        ],
+        "lastName": [
+          "#last_name",
+          "input[name='job_application[last_name]']"
+        ],
+        "email": [
+          "#email",
+          "input[name='job_application[email]']"
+        ],
+        "phone": [
+          "#phone",
+          "input[name='job_application[phone]']"
+        ]
+      },
+      "multiPage": false,
+      "submitSelector": "#submit_app"
+    },
+    "lever": {
+      "urls": ["*://*.lever.co/*/jobs/*", "*://jobs.lever.co/*"],
+      "selectors": {
+        "fullName": [
+          "input[name='name']",
+          ".application-form input[type='text']:first-of-type"
+        ],
+        "email": [
+          "input[name='email']",
+          "input[type='email']"
+        ],
+        "phone": [
+          "input[name='phone']",
+          "input[type='tel']"
+        ]
+      },
+      "multiPage": false,
+      "submitSelector": ".template-btn-submit"
+    }
+  }
+}
