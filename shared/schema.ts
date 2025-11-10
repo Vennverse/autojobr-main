@@ -117,6 +117,29 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// User integrations table - stores API keys and configuration for external services
+export const userIntegrations = pgTable("user_integrations", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  integrationId: varchar("integration_id").notNull(), // paypal, stripe, google-workspace, etc.
+  isEnabled: boolean("is_enabled").default(true),
+  apiKey: text("api_key"), // Encrypted API key
+  apiSecret: text("api_secret"), // Encrypted API secret
+  accessToken: text("access_token"), // OAuth access token
+  refreshToken: text("refresh_token"), // OAuth refresh token
+  tokenExpiresAt: timestamp("token_expires_at"),
+  config: jsonb("config"), // Additional configuration (webhooks, preferences, etc.)
+  metadata: jsonb("metadata"), // Integration-specific metadata
+  lastSyncedAt: timestamp("last_synced_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+},
+(table) => [
+  unique("unique_user_integration").on(table.userId, table.integrationId),
+  index("idx_user_integrations_user_id").on(table.userId),
+  index("idx_user_integrations_integration_id").on(table.integrationId),
+]);
+
 // User profiles with comprehensive onboarding information
 export const userProfiles = pgTable("user_profiles", {
   id: serial("id").primaryKey(),
@@ -5014,3 +5037,13 @@ export const insertRecruiterTaskSchema = createInsertSchema(recruiterTasks).omit
 
 export type RecruiterTask = typeof recruiterTasks.$inferSelect;
 export type InsertRecruiterTask = z.infer<typeof insertRecruiterTaskSchema>;
+
+// User Integrations schemas and types
+export const insertUserIntegrationSchema = createInsertSchema(userIntegrations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type UserIntegration = typeof userIntegrations.$inferSelect;
+export type InsertUserIntegration = z.infer<typeof insertUserIntegrationSchema>;

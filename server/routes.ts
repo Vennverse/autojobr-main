@@ -60,6 +60,7 @@ import { ResumeService, resumeUploadMiddleware } from "./resumeService.js";
 import { TaskService } from "./taskService.js";
 import referralMarketplaceRoutes from "./referralMarketplaceRoutes.js";
 console.log('🔍 [IMPORT CHECK] referralMarketplaceRoutes:', referralMarketplaceRoutes ? 'loaded ✅' : 'UNDEFINED ❌');
+import integrationRoutes from "./integrationRoutes.js";
 import bidderSystemRoutes from "./bidderRoutes.js";
 import { AIResumeGeneratorService } from "./aiResumeGeneratorService.js";
 import { mockInterviewRoutes } from "./mockInterviewRoutes";
@@ -6396,6 +6397,15 @@ Return only the cover letter text, no additional formatting or explanations.`;
     console.log('✅ Referral marketplace routes registered at /api/referral-marketplace');
   } catch (error) {
     console.error('❌ FAILED to register referral marketplace routes:', error);
+  }
+
+  // ===== INTEGRATION ROUTES =====
+  try {
+    console.log('🔧 Mounting integration routes...');
+    app.use('/api/integrations', integrationRoutes);
+    console.log('✅ Integration routes registered at /api/integrations');
+  } catch (error) {
+    console.error('❌ FAILED to register integration routes:', error);
   }
 
   // Initialize WebSocket service for real-time chat

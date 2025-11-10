@@ -1,195 +1,271 @@
-
-import { Router } from 'express';
-import { db } from './db';
-import { integrations } from '@shared/schema';
-import { eq, and } from 'drizzle-orm';
+import { Router, Request, Response } from "express";
+import { db } from "./db";
+import { userIntegrations } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
+import { isAuthenticated } from "./auth";
 
 const router = Router();
 
-// Available integrations catalog
-const AVAILABLE_INTEGRATIONS = [
-  {
-    id: 'paypal',
-    name: 'PayPal',
-    category: 'Payments',
-    description: 'Accept PayPal payments and subscriptions',
-    status: 'active',
-    isPremium: false,
-    authType: 'oauth',
-    configFields: [
-      { name: 'clientId', label: 'Client ID', type: 'text', required: true },
-      { name: 'clientSecret', label: 'Client Secret', type: 'password', required: true }
-    ]
+// Define which integrations link to which AutoJobr features
+const INTEGRATION_FEATURES = {
+  "openai": {
+    name: "OpenAI",
+    features: [
+      { name: "Cover Letter Generator", path: "/cover-letter-generator" },
+      { name: "Career AI Assistant", path: "/career-ai-assistant" },
+      { name: "LinkedIn Optimizer", path: "/linkedin-optimizer" },
+      { name: "Resume Optimization", path: "/resumes" }
+    ],
+    requiresSetup: true,
+    setupFields: ["apiKey"]
   },
-  {
-    id: 'stripe',
-    name: 'Stripe',
-    category: 'Payments',
-    description: 'Process credit cards and manage subscriptions',
-    status: 'active',
-    isPremium: false,
-    authType: 'api_key',
-    configFields: [
-      { name: 'apiKey', label: 'API Key', type: 'password', required: true }
-    ]
+  "google-workspace": {
+    name: "Google Workspace",
+    features: [
+      { name: "Calendar Integration", path: "/recruiter/interview-assignments" },
+      { name: "Email Service", path: "/chat" },
+      { name: "Document Storage", path: "/resumes" }
+    ],
+    requiresSetup: true,
+    setupFields: ["accessToken", "refreshToken"]
   },
-  {
-    id: 'google-workspace',
-    name: 'Google Workspace',
-    category: 'Productivity',
-    description: 'Sync with Google Calendar, Gmail, and Drive',
-    status: 'active',
-    isPremium: false,
-    authType: 'oauth'
+  "linkedin": {
+    name: "LinkedIn",
+    features: [
+      { name: "LinkedIn Profile Optimizer", path: "/linkedin-optimizer" },
+      { name: "Job Posting", path: "/recruiter/post-job" },
+      { name: "Profile Import", path: "/profile" }
+    ],
+    requiresSetup: true,
+    setupFields: ["accessToken"]
   },
-  {
-    id: 'linkedin',
-    name: 'LinkedIn',
-    category: 'Social',
-    description: 'Import profiles and post job listings',
-    status: 'active',
-    isPremium: true,
-    authType: 'oauth'
+  "slack": {
+    name: "Slack",
+    features: [
+      { name: "Application Notifications", path: "/applications" },
+      { name: "Interview Reminders", path: "/recruiter/interview-assignments" },
+      { name: "Team Chat", path: "/chat" }
+    ],
+    requiresSetup: true,
+    setupFields: ["webhookUrl"]
   },
-  {
-    id: 'calendly',
-    name: 'Calendly',
-    category: 'Scheduling',
-    description: 'Schedule interviews with Calendly integration',
-    status: 'active',
-    isPremium: false,
-    authType: 'api_key',
-    configFields: [
-      { name: 'apiKey', label: 'API Key', type: 'password', required: true }
-    ]
+  "zapier": {
+    name: "Zapier",
+    features: [
+      { name: "Workflow Automation", path: "/dashboard" },
+      { name: "Custom Triggers", path: "/applications" }
+    ],
+    requiresSetup: true,
+    setupFields: ["apiKey"]
+  },
+  "notion": {
+    name: "Notion",
+    features: [
+      { name: "Application Tracking", path: "/applications" },
+      { name: "Note Taking", path: "/jobs" },
+      { name: "CRM Integration", path: "/enhanced-crm" }
+    ],
+    requiresSetup: true,
+    setupFields: ["accessToken"]
+  },
+  "airtable": {
+    name: "Airtable",
+    features: [
+      { name: "Recruiter Analytics", path: "/advanced-analytics-dashboard" },
+      { name: "Data Export", path: "/recruiter/applicants" },
+      { name: "Custom Views", path: "/recruiter/pipeline" }
+    ],
+    requiresSetup: true,
+    setupFields: ["apiKey", "baseId"]
+  },
+  "calendly": {
+    name: "Calendly",
+    features: [
+      { name: "Interview Scheduling", path: "/recruiter/interview-assignments" },
+      { name: "Candidate Booking", path: "/applications" }
+    ],
+    requiresSetup: true,
+    setupFields: ["apiKey"]
+  },
+  "sendgrid": {
+    name: "SendGrid",
+    features: [
+      { name: "Email Campaigns", path: "/chat" },
+      { name: "Application Updates", path: "/applications" },
+      { name: "Recruiter Outreach", path: "/recruiter/applicants" }
+    ],
+    requiresSetup: true,
+    setupFields: ["apiKey"]
+  },
+  "zoom": {
+    name: "Zoom",
+    features: [
+      { name: "Virtual Interviews", path: "/virtual-interview-start" },
+      { name: "Video Meetings", path: "/video-practice" },
+      { name: "Interview Recording", path: "/recruiter/interview-assignments" }
+    ],
+    requiresSetup: true,
+    setupFields: ["apiKey", "apiSecret"]
+  },
+  "paypal": {
+    name: "PayPal",
+    features: [],
+    requiresSetup: false,
+    setupFields: []
+  },
+  "stripe": {
+    name: "Stripe",
+    features: [],
+    requiresSetup: false,
+    setupFields: []
   }
-];
+};
 
-// Get available integrations
-router.get('/api/integrations/available', async (req: any, res: any) => {
-  const category = req.query.category;
-  
-  let filteredIntegrations = AVAILABLE_INTEGRATIONS;
-  
-  if (category && category !== 'all') {
-    filteredIntegrations = AVAILABLE_INTEGRATIONS.filter(int => int.category === category);
-  }
-  
-  res.json(filteredIntegrations);
-});
-
-// Get user's active integrations
-router.get('/api/integrations/active', async (req: any, res: any) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-
+// Get all integrations for current user
+router.get("/user-integrations", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userIntegrations = await db.query.integrations.findMany({
-      where: eq(integrations.userId, req.user.id)
-    });
-
-    res.json(userIntegrations);
+    const userId = req.user!.id;
+    
+    const integrations = await db
+      .select()
+      .from(userIntegrations)
+      .where(eq(userIntegrations.userId, userId));
+    
+    // Map integrations with their feature links
+    const integrationsWithFeatures = integrations.map(integration => ({
+      ...integration,
+      features: INTEGRATION_FEATURES[integration.integrationId]?.features || [],
+      setupRequired: INTEGRATION_FEATURES[integration.integrationId]?.requiresSetup || false
+    }));
+    
+    res.json(integrationsWithFeatures);
   } catch (error) {
-    console.error('Error fetching active integrations:', error);
-    res.status(500).json({ error: 'Failed to fetch integrations' });
+    console.error("Error fetching user integrations:", error);
+    res.status(500).json({ message: "Failed to fetch integrations" });
   }
 });
 
-// Connect integration
-router.post('/api/integrations/connect', async (req: any, res: any) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: 'Not authenticated' });
+// Get integration feature mapping
+router.get("/integration-features/:integrationId", (req: Request, res: Response) => {
+  const { integrationId } = req.params;
+  const integration = INTEGRATION_FEATURES[integrationId];
+  
+  if (!integration) {
+    return res.status(404).json({ message: "Integration not found" });
   }
+  
+  res.json(integration);
+});
 
-  const { integrationId, integrationName, category, config } = req.body;
-
+// Enable/configure an integration
+router.post("/user-integrations", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    // Check if integration is already connected
-    const existing = await db.query.integrations.findFirst({
-      where: and(
-        eq(integrations.userId, req.user.id),
-        eq(integrations.platformName, integrationId)
-      )
-    });
-
-    if (existing) {
-      return res.status(400).json({ error: 'Integration already connected' });
+    const userId = req.user!.id;
+    const { integrationId, apiKey, apiSecret, accessToken, refreshToken, config } = req.body;
+    
+    if (!integrationId) {
+      return res.status(400).json({ message: "Integration ID is required" });
     }
-
-    // Create integration record
-    await db.insert(integrations).values({
-      userId: req.user.id,
-      platformName: integrationId,
-      platformType: category,
-      syncStatus: 'active',
-      lastSync: new Date(),
-      config: config ? JSON.stringify(config) : null,
-      createdAt: new Date()
-    });
-
-    res.json({ 
-      success: true,
-      message: `${integrationName} connected successfully`
-    });
-  } catch (error) {
-    console.error('Error connecting integration:', error);
-    res.status(500).json({ error: 'Failed to connect integration' });
-  }
-});
-
-// Disconnect integration
-router.post('/api/integrations/:integrationId/disconnect', async (req: any, res: any) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-
-  const { integrationId } = req.params;
-
-  try {
-    await db.delete(integrations)
+    
+    // Check if integration already exists
+    const existing = await db
+      .select()
+      .from(userIntegrations)
       .where(and(
-        eq(integrations.id, parseInt(integrationId)),
-        eq(integrations.userId, req.user.id)
-      ));
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error disconnecting integration:', error);
-    res.status(500).json({ error: 'Failed to disconnect integration' });
-  }
-});
-
-// Sync integration
-router.post('/api/integrations/:integrationId/sync', async (req: any, res: any) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-
-  const { integrationId } = req.params;
-
-  try {
-    await db.update(integrations)
-      .set({ 
-        lastSync: new Date(),
-        syncStatus: 'syncing'
+        eq(userIntegrations.userId, userId),
+        eq(userIntegrations.integrationId, integrationId)
+      ))
+      .limit(1);
+    
+    if (existing.length > 0) {
+      // Update existing integration
+      await db
+        .update(userIntegrations)
+        .set({
+          apiKey,
+          apiSecret,
+          accessToken,
+          refreshToken,
+          config,
+          isEnabled: true,
+          updatedAt: new Date()
+        })
+        .where(eq(userIntegrations.id, existing[0].id));
+      
+      return res.json({ message: "Integration updated successfully", integration: existing[0] });
+    }
+    
+    // Create new integration
+    const [newIntegration] = await db
+      .insert(userIntegrations)
+      .values({
+        userId,
+        integrationId,
+        apiKey,
+        apiSecret,
+        accessToken,
+        refreshToken,
+        config,
+        isEnabled: true
       })
-      .where(and(
-        eq(integrations.id, parseInt(integrationId)),
-        eq(integrations.userId, req.user.id)
-      ));
-
-    // Trigger actual sync in background
-    setTimeout(async () => {
-      await db.update(integrations)
-        .set({ syncStatus: 'active' })
-        .where(eq(integrations.id, parseInt(integrationId)));
-    }, 2000);
-
-    res.json({ success: true });
+      .returning();
+    
+    res.json({ message: "Integration enabled successfully", integration: newIntegration });
   } catch (error) {
-    console.error('Error syncing integration:', error);
-    res.status(500).json({ error: 'Failed to sync integration' });
+    console.error("Error enabling integration:", error);
+    res.status(500).json({ message: "Failed to enable integration" });
+  }
+});
+
+// Toggle integration on/off
+router.patch("/user-integrations/:integrationId/toggle", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { integrationId } = req.params;
+    const { isEnabled } = req.body;
+    
+    const integration = await db
+      .select()
+      .from(userIntegrations)
+      .where(and(
+        eq(userIntegrations.userId, userId),
+        eq(userIntegrations.integrationId, integrationId)
+      ))
+      .limit(1);
+    
+    if (integration.length === 0) {
+      return res.status(404).json({ message: "Integration not found" });
+    }
+    
+    await db
+      .update(userIntegrations)
+      .set({ isEnabled, updatedAt: new Date() })
+      .where(eq(userIntegrations.id, integration[0].id));
+    
+    res.json({ message: "Integration status updated" });
+  } catch (error) {
+    console.error("Error toggling integration:", error);
+    res.status(500).json({ message: "Failed to update integration" });
+  }
+});
+
+// Delete an integration
+router.delete("/user-integrations/:integrationId", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { integrationId } = req.params;
+    
+    await db
+      .delete(userIntegrations)
+      .where(and(
+        eq(userIntegrations.userId, userId),
+        eq(userIntegrations.integrationId, integrationId)
+      ));
+    
+    res.json({ message: "Integration removed successfully" });
+  } catch (error) {
+    console.error("Error deleting integration:", error);
+    res.status(500).json({ message: "Failed to remove integration" });
   }
 });
 
