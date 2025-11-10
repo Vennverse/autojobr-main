@@ -4,7 +4,9 @@
   "@type": "WebSite",
   "name": "AutoJobR",
   "url": "https://autojobr.com",
-  "description": "Free AI-powered job application automation platform that helps job seekers apply to 1000+ jobs daily, beat ATS systems, and get hired 10x faster.",
+  "description": "AI That Connects Talent and Opportunity — Apply Faster, Hire Smarter. Founded by Shubham Dubey. AI-powered platform for job seekers and recruiters with plans starting at $9.99/month.",
+  "slogan": "AI That Connects Talent and Opportunity — Apply Faster, Hire Smarter",
+  "mainEntityOfPage": "https://autojobr.com",
   
   "mainEntity": {
     "@type": "SoftwareApplication",
@@ -99,10 +101,15 @@
   
   "publisher": {
     "@type": "Organization",
-    "name": "AutoJobR",
+    "name": "AutoJobR Inc.",
     "url": "https://autojobr.com",
     "logo": "https://autojobr.com/favicon.png",
-    "description": "Leading AI job automation platform trusted by 1M+ users worldwide",
+    "description": "AI That Connects Talent and Opportunity. Founded by Shubham Dubey. Trusted by 1M+ users worldwide.",
+    "founder": {
+      "@type": "Person",
+      "name": "Shubham Dubey",
+      "jobTitle": "Founder & CEO"
+    },
     "knowsAbout": [
       "Artificial Intelligence",
       "Machine Learning",
@@ -131,5 +138,48 @@
     "freeFeatures": true,
     "noCreditCardRequired": true,
     "activeSupport": true
+  },
+  
+  "pricingPlans": {
+    "jobSeekers": [
+      {
+        "name": "Free Plan",
+        "price": "$0/month",
+        "features": ["Basic automation", "100 applications/month", "ATS optimization", "Chrome extension"],
+        "targetAudience": "Entry-level job seekers"
+      },
+      {
+        "name": "Smart Saver (Most Popular)",
+        "price": "$9.99/month",
+        "features": ["Unlimited applications", "Advanced AI tools", "Priority support", "Resume builder"],
+        "targetAudience": "Active job seekers"
+      },
+      {
+        "name": "Premium",
+        "price": "$19.99/month",
+        "features": ["All Smart Saver features", "AI career coaching", "Interview prep", "Salary insights"],
+        "targetAudience": "Serious career changers"
+      }
+    ],
+    "recruiters": [
+      {
+        "name": "Starter",
+        "price": "$49.99/month",
+        "features": ["AI candidate sourcing", "Basic ATS", "50 job posts/month", "Email support"],
+        "targetAudience": "Small businesses"
+      },
+      {
+        "name": "Professional",
+        "price": "$99.99/month",
+        "features": ["Advanced AI sourcing", "Automated interviews", "Full ATS", "Analytics dashboard"],
+        "targetAudience": "Growing companies"
+      },
+      {
+        "name": "Enterprise",
+        "price": "$299.99/month",
+        "features": ["White-label ATS", "Unlimited AI features", "Dedicated support", "Custom integrations"],
+        "targetAudience": "Large organizations"
+      }
+    ]
   }
 }

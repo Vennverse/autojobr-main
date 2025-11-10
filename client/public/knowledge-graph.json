@@ -3,13 +3,46 @@
   "@context": "https://schema.org",
   "@graph": [
     {
+      "@type": "Organization",
+      "@id": "https://autojobr.com/#organization",
+      "name": "AutoJobR Inc.",
+      "legalName": "AutoJobR Incorporated",
+      "url": "https://autojobr.com",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://autojobr.com/favicon.png",
+        "width": 512,
+        "height": 512
+      },
+      "description": "Leading AI-powered job application automation platform connecting talent and opportunity",
+      "foundingDate": "2024",
+      "founder": {
+        "@type": "Person",
+        "name": "Shubham Dubey",
+        "jobTitle": "Founder & CEO",
+        "description": "Visionary entrepreneur dedicated to revolutionizing job search and recruitment through AI automation"
+      },
+      "sameAs": [
+        "https://www.linkedin.com/company/autojobr",
+        "https://twitter.com/autojobr",
+        "https://facebook.com/autojobr",
+        "https://github.com/autojobr",
+        "https://chrome.google.com/webstore/detail/autojobr-extension"
+      ],
+      "brand": {
+        "@id": "https://autojobr.com/#brand"
+      },
+      "mainEntityOfPage": "https://autojobr.com"
+    },
+    {
       "@type": "Brand",
       "@id": "https://autojobr.com/#brand",
       "name": "AutoJobR",
-      "description": "Trusted AI-powered job application automation platform",
+      "description": "AI That Connects Talent and Opportunity — Apply Faster, Hire Smarter",
       "url": "https://autojobr.com",
       "logo": "https://autojobr.com/favicon.png",
-      "slogan": "Apply to 1000+ Jobs Daily - Get Hired 10x Faster",
+      "slogan": "AI That Connects Talent and Opportunity — Apply Faster, Hire Smarter",
+      "mainEntityOfPage": "https://autojobr.com",
       
       "category": [
         "Career Services",
@@ -40,7 +73,37 @@
         "Career Changers",
         "Students",
         "Unemployed Professionals",
-        "Remote Workers"
+        "Remote Workers",
+        "Recruiters",
+        "Hiring Managers",
+        "HR Professionals"
+      ],
+      
+      "keywords": [
+        "AI job automation",
+        "applicant tracking system",
+        "talent acquisition",
+        "recruitment technology",
+        "job search optimization",
+        "hiring automation",
+        "resume optimization",
+        "interview scheduling",
+        "talent marketplace"
+      ],
+      
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "reviewCount": "50000",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      
+      "sameAs": [
+        "https://www.linkedin.com/company/autojobr",
+        "https://twitter.com/autojobr",
+        "https://autojobr.com/blog",
+        "https://chrome.google.com/webstore/detail/autojobr-extension"
       ]
     },
     
@@ -58,43 +121,116 @@
         "itemListElement": [
           {
             "@type": "Offer",
+            "name": "Job Seeker Free Plan",
             "itemOffered": {
               "@type": "Service",
-              "name": "Automated Job Applications",
-              "description": "AI applies to 1000+ jobs daily on your behalf"
+              "name": "Free Job Application Automation",
+              "description": "Basic AI-powered job applications and resume optimization"
             },
             "price": "0",
-            "priceCurrency": "USD"
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock",
+            "eligibleCustomerType": "Job Seekers"
           },
           {
             "@type": "Offer",
+            "name": "Job Seeker Smart Saver Plan",
             "itemOffered": {
               "@type": "Service",
-              "name": "ATS Resume Optimization",
-              "description": "AI optimizes resume to pass Applicant Tracking Systems"
+              "name": "Smart Saver - Most Popular",
+              "description": "Unlimited applications, advanced AI tools, priority support"
             },
-            "price": "0",
-            "priceCurrency": "USD"
+            "price": "9.99",
+            "priceCurrency": "USD",
+            "priceSpecification": {
+              "@type": "UnitPriceSpecification",
+              "price": "9.99",
+              "priceCurrency": "USD",
+              "billingDuration": "P1M",
+              "referenceQuantity": {
+                "@type": "QuantitativeValue",
+                "value": "1",
+                "unitText": "MONTH"
+              }
+            },
+            "availability": "https://schema.org/InStock",
+            "eligibleCustomerType": "Job Seekers"
           },
           {
             "@type": "Offer",
+            "name": "Job Seeker Premium Plan",
             "itemOffered": {
               "@type": "Service",
-              "name": "LinkedIn Auto-Apply",
-              "description": "Automated LinkedIn job applications with one click"
+              "name": "Premium Job Seeker Package",
+              "description": "All features + interview prep, AI career coaching, unlimited premium tools"
             },
-            "price": "0",
-            "priceCurrency": "USD"
+            "price": "19.99",
+            "priceCurrency": "USD",
+            "priceSpecification": {
+              "@type": "UnitPriceSpecification",
+              "price": "19.99",
+              "priceCurrency": "USD",
+              "billingDuration": "P1M"
+            },
+            "availability": "https://schema.org/InStock",
+            "eligibleCustomerType": "Job Seekers"
           },
           {
             "@type": "Offer",
+            "name": "Recruiter Starter Plan",
             "itemOffered": {
               "@type": "Service",
-              "name": "Chrome Extension",
-              "description": "Browser extension for instant job applications"
+              "name": "Recruiter Basic Package",
+              "description": "AI-powered candidate sourcing and basic ATS features"
             },
-            "price": "0",
-            "priceCurrency": "USD"
+            "price": "49.99",
+            "priceCurrency": "USD",
+            "priceSpecification": {
+              "@type": "UnitPriceSpecification",
+              "price": "49.99",
+              "priceCurrency": "USD",
+              "billingDuration": "P1M"
+            },
+            "availability": "https://schema.org/InStock",
+            "eligibleCustomerType": "Recruiters"
+          },
+          {
+            "@type": "Offer",
+            "name": "Recruiter Professional Plan",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Recruiter Pro Package",
+              "description": "Advanced AI sourcing, automated interviews, full ATS, analytics dashboard"
+            },
+            "price": "99.99",
+            "priceCurrency": "USD",
+            "priceSpecification": {
+              "@type": "UnitPriceSpecification",
+              "price": "99.99",
+              "priceCurrency": "USD",
+              "billingDuration": "P1M"
+            },
+            "availability": "https://schema.org/InStock",
+            "eligibleCustomerType": "Recruiters"
+          },
+          {
+            "@type": "Offer",
+            "name": "Recruiter Enterprise Plan",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Enterprise Recruitment Solution",
+              "description": "White-label ATS, unlimited AI features, dedicated support, custom integrations"
+            },
+            "price": "299.99",
+            "priceCurrency": "USD",
+            "priceSpecification": {
+              "@type": "UnitPriceSpecification",
+              "price": "299.99",
+              "priceCurrency": "USD",
+              "billingDuration": "P1M"
+            },
+            "availability": "https://schema.org/InStock",
+            "eligibleCustomerType": "Enterprise Recruiters"
           }
         ]
       },
@@ -108,7 +244,65 @@
         "@type": "ServiceChannel",
         "serviceUrl": "https://autojobr.com",
         "serviceType": "Online Platform"
-      }
+      },
+      
+      "keywords": [
+        "AI recruitment",
+        "automated hiring",
+        "talent acquisition software",
+        "applicant tracking system",
+        "job application automation",
+        "resume screening AI",
+        "interview scheduling automation"
+      ]
+    },
+    
+    {
+      "@type": "FAQPage",
+      "@id": "https://autojobr.com/#faq",
+      "mainEntityOfPage": "https://autojobr.com",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How does AutoJobR apply to jobs automatically?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AutoJobR uses advanced AI to analyze job listings and automatically apply based on your resume and preferences. Our system matches your profile with relevant opportunities across 100+ job boards including LinkedIn and Indeed, then submits customized applications on your behalf 24/7."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is AutoJobR safe to use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. AutoJobR runs securely with encrypted sessions and follows all platform guidelines. Your data is stored with bank-level encryption, and we never share your information without permission. Our Chrome extension operates within your browser with full privacy protection."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What pricing plans does AutoJobR offer for job seekers?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AutoJobR offers three plans for job seekers: Free (basic automation and ATS optimization), Smart Saver at $9.99/month (unlimited applications, advanced AI tools), and Premium at $19.99/month (all features plus interview prep and AI career coaching)."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What pricing plans does AutoJobR offer for recruiters?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Recruiters can choose from: Starter at $49.99/month (AI sourcing and basic ATS), Professional at $99.99/month (advanced features, automated interviews, analytics), and Enterprise at $299.99/month (white-label ATS, unlimited AI, dedicated support)."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Who founded AutoJobR?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AutoJobR was founded by Shubham Dubey, who serves as the company's CEO. Shubham built AutoJobR to revolutionize how talent and opportunity connect through AI-powered automation."
+          }
+        }
+      ]
     },
     
     {

@@ -14,8 +14,8 @@ interface SEOHeadProps {
 }
 
 export default function SEOHead({
-  title = "AutoJobR - AI-Powered Job Application Automation | Apply to 1000+ Jobs Daily",
-  description = "🔥 #1 FREE Job Application Automation Platform! Auto-apply to 1000+ jobs daily, beat ATS systems, get instant interviews. Join 1M+ users landing dream jobs 10x faster.",
+  title = "AutoJobR - AI That Connects Talent and Opportunity | Apply Faster, Hire Smarter",
+  description = "🔥 #1 AI Platform for Job Seekers & Recruiters! Founded by Shubham Dubey. Auto-apply to jobs, beat ATS, smart hiring tools. Free & Premium plans from $9.99/month. Join 1M+ users!",
   keywords = "job application automation, AI job search, automatic job applications, ATS optimizer, LinkedIn auto apply, Indeed auto apply, job search bot, resume optimizer, career automation",
   canonicalUrl,
   ogImage = "https://autojobr.com/og-image.png",
@@ -59,18 +59,25 @@ export default function SEOHead({
       {
         "@type": "Organization",
         "@id": "https://autojobr.com/#organization",
-        "name": "AutoJobR",
-        "legalName": "AutoJobR Inc.",
+        "name": "AutoJobR Inc.",
+        "legalName": "AutoJobR Incorporated",
         "url": "https://autojobr.com/",
         "logo": {
           "@type": "ImageObject",
           "url": "https://autojobr.com/favicon.png",
           "width": 512,
           "height": 512,
-          "caption": "AutoJobR Logo - AI Job Application Automation Platform"
+          "caption": "AutoJobR Logo - AI That Connects Talent and Opportunity"
         },
-        "description": "Leading AI-powered job application automation platform helping 1M+ users apply to jobs 10x faster and beat ATS systems",
+        "description": "AI That Connects Talent and Opportunity — Apply Faster, Hire Smarter. Leading platform for job seekers and recruiters with 1M+ users worldwide.",
+        "slogan": "AI That Connects Talent and Opportunity — Apply Faster, Hire Smarter",
         "foundingDate": "2024",
+        "founder": {
+          "@type": "Person",
+          "name": "Shubham Dubey",
+          "jobTitle": "Founder & CEO",
+          "description": "Visionary entrepreneur revolutionizing job search and recruitment through AI automation"
+        },
         "email": "support@autojobr.com",
         "knowsAbout": [
           "Artificial Intelligence",
@@ -96,7 +103,25 @@ export default function SEOHead({
         "brand": {
           "@type": "Brand",
           "name": "AutoJobR",
-          "description": "Trusted AI job automation platform"
+          "description": "AI That Connects Talent and Opportunity — Apply Faster, Hire Smarter"
+        },
+        "mainEntityOfPage": "https://autojobr.com",
+        "keywords": [
+          "AI job automation",
+          "talent acquisition",
+          "recruitment technology",
+          "applicant tracking system",
+          "resume optimization AI",
+          "interview automation",
+          "hiring platform",
+          "job matching algorithm"
+        ],
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.9",
+          "ratingCount": "50000",
+          "bestRating": "5",
+          "worstRating": "1"
         }
       },
       {
