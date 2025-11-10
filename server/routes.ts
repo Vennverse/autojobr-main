@@ -4061,6 +4061,20 @@ Return only the improved job description text, no additional formatting or expla
     }
   });
 
+  // Get integration sync history
+  app.get('/api/integrations/:id/sync-history', isAuthenticated, async (req: any, res) => {
+    try {
+      const integrationId = parseInt(req.params.id);
+      const { IntegrationService } = await import('./integrationService.js');
+
+      const history = await IntegrationService.getSyncHistory(integrationId);
+      res.json(history);
+    } catch (error) {
+      console.error('[INTEGRATIONS] Sync history error:', error);
+      handleError(res, error, 'Failed to fetch sync history');
+    }
+  });
+
   // ===== MOUNT PAYMENT ROUTES =====
   const { paymentRoutes } = await import('./paymentRoutes.js');
   app.use('/api/payments', paymentRoutes);

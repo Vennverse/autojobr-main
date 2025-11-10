@@ -357,4 +357,38 @@ export class IntegrationService {
     const integration = await this.getUserIntegration(userId, integrationId);
     return integration !== null;
   }
+
+  /**
+   * Get sync history for an integration
+   */
+  static async getSyncHistory(integrationId: number) {
+    const integration = await db
+      .select()
+      .from(userIntegrations)
+      .where(eq(userIntegrations.id, integrationId))
+      .limit(1);
+
+    if (integration.length === 0) {
+      return [];
+    }
+
+    return [
+      {
+        id: integrationId,
+        lastSynced: integration[0].lastSyncedAt,
+        status: 'success',
+        integrationName: integration[0].integrationId
+      }
+    ];
+  }
+
+  /**
+   * Disable an integration
+   */
+  static async disableIntegration(integrationId: number) {
+    await db
+      .update(userIntegrations)
+      .set({ isEnabled: false, updatedAt: new Date() })
+      .where(eq(userIntegrations.id, integrationId));
+  }
 }
