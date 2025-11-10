@@ -8882,7 +8882,7 @@ Return ONLY the JSON object, no additional text.`;
         linkedinUrl: tailoredResult.tailoredResumeData.personalInfo?.linkedin || resumeData.linkedinUrl || '',
         githubUrl: tailoredResult.tailoredResumeData.personalInfo?.github || resumeData.githubUrl || '',
         portfolioUrl: tailoredResult.tailoredResumeData.personalInfo?.portfolio || resumeData.portfolioUrl || '',
-        summary: tailoredResult.tailoredResumeData.professionalSummary || '',
+        summary: tailoredResult.tailoredResumeData.summary || tailoredResult.tailoredResumeData.professionalSummary || resumeData.summary || '',
         experience: (tailoredResult.tailoredResumeData.experience || []).map((exp: any) => ({
           company: exp.company || 'Company Name',
           position: exp.jobTitle || exp.position || 'Job Title',

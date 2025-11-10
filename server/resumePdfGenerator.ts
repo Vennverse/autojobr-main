@@ -134,6 +134,16 @@ export class ResumePdfGenerator {
   }
 
   /**
+   * Helper to check if we need a page break
+   */
+  private shouldAddPageBreak(doc: PDFKit.PDFDocument, estimatedHeight: number = 100): boolean {
+    const bottomMargin = doc.page.margins.bottom;
+    const pageHeight = doc.page.height;
+    const currentY = doc.y;
+    return (currentY + estimatedHeight + bottomMargin) > pageHeight;
+  }
+
+  /**
    * Harvard/MIT/Stanford Style Resume Template
    * Professional, ATS-friendly layout with 1-page or 2-page optimization
    */
@@ -185,19 +195,18 @@ export class ResumePdfGenerator {
       doc.moveDown(0.1); // Small gap before LinkedIn
     }
 
-    // LinkedIn URL on separate line below contact info
+    // LinkedIn URL on separate line below contact info, BEFORE career objective
     if (data.linkedinUrl) {
-      const linkedinHandle = data.linkedinUrl.replace(/https?:\/\/(www\.)?linkedin\.com\/in\//, '');
       doc.fontSize(spacing.fontSize)
          .font('Times-Roman')
-         .text(`LinkedIn: https://www.linkedin.com/in/${linkedinHandle}`, { align: 'center' });
+         .text(`LinkedIn: ${data.linkedinUrl}`, { align: 'center' });
     }
 
     doc.moveDown(spacing.afterContact);
 
-    // PROFESSIONAL SUMMARY (NOT Career Objective) - 2-3 lines below LinkedIn
+    // CAREER OBJECTIVE - positioned after LinkedIn
     if (data.summary) {
-      this.addSectionHeader(doc, 'PROFESSIONAL SUMMARY');
+      this.addSectionHeader(doc, 'CAREER OBJECTIVE');
       const summaryText = data.summary.trim();
       doc.fontSize(spacing.fontSize)
          .font('Times-Roman')
@@ -207,9 +216,17 @@ export class ResumePdfGenerator {
 
     // Work Experience
     if (data.experience && data.experience.length > 0) {
+      if (pageFormat === '2-page' && this.shouldAddPageBreak(doc, 150)) {
+        doc.addPage();
+      }
       this.addSectionHeader(doc, 'PROFESSIONAL EXPERIENCE');
       
       data.experience.forEach((exp, index) => {
+        // Check if we need a page break for this experience entry
+        if (pageFormat === '2-page' && this.shouldAddPageBreak(doc, 100)) {
+          doc.addPage();
+        }
+        
         // Position - Company on one line
         doc.fontSize(spacing.titleSize)
            .font('Times-Bold')
@@ -252,6 +269,9 @@ export class ResumePdfGenerator {
 
     // Education - Clean, no repetition
     if (data.education && data.education.length > 0) {
+      if (pageFormat === '2-page' && this.shouldAddPageBreak(doc, 100)) {
+        doc.addPage();
+      }
       this.addSectionHeader(doc, 'EDUCATION');
       
       data.education.forEach((edu, index) => {
@@ -290,6 +310,9 @@ export class ResumePdfGenerator {
 
     // Technical Skills
     if (data.skills && data.skills.length > 0) {
+      if (pageFormat === '2-page' && this.shouldAddPageBreak(doc, 80)) {
+        doc.addPage();
+      }
       this.addSectionHeader(doc, 'TECHNICAL SKILLS');
       
       const skillsText = data.skills.join(' • ');
@@ -302,6 +325,9 @@ export class ResumePdfGenerator {
 
     // Projects - One compact paragraph per project
     if (data.projects && data.projects.length > 0) {
+      if (pageFormat === '2-page' && this.shouldAddPageBreak(doc, 150)) {
+        doc.addPage();
+      }
       this.addSectionHeader(doc, 'KEY PROJECTS');
       
       data.projects.forEach((project, index) => {
@@ -331,6 +357,9 @@ export class ResumePdfGenerator {
 
     // Certifications
     if (data.certifications && data.certifications.length > 0) {
+      if (pageFormat === '2-page' && this.shouldAddPageBreak(doc, 100)) {
+        doc.addPage();
+      }
       this.addSectionHeader(doc, 'CERTIFICATIONS');
       
       data.certifications.forEach(cert => {
