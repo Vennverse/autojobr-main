@@ -137,6 +137,174 @@ const integrations: Integration[] = [
       "Network insights",
       "OAuth login"
     ]
+  },
+  {
+    id: "zapier",
+    name: "Zapier",
+    icon: <SiZapier className="w-12 h-12 text-orange-600" />,
+    category: "Automation",
+    description: "Automate workflows with 5000+ apps",
+    longDescription: "Connect AutoJobr with 5000+ apps using Zapier. Automate repetitive tasks, sync data across platforms, and create custom workflows without code.",
+    rating: 4.7,
+    installs: "4.1k",
+    status: "active",
+    isPremium: false,
+    pricing: "Free",
+    setupTime: "3 min",
+    features: [
+      "5000+ app integrations",
+      "Custom workflows",
+      "Multi-step automation",
+      "Real-time triggers",
+      "Data transformation"
+    ]
+  },
+  {
+    id: "slack",
+    name: "Slack",
+    icon: <SiSlack className="w-12 h-12 text-purple-600" />,
+    category: "Communication",
+    description: "Send notifications to your Slack workspace",
+    longDescription: "Receive instant notifications in Slack for new applications, interview schedules, and important updates. Keep your team in sync.",
+    rating: 4.8,
+    installs: "7.2k",
+    status: "active",
+    isPremium: false,
+    pricing: "Free",
+    setupTime: "2 min",
+    features: [
+      "Application alerts",
+      "Interview reminders",
+      "Team collaboration",
+      "Custom channels",
+      "Webhook support"
+    ]
+  },
+  {
+    id: "openai",
+    name: "OpenAI",
+    icon: <SiOpenai className="w-12 h-12 text-gray-900 dark:text-white" />,
+    category: "Productivity",
+    description: "AI-powered resume and cover letter generation",
+    longDescription: "Leverage GPT-4 to generate tailored resumes, cover letters, and interview responses. Get AI suggestions for profile optimization.",
+    rating: 4.9,
+    installs: "8.5k",
+    status: "active",
+    isPremium: true,
+    pricing: "Premium plan",
+    setupTime: "1 min",
+    features: [
+      "GPT-4 powered content",
+      "Resume optimization",
+      "Cover letter generation",
+      "Interview prep",
+      "Job description analysis"
+    ]
+  },
+  {
+    id: "notion",
+    name: "Notion",
+    icon: <SiNotion className="w-12 h-12 text-gray-900 dark:text-white" />,
+    category: "Productivity",
+    description: "Track applications in your Notion workspace",
+    longDescription: "Sync your job applications, interview schedules, and notes directly to Notion. Keep all your career information organized in one place.",
+    rating: 4.6,
+    installs: "3.2k",
+    status: "beta",
+    isPremium: false,
+    pricing: "Free",
+    setupTime: "4 min",
+    features: [
+      "Two-way sync",
+      "Custom databases",
+      "Template support",
+      "Automated updates",
+      "Rich text notes"
+    ]
+  },
+  {
+    id: "airtable",
+    name: "Airtable",
+    icon: <SiAirtable className="w-12 h-12 text-yellow-600" />,
+    category: "Database",
+    description: "Manage recruitment data in Airtable",
+    longDescription: "Export and sync candidate data, applications, and analytics to Airtable. Create custom views and collaborate with your hiring team.",
+    rating: 4.5,
+    installs: "2.8k",
+    status: "active",
+    isPremium: true,
+    pricing: "Pro plan",
+    setupTime: "5 min",
+    features: [
+      "Data export",
+      "Real-time sync",
+      "Custom views",
+      "Team collaboration",
+      "API access"
+    ]
+  },
+  {
+    id: "calendly",
+    name: "Calendly",
+    icon: <Calendar className="w-12 h-12 text-blue-500" />,
+    category: "Scheduling",
+    description: "Schedule interviews with Calendly",
+    longDescription: "Integrate Calendly for seamless interview scheduling. Share availability, automate reminders, and eliminate scheduling conflicts.",
+    rating: 4.7,
+    installs: "5.6k",
+    status: "active",
+    isPremium: false,
+    pricing: "Free",
+    setupTime: "3 min",
+    features: [
+      "Automated scheduling",
+      "Calendar sync",
+      "Email reminders",
+      "Timezone detection",
+      "Booking confirmations"
+    ]
+  },
+  {
+    id: "sendgrid",
+    name: "SendGrid",
+    icon: <Mail className="w-12 h-12 text-blue-600" />,
+    category: "Email",
+    description: "Send professional emails at scale",
+    longDescription: "Use SendGrid to send transactional emails, application updates, and marketing campaigns with high deliverability rates.",
+    rating: 4.6,
+    installs: "4.3k",
+    status: "active",
+    isPremium: false,
+    pricing: "Free",
+    setupTime: "4 min",
+    features: [
+      "Email templates",
+      "High deliverability",
+      "Analytics dashboard",
+      "A/B testing",
+      "Webhook events"
+    ]
+  },
+  {
+    id: "zoom",
+    name: "Zoom",
+    icon: <Video className="w-12 h-12 text-blue-600" />,
+    category: "Video",
+    description: "Conduct virtual interviews via Zoom",
+    longDescription: "Schedule and conduct video interviews directly through Zoom. Automatic meeting links, calendar integration, and recording capabilities.",
+    rating: 4.8,
+    installs: "9.1k",
+    status: "active",
+    isPremium: false,
+    pricing: "Free",
+    setupTime: "2 min",
+    features: [
+      "Instant meeting links",
+      "Interview recording",
+      "Screen sharing",
+      "Waiting rooms",
+      "Calendar integration"
+    ]
   }
 ];
 
