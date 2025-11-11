@@ -94,6 +94,7 @@ import PremiumAITools from "@/pages/premium-ai-tools";
 import CoverLetterGenerator from "@/pages/cover-letter-generator";
 import LinkedInOptimizer from "@/pages/LinkedInOptimizer";
 import IntegrationMarketplace from "@/pages/integration-marketplace";
+import IntegrationSettings from "@/pages/integration-settings";
 
 // SEO Landing Pages to Beat Competition
 import FreeJobApplicationAutomation from "@/pages/seo/FreeJobApplicationAutomation";
@@ -437,6 +438,7 @@ function Router() {
               <Route path="/premium-ai-tools" component={PremiumAITools} />
               <Route path="/linkedin-optimizer" component={LinkedInOptimizer} />
               <Route path="/integration-marketplace" component={IntegrationMarketplace} />
+              <Route path="/integration-settings" component={IntegrationSettings} />
               <Route path="/chat" component={SimpleChatPage} />
               <Route path="/messaging" component={SimpleChatPage} />
               <Route path="/bidder-dashboard" component={BidderDashboard} />
@@ -502,6 +504,7 @@ function Router() {
                   <Route path="/cover-letter-generator" component={CoverLetterGenerator} />
                   <Route path="/linkedin-optimizer" component={LinkedInOptimizer} />
                   <Route path="/integration-marketplace" component={IntegrationMarketplace} />
+                  <Route path="/integration-settings" component={IntegrationSettings} />
                   <Route path="/referral-marketplace" component={ReferralMarketplace} />
                   <Route path="/become-referrer" component={BecomeReferrer} />
                   <Route path="/my-bookings" component={MyBookings} />

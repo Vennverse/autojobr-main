@@ -88,6 +88,16 @@ const INTEGRATION_FEATURES = {
     requiresSetup: true,
     setupFields: ["apiKey"]
   },
+  "microsoft-calendar": {
+    name: "Microsoft Outlook Calendar",
+    features: [
+      { name: "Interview Scheduling", path: "/recruiter/interview-assignments" },
+      { name: "Calendar Sync", path: "/applications" },
+      { name: "Meeting Invites", path: "/recruiter/interview-assignments" }
+    ],
+    requiresSetup: true,
+    setupFields: ["accessToken", "refreshToken"]
+  },
   "sendgrid": {
     name: "SendGrid",
     features: [

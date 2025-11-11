@@ -32,7 +32,7 @@ import {
   ExternalLink,
   Settings
 } from "lucide-react";
-import { SiPaypal, SiStripe, SiOpenai, SiGoogle, SiLinkedin, SiZapier, SiSlack, SiNotion, SiAirtable } from "react-icons/si";
+import { SiPaypal, SiStripe, SiOpenai, SiGoogle, SiLinkedin, SiZapier, SiSlack, SiNotion, SiAirtable, SiMicrosoft } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -290,6 +290,27 @@ const integrations: Integration[] = [
     ]
   },
   {
+    id: "microsoft-calendar",
+    name: "Microsoft Outlook Calendar",
+    icon: <SiMicrosoft className="w-12 h-12 text-blue-600" />,
+    category: "Scheduling",
+    description: "Sync interviews with Outlook Calendar",
+    longDescription: "Connect with Microsoft Outlook Calendar to automatically sync interview schedules, send meeting invites, and manage availability. Works with Office 365 and Outlook.com.",
+    rating: 4.7,
+    installs: "4.2k",
+    status: "active",
+    isPremium: false,
+    pricing: "Free",
+    setupTime: "3 min",
+    features: [
+      "Calendar sync",
+      "Meeting invites",
+      "Availability management",
+      "Office 365 integration",
+      "Automatic reminders"
+    ]
+  },
+  {
     id: "sendgrid",
     name: "SendGrid",
     icon: <Mail className="w-12 h-12 text-blue-600" />,
@@ -489,7 +510,7 @@ export default function IntegrationMarketplace() {
       <div className="container mx-auto px-4 py-12 space-y-8">
         {/* Header */}
         <div className="text-center space-y-4 max-w-3xl mx-auto">
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex items-center justify-center gap-2 flex-wrap">
             <Zap className="w-10 h-10 text-primary" />
             <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
               Integration Marketplace
@@ -498,6 +519,15 @@ export default function IntegrationMarketplace() {
           <p className="text-xl text-muted-foreground">
             Connect AutoJobr with your favorite tools and supercharge your workflow
           </p>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/integration-settings')}
+            className="mt-2"
+            data-testid="button-manage-integrations"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Manage My Integrations
+          </Button>
           <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <CheckCircle className="w-4 h-4 text-green-500" />
@@ -711,20 +741,170 @@ export default function IntegrationMarketplace() {
                   </div>
                 )}
 
+                {/* Setup Information - What happens when you install */}
+                {!isIntegrationEnabled(selectedIntegration.id) && (
+                  <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <Zap className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <div className="text-sm">
+                        <p className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                          What happens when you install?
+                        </p>
+                        <p className="text-blue-800 dark:text-blue-200">
+                          {integrationFeatures?.requiresSetup 
+                            ? `You'll need to provide your ${selectedIntegration.name} credentials below. Your credentials are encrypted and stored securely. Once installed, you can use ${selectedIntegration.name} features across AutoJobr.`
+                            : `This integration will be instantly activated on your account. No configuration needed - just click Install Integration below!`
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Setup Form for integrations that require configuration */}
                 {integrationFeatures?.requiresSetup && integrationFeatures.setupFields.length > 0 && (
-                  <div className="space-y-4">
-                    <h4 className="font-semibold">Configuration:</h4>
+                  <div className="space-y-4 bg-muted/50 p-4 rounded-lg border">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold">Setup Configuration</h4>
+                      <Badge variant="outline" className="text-xs">Required</Badge>
+                    </div>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm text-muted-foreground">
+                        Enter your {selectedIntegration.name} credentials to connect your account:
+                      </p>
+                      {selectedIntegration.id === 'openai' && (
+                        <Button 
+                          variant="link" 
+                          size="sm"
+                          className="text-xs h-auto p-0"
+                          onClick={() => window.open('https://platform.openai.com/api-keys', '_blank')}
+                          data-testid="link-get-api-key"
+                        >
+                          Get API Key <ExternalLink className="w-3 h-3 ml-1" />
+                        </Button>
+                      )}
+                      {selectedIntegration.id === 'slack' && (
+                        <Button 
+                          variant="link" 
+                          size="sm"
+                          className="text-xs h-auto p-0"
+                          onClick={() => window.open('https://api.slack.com/messaging/webhooks', '_blank')}
+                          data-testid="link-get-api-key"
+                        >
+                          Get Webhook <ExternalLink className="w-3 h-3 ml-1" />
+                        </Button>
+                      )}
+                      {selectedIntegration.id === 'zapier' && (
+                        <Button 
+                          variant="link" 
+                          size="sm"
+                          className="text-xs h-auto p-0"
+                          onClick={() => window.open('https://zapier.com/app/settings/api', '_blank')}
+                          data-testid="link-get-api-key"
+                        >
+                          Get API Key <ExternalLink className="w-3 h-3 ml-1" />
+                        </Button>
+                      )}
+                      {selectedIntegration.id === 'airtable' && (
+                        <Button 
+                          variant="link" 
+                          size="sm"
+                          className="text-xs h-auto p-0"
+                          onClick={() => window.open('https://airtable.com/create/tokens', '_blank')}
+                          data-testid="link-get-api-key"
+                        >
+                          Get API Key <ExternalLink className="w-3 h-3 ml-1" />
+                        </Button>
+                      )}
+                      {selectedIntegration.id === 'zoom' && (
+                        <Button 
+                          variant="link" 
+                          size="sm"
+                          className="text-xs h-auto p-0"
+                          onClick={() => window.open('https://marketplace.zoom.us/develop/create', '_blank')}
+                          data-testid="link-get-api-key"
+                        >
+                          Get Credentials <ExternalLink className="w-3 h-3 ml-1" />
+                        </Button>
+                      )}
+                      {selectedIntegration.id === 'sendgrid' && (
+                        <Button 
+                          variant="link" 
+                          size="sm"
+                          className="text-xs h-auto p-0"
+                          onClick={() => window.open('https://app.sendgrid.com/settings/api_keys', '_blank')}
+                          data-testid="link-get-api-key"
+                        >
+                          Get API Key <ExternalLink className="w-3 h-3 ml-1" />
+                        </Button>
+                      )}
+                      {selectedIntegration.id === 'calendly' && (
+                        <Button 
+                          variant="link" 
+                          size="sm"
+                          className="text-xs h-auto p-0"
+                          onClick={() => window.open('https://calendly.com/integrations/api_webhooks', '_blank')}
+                          data-testid="link-get-api-key"
+                        >
+                          Get API Key <ExternalLink className="w-3 h-3 ml-1" />
+                        </Button>
+                      )}
+                      {selectedIntegration.id === 'microsoft-calendar' && (
+                        <Button 
+                          variant="link" 
+                          size="sm"
+                          className="text-xs h-auto p-0"
+                          onClick={() => window.open('https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade', '_blank')}
+                          data-testid="link-get-api-key"
+                        >
+                          Get Token <ExternalLink className="w-3 h-3 ml-1" />
+                        </Button>
+                      )}
+                      {(selectedIntegration.id === 'linkedin' || selectedIntegration.id === 'google-workspace' || selectedIntegration.id === 'notion') && (
+                        <Button 
+                          variant="link" 
+                          size="sm"
+                          className="text-xs h-auto p-0"
+                          onClick={() => window.open(`https://${selectedIntegration.id === 'google-workspace' ? 'console.cloud.google.com' : selectedIntegration.id === 'linkedin' ? 'www.linkedin.com/developers/apps' : 'www.notion.so/my-integrations'}`, '_blank')}
+                          data-testid="link-get-api-key"
+                        >
+                          Get Token <ExternalLink className="w-3 h-3 ml-1" />
+                        </Button>
+                      )}
+                    </div>
                     {integrationFeatures.setupFields.map((field) => {
-                      const isSecret = ['apiKey', 'apiSecret', 'accessToken', 'refreshToken'].includes(field);
+                      const isSecret = ['apiKey', 'apiSecret', 'accessToken', 'refreshToken', 'webhookUrl'].includes(field);
                       const fieldLabel = field
                         .replace(/([A-Z])/g, ' $1')
                         .replace(/^./, (str) => str.toUpperCase())
                         .trim();
                       
+                      // Helper text for each field type
+                      const getHelperText = () => {
+                        switch(field) {
+                          case 'apiKey':
+                            return `Get your API key from your ${selectedIntegration.name} account settings or developer dashboard`;
+                          case 'apiSecret':
+                            return `Your API secret is provided alongside your API key in ${selectedIntegration.name}`;
+                          case 'accessToken':
+                            return `Generate an access token from your ${selectedIntegration.name} account`;
+                          case 'refreshToken':
+                            return `Your refresh token is used to automatically renew access`;
+                          case 'webhookUrl':
+                            return `Enter the webhook URL from your ${selectedIntegration.name} workspace`;
+                          case 'baseId':
+                            return `Find your base ID in the Airtable URL (starts with "app")`;
+                          default:
+                            return `Required field for ${selectedIntegration.name} integration`;
+                        }
+                      };
+                      
                       return (
                         <div key={field} className="space-y-2">
-                          <Label htmlFor={field}>{fieldLabel} *</Label>
+                          <Label htmlFor={field} className="flex items-center gap-2">
+                            {fieldLabel}
+                            <span className="text-destructive">*</span>
+                          </Label>
                           <Input
                             id={field}
                             type={isSecret ? "password" : "text"}
@@ -736,37 +916,57 @@ export default function IntegrationMarketplace() {
                             }))}
                             data-testid={`input-${field}`}
                           />
+                          <p className="text-xs text-muted-foreground">
+                            {getHelperText()}
+                          </p>
                         </div>
                       );
                     })}
+                    <div className="flex items-start gap-2 bg-yellow-50 dark:bg-yellow-950/20 p-3 rounded border border-yellow-200 dark:border-yellow-800">
+                      <Shield className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                        Your credentials are encrypted and stored securely. They're never shared or visible to others.
+                      </p>
+                    </div>
                   </div>
                 )}
 
                 {/* CTA */}
-                <div className="flex gap-3">
-                  <Button 
-                    className="flex-1"
-                    onClick={installIntegration}
-                    disabled={selectedIntegration.status !== 'active' || enableIntegrationMutation.isPending}
-                    data-testid="button-install-integration"
-                  >
-                    {selectedIntegration.status === 'active' ? (
-                      <>
-                        <Zap className="w-4 h-4 mr-2" />
-                        {enableIntegrationMutation.isPending ? 'Connecting...' : 
-                         isIntegrationEnabled(selectedIntegration.id) ? 'Update Configuration' : 'Install Integration'}
-                      </>
-                    ) : (
-                      `Available ${selectedIntegration.status === 'beta' ? 'in Beta' : 'Soon'}`
-                    )}
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setShowDialog(false)}
-                    data-testid="button-cancel"
-                  >
-                    Cancel
-                  </Button>
+                <div className="flex flex-col gap-3">
+                  {integrationFeatures?.requiresSetup && integrationFeatures.setupFields.length > 0 && !isIntegrationEnabled(selectedIntegration.id) && (
+                    <div className="text-xs text-muted-foreground text-center">
+                      After installation, you can manage this integration in your settings
+                    </div>
+                  )}
+                  <div className="flex gap-3">
+                    <Button 
+                      className="flex-1"
+                      onClick={installIntegration}
+                      disabled={selectedIntegration.status !== 'active' || enableIntegrationMutation.isPending}
+                      data-testid="button-install-integration"
+                    >
+                      {selectedIntegration.status === 'active' ? (
+                        <>
+                          <Zap className="w-4 h-4 mr-2" />
+                          {enableIntegrationMutation.isPending ? 'Connecting...' : 
+                           isIntegrationEnabled(selectedIntegration.id) ? 'Update Configuration' : 
+                           integrationFeatures?.requiresSetup ? 'Save & Install Integration' : 'Install Integration'}
+                        </>
+                      ) : (
+                        `Available ${selectedIntegration.status === 'beta' ? 'in Beta' : 'Soon'}`
+                      )}
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        setShowDialog(false);
+                        setConfigFields({});
+                      }}
+                      data-testid="button-cancel"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
 
                 {selectedIntegration.isPremium && !isPremium && (
