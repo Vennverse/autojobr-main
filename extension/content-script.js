@@ -9,25 +9,25 @@ class AutoJobrContentScript {
     this.observers = [];
     this.fillHistory = [];
     this.smartSelectors = new Map();
-    this.filledFields = new Set(); // Track filled fields to prevent loops
+    this.filledFields = new Set();
     this.formState = { currentPage: 1, hasNextPage: false, hasSubmit: false };
-    this.analysisInProgress = false; // Prevent duplicate analysis
-    this.lastAnalysisUrl = null; // Track last analyzed URL
-    this.analysisDebounceTimer = null; // Debounce analysis calls
-    this.cachedProfile = null; // Cache profile to prevent excessive requests
-    this.lastAuthCheck = 0; // Track last authentication check
-    this.currentAnalysis = null; // Store the latest job analysis result
-
-    // Experience calculation cache
-    this.experienceCache = null; // Cache for general years of experience
-    this.skillExpCache = {}; // Cache for skill-specific experience calculations
-
-    // LinkedIn Automation specific states
+    this.analysisInProgress = false;
+    this.lastAnalysisUrl = null;
+    this.analysisDebounceTimer = null;
+    this.cachedProfile = null;
+    this.lastAuthCheck = 0;
+    this.currentAnalysis = null;
+    this.experienceCache = null;
+    this.skillExpCache = {};
     this.automationRunning = false;
     this.applicationsSubmitted = 0;
     this.applicationsSkipped = 0;
     this.currentPage = 1;
-    this.maxPages = 1; // Default to 1 page for non-premium
+    this.maxPages = 1;
+
+    // NEW: Advanced field detection
+    this.configSync = new ConfigSyncService();
+    this.fieldDetector = new AdvancedFieldDetector(this.configSync);
 
     this.init();
   }
