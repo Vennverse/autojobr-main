@@ -234,6 +234,45 @@ export default function IntegrationSettings() {
     }
   };
 
+  // Install integration mutation (This is where the fix is applied)
+  const installMutation = useMutation({
+    mutationFn: async (integrationId: string) => {
+      const response = await fetch('/api/integrations/install', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ 
+          integrationId,
+          config: {} 
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to install integration');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/integrations/user-integrations'] });
+      toast({
+        title: "Integration Installed",
+        description: "Integration has been installed successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to install integration",
+        description: error.message || "Please try again later.",
+        variant: "destructive"
+      });
+    }
+  });
+
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {isRecruiter ? <RecruiterNavbar /> : <Navbar />}
@@ -479,9 +518,9 @@ export default function IntegrationSettings() {
                     .replace(/([A-Z])/g, ' $1')
                     .replace(/^./, (str) => str.toUpperCase())
                     .trim();
-                  
+
                   const fieldKey = `${editingIntegration.integrationId}-${field}`;
-                  
+
                   return (
                     <div key={field} className="space-y-2">
                       <Label htmlFor={field} className="flex items-center gap-2">

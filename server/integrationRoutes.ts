@@ -136,12 +136,12 @@ const INTEGRATION_FEATURES = {
 router.get("/user-integrations", isAuthenticated, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
-    
+
     const integrations = await db
       .select()
       .from(userIntegrations)
       .where(eq(userIntegrations.userId, userId));
-    
+
     // Map integrations with their feature links and redact sensitive fields
     const integrationsWithFeatures = integrations.map(integration => ({
       id: integration.id,
@@ -160,7 +160,7 @@ router.get("/user-integrations", isAuthenticated, async (req: Request, res: Resp
       hasAccessToken: !!integration.accessToken,
       hasRefreshToken: !!integration.refreshToken
     }));
-    
+
     res.json(integrationsWithFeatures);
   } catch (error) {
     console.error("Error fetching user integrations:", error);
@@ -172,11 +172,11 @@ router.get("/user-integrations", isAuthenticated, async (req: Request, res: Resp
 router.get("/integration-features/:integrationId", (req: Request, res: Response) => {
   const { integrationId } = req.params;
   const integration = INTEGRATION_FEATURES[integrationId];
-  
+
   if (!integration) {
     return res.status(404).json({ message: "Integration not found" });
   }
-  
+
   res.json(integration);
 });
 
@@ -185,7 +185,7 @@ router.post("/user-integrations", isAuthenticated, async (req: Request, res: Res
   try {
     const userId = req.user!.id;
     const { integrationId, config: clientConfig } = req.body;
-    
+
     if (!integrationId) {
       return res.status(400).json({ message: "Integration ID is required" });
     }
@@ -201,7 +201,7 @@ router.post("/user-integrations", isAuthenticated, async (req: Request, res: Res
       const missingFields = integrationSetup.setupFields.filter(
         field => !clientConfig || !clientConfig[field]
       );
-      
+
       if (missingFields.length > 0) {
         return res.status(400).json({ 
           message: `Missing required fields: ${missingFields.join(', ')}` 
@@ -212,13 +212,13 @@ router.post("/user-integrations", isAuthenticated, async (req: Request, res: Res
     // Encrypt sensitive fields
     const encryptedConfig: any = { ...clientConfig };
     const sensitiveFields = ['apiKey', 'apiSecret', 'accessToken', 'refreshToken', 'webhookUrl'];
-    
+
     for (const field of sensitiveFields) {
       if (encryptedConfig[field]) {
         encryptedConfig[field] = EncryptionService.encrypt(encryptedConfig[field]);
       }
     }
-    
+
     // Check if integration already exists
     const existing = await db
       .select()
@@ -228,7 +228,7 @@ router.post("/user-integrations", isAuthenticated, async (req: Request, res: Res
         eq(userIntegrations.integrationId, integrationId)
       ))
       .limit(1);
-    
+
     if (existing.length > 0) {
       // Update existing integration
       await db
@@ -239,14 +239,14 @@ router.post("/user-integrations", isAuthenticated, async (req: Request, res: Res
           updatedAt: new Date()
         })
         .where(eq(userIntegrations.id, existing[0].id));
-      
+
       return res.json({ 
         message: "Integration updated successfully",
         integrationId,
         isEnabled: true
       });
     }
-    
+
     // Create new integration
     const [newIntegration] = await db
       .insert(userIntegrations)
@@ -257,7 +257,7 @@ router.post("/user-integrations", isAuthenticated, async (req: Request, res: Res
         isEnabled: true
       })
       .returning();
-    
+
     res.json({ 
       message: "Integration enabled successfully",
       integrationId: newIntegration.integrationId,
@@ -275,7 +275,7 @@ router.patch("/user-integrations/:integrationId/toggle", isAuthenticated, async 
     const userId = req.user!.id;
     const { integrationId } = req.params;
     const { isEnabled } = req.body;
-    
+
     const integration = await db
       .select()
       .from(userIntegrations)
@@ -284,16 +284,16 @@ router.patch("/user-integrations/:integrationId/toggle", isAuthenticated, async 
         eq(userIntegrations.integrationId, integrationId)
       ))
       .limit(1);
-    
+
     if (integration.length === 0) {
       return res.status(404).json({ message: "Integration not found" });
     }
-    
+
     await db
       .update(userIntegrations)
       .set({ isEnabled, updatedAt: new Date() })
       .where(eq(userIntegrations.id, integration[0].id));
-    
+
     res.json({ message: "Integration status updated" });
   } catch (error) {
     console.error("Error toggling integration:", error);
@@ -306,14 +306,14 @@ router.delete("/user-integrations/:integrationId", isAuthenticated, async (req: 
   try {
     const userId = req.user!.id;
     const { integrationId } = req.params;
-    
+
     await db
       .delete(userIntegrations)
       .where(and(
         eq(userIntegrations.userId, userId),
         eq(userIntegrations.integrationId, integrationId)
       ));
-    
+
     res.json({ message: "Integration removed successfully" });
   } catch (error) {
     console.error("Error deleting integration:", error);
@@ -333,7 +333,7 @@ router.post("/export/airtable/crm-contacts", isAuthenticated, async (req: Reques
 
     // Import IntegrationService
     const { IntegrationService } = await import("./integrationService.js");
-    
+
     // Export to Airtable
     const success = await IntegrationService.exportToAirtable(
       userId,
@@ -369,7 +369,7 @@ router.post("/notify/slack", isAuthenticated, async (req: Request, res: Response
 
     // Import IntegrationService
     const { IntegrationService } = await import("./integrationService.js");
-    
+
     // Send Slack notification
     const success = await IntegrationService.sendSlackNotification(
       userId,
@@ -401,7 +401,7 @@ router.post("/post/linkedin", isAuthenticated, async (req: Request, res: Respons
     }
 
     const { IntegrationService } = await import("./integrationService.js");
-    
+
     const success = await IntegrationService.postToLinkedIn(userId, {
       title,
       description,
@@ -433,7 +433,7 @@ router.post("/schedule/calendly", isAuthenticated, async (req: Request, res: Res
     }
 
     const { IntegrationService } = await import("./integrationService.js");
-    
+
     const result = await IntegrationService.createCalendlyMeeting(userId, {
       name,
       email,
@@ -468,7 +468,7 @@ router.post("/schedule/zoom", isAuthenticated, async (req: Request, res: Respons
     }
 
     const { IntegrationService } = await import("./integrationService.js");
-    
+
     const result = await IntegrationService.createZoomMeeting(userId, {
       topic,
       startTime,
@@ -505,7 +505,7 @@ router.post("/schedule/google-meet", isAuthenticated, async (req: Request, res: 
     }
 
     const { IntegrationService } = await import("./integrationService.js");
-    
+
     const result = await IntegrationService.createGoogleMeet(userId, {
       summary,
       description,
