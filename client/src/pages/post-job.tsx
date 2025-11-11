@@ -1,0 +1,834 @@
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { ArrowLeft, Building, MapPin, DollarSign, Users, Clock, Briefcase, Mail, CheckCircle, X, Sparkles } from "lucide-react";
+import { SiLinkedin } from "react-icons/si";
+import { useLocation } from "wouter";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+
+export default function PostJob() {
+  const [location, setLocation] = useLocation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { user, isAuthenticated } = useAuth();
+  
+  const [currentStep, setCurrentStep] = useState<'auth' | 'verify' | 'post'>('auth');
+  const [emailSent, setEmailSent] = useState(false);
+  const [verificationData, setVerificationData] = useState({
+    email: "",
+    companyName: "",
+    companyWebsite: "",
+  });
+  
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    companyName: "",
+    companyLogo: "",
+    location: "",
+    workMode: "",
+    jobType: "",
+    experienceLevel: "",
+    skills: [] as string[],
+    minSalary: "",
+    maxSalary: "",
+    currency: "USD",
+    benefits: "",
+    requirements: "",
+    responsibilities: "",
+  });
+
+  const [skillInput, setSkillInput] = useState("");
+  const [isImprovingJD, setIsImprovingJD] = useState(false);
+
+  // Function to extract company name from email domain
+  const getCompanyNameFromEmail = (email: string): string => {
+    if (!email) return "";
+    
+    const domain = email.split('@')[1]?.toLowerCase();
+    if (!domain) return "";
+    
+    // Special case for autojobr.com domain
+    if (domain === 'autojobr.com') {
+      return 'Autojobr';
+    }
+    
+    // Remove common TLDs and create a readable company name
+    const companyName = domain
+      .replace(/\.(com|org|net|edu|gov|co\.uk|co\.in|co\.jp)$/, '')
+      .split('.')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    
+    return companyName;
+  };
+
+  useEffect(() => {
+    // Check for verification success in URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const verified = urlParams.get('verified');
+    
+    if (verified === 'true') {
+      // Refresh user data after verification with a slight delay to ensure database update is complete
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      }, 1000);
+      // Remove the verified param from URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    
+    // Check company verification status if user is authenticated
+    const checkCompanyVerification = async () => {
+      if (isAuthenticated && user?.id && user.id !== 'demo-user-id') {
+        try {
+          const response = await fetch(`/api/auth/company-verification/${user.id}`);
+          const verification = await response.json();
+          
+          if (verification.isVerified) {
+            setCurrentStep('post');
+            // Set company name from verification data or derive from email
+            const verifiedCompanyName = verification.companyName || getCompanyNameFromEmail(user.email || '');
+            if (verifiedCompanyName && !formData.companyName) {
+              setFormData(prev => ({ ...prev, companyName: verifiedCompanyName }));
+            }
+          } else {
+            setCurrentStep('verify');
+          }
+        } catch (error) {
+          console.error('Error checking verification:', error);
+          // If recruiter role, always require company verification
+          // Job seekers switching to recruiter must verify company email
+          setCurrentStep('verify');
+        }
+      } else if (!isAuthenticated) {
+        setCurrentStep('auth');
+      } else if (user?.id === 'demo-user-id') {
+        setCurrentStep('post');
+        // For demo user, allow editable company name
+        if (!formData.companyName) {
+          setFormData(prev => ({ ...prev, companyName: "Demo Company" }));
+        }
+      }
+    };
+    
+    checkCompanyVerification();
+  }, [isAuthenticated, user, queryClient]);
+
+  const verificationMutation = useMutation({
+    mutationFn: async (data: typeof verificationData) => {
+      return await apiRequest("/api/auth/send-verification", "POST", data);
+    },
+    onSuccess: () => {
+      setEmailSent(true);
+      toast({
+        title: "Verification Email Sent",
+        description: "Check your email and click the verification link to complete setup.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Verification Failed",
+        description: error.message || "Failed to send verification email. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createJobMutation = useMutation({
+    mutationFn: async (jobData: any) => {
+      return await apiRequest("/api/recruiter/jobs", "POST", jobData);
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Job Posted Successfully",
+        description: "Your job posting is now live and candidates can apply.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/recruiter/jobs'] });
+      
+      // Show LinkedIn posting option
+      if (data?.job) {
+        toast({
+          title: "Share on LinkedIn?",
+          description: "You can also post this job to LinkedIn with one click.",
+          action: (
+            <Button
+              size="sm"
+              onClick={() => postToLinkedInMutation.mutate({
+                title: data.job.title,
+                description: data.job.description,
+                location: data.job.location,
+                company: data.job.companyName
+              })}
+            >
+              Post to LinkedIn
+            </Button>
+          ),
+        });
+      }
+      
+      setLocation('/recruiter-dashboard');
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Post Job",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const postToLinkedInMutation = useMutation({
+    mutationFn: async (jobData: any) => {
+      return await apiRequest("/api/integrations/post/linkedin", "POST", jobData);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Posted to LinkedIn",
+        description: "Your job has been successfully posted to LinkedIn!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "LinkedIn Posting Failed",
+        description: error.message || "Please configure LinkedIn integration in Integration Marketplace.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const improveJDMutation = useMutation({
+    mutationFn: async (jobDescription: string) => {
+      return await apiRequest("/api/recruiter/improve-jd", "POST", { 
+        jobDescription,
+        jobTitle: formData.title,
+        companyName: formData.companyName
+      });
+    },
+    onSuccess: (data) => {
+      setFormData(prev => ({ ...prev, description: data.improvedDescription }));
+      toast({
+        title: "Job Description Improved",
+        description: "Your job description has been enhanced with AI suggestions.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Improvement Failed",
+        description: error.message || "Failed to improve job description. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleInputChange = (field: string, value: string | number) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const addSkill = () => {
+    if (skillInput.trim() && !formData.skills.includes(skillInput.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        skills: [...prev.skills, skillInput.trim()]
+      }));
+      setSkillInput("");
+    }
+  };
+
+  const removeSkill = (skill: string) => {
+    setFormData(prev => ({
+      ...prev,
+      skills: prev.skills.filter(s => s !== skill)
+    }));
+  };
+
+  const handleImproveJD = () => {
+    if (!formData.description.trim()) {
+      toast({
+        title: "No Job Description",
+        description: "Please enter a job description first to improve it.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsImprovingJD(true);
+    improveJDMutation.mutate(formData.description);
+    setIsImprovingJD(false);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.title || !formData.description || !formData.companyName) {
+      toast({
+        title: "Missing Required Fields",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const jobData = {
+      ...formData,
+      minSalary: formData.minSalary ? parseInt(formData.minSalary) : null,
+      maxSalary: formData.maxSalary ? parseInt(formData.maxSalary) : null,
+    };
+
+    createJobMutation.mutate(jobData);
+  };
+
+  // Authentication step
+  if (currentStep === 'auth') {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="flex items-center justify-center gap-2">
+              <Briefcase className="w-8 h-8 text-blue-600" />
+              Post a Job
+            </CardTitle>
+            <CardDescription>
+              Sign in to start posting jobs and find the perfect candidates
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button 
+              className="w-full" 
+              onClick={() => setLocation('/auth')}
+            >
+              Sign in to Continue
+            </Button>
+            <div className="text-center">
+              <Button 
+                variant="link" 
+                onClick={() => setLocation('/')}
+                className="text-sm"
+              >
+                Back to Home
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Email verification step
+  if (currentStep === 'verify') {
+    if (emailSent) {
+      return (
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <CardTitle className="flex items-center justify-center gap-2">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+                Email Sent Successfully
+              </CardTitle>
+              <CardDescription>
+                Check your email inbox for the verification link
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 text-center">
+              <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  We've sent a verification link to <strong>{verificationData.email}</strong>
+                </p>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+                  Click the link in your email to verify your company email and start posting jobs.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Button 
+                  onClick={() => {
+                    setEmailSent(false);
+                    verificationMutation.mutate(verificationData);
+                  }}
+                  variant="outline"
+                  className="w-full"
+                  disabled={verificationMutation.isPending}
+                >
+                  {verificationMutation.isPending ? "Sending..." : "Resend Email"}
+                </Button>
+                <Button 
+                  variant="link" 
+                  onClick={() => setLocation('/')}
+                  className="text-sm"
+                >
+                  Back to Home
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="flex items-center justify-center gap-2">
+              <Mail className="w-8 h-8 text-blue-600" />
+              Verify Company Email
+            </CardTitle>
+            <CardDescription>
+              To post jobs, verify your company email address
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              verificationMutation.mutate(verificationData);
+            }} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Company Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@company.com"
+                  value={verificationData.email}
+                  onChange={(e) => setVerificationData(prev => ({...prev, email: e.target.value}))}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="companyName">Company Name *</Label>
+                <Input
+                  id="companyName"
+                  placeholder="Your Company"
+                  value={verificationData.companyName}
+                  onChange={(e) => setVerificationData(prev => ({...prev, companyName: e.target.value}))}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="companyWebsite">Company Website</Label>
+                <Input
+                  id="companyWebsite"
+                  placeholder="company.com"
+                  value={verificationData.companyWebsite}
+                  onChange={(e) => setVerificationData(prev => ({...prev, companyWebsite: e.target.value}))}
+                />
+              </div>
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={verificationMutation.isPending}
+              >
+                {verificationMutation.isPending ? "Sending..." : "Send Verification Email"}
+              </Button>
+            </form>
+            <div className="text-center">
+              <Button 
+                variant="link" 
+                onClick={() => setLocation('/')}
+                className="text-sm"
+              >
+                Back to Home
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Job posting form
+  if (currentStep === 'post') {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        {/* Header */}
+        <div className="bg-white dark:bg-gray-800 border-b">
+          <div className="container mx-auto px-4 py-6">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocation('/recruiter-dashboard')}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Briefcase className="w-8 h-8 text-blue-600" />
+                  Post a New Job
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400 mt-1">
+                  Create a job posting to attract talented candidates
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Form Content */}
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Basic Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building className="w-5 h-5" />
+                    Basic Information
+                  </CardTitle>
+                  <CardDescription>
+                    Provide the essential details about this position
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Job Title *</Label>
+                      <Input
+                        id="title"
+                        placeholder="e.g., Senior Software Engineer"
+                        value={formData.title}
+                        onChange={(e) => handleInputChange("title", e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="companyName">Company Name *</Label>
+                      <div className="relative">
+                        <Input
+                          id="companyName"
+                          placeholder="Your Company Inc."
+                          value={formData.companyName}
+                          onChange={(e) => handleInputChange("companyName", e.target.value)}
+                          required
+                          readOnly={user?.id !== 'demo-user-id'}
+                          className={user?.id !== 'demo-user-id' ? "bg-gray-50 dark:bg-gray-800 cursor-not-allowed" : ""}
+                          data-testid="input-company-name"
+                        />
+                        {user?.id !== 'demo-user-id' && (
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <CheckCircle className="w-4 h-4 text-green-500" />
+                          </div>
+                        )}
+                      </div>
+                      {user?.id !== 'demo-user-id' && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          🔒 Company name is automatically set based on your verified email domain for security
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Job Description *</Label>
+                    <Textarea
+                      id="description"
+                      placeholder="Describe the role, responsibilities, and what makes this opportunity exciting..."
+                      value={formData.description}
+                      onChange={(e) => handleInputChange("description", e.target.value)}
+                      rows={6}
+                      required
+                    />
+                    {formData.description.trim() && (
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          💡 Click "Improve JD" to enhance your job description with AI suggestions
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleImproveJD}
+                          disabled={improveJDMutation.isPending || !formData.description.trim()}
+                          className="flex items-center gap-2"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          {improveJDMutation.isPending ? "Improving..." : "Improve JD"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="companyLogo">Company Logo URL</Label>
+                    <Input
+                      id="companyLogo"
+                      placeholder="https://company.com/logo.png"
+                      value={formData.companyLogo}
+                      onChange={(e) => handleInputChange("companyLogo", e.target.value)}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Job Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="w-5 h-5" />
+                    Job Details
+                  </CardTitle>
+                  <CardDescription>
+                    Specify the location, work arrangement, and job type
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Location</Label>
+                      <Input
+                        id="location"
+                        placeholder="New York, NY or Remote"
+                        value={formData.location}
+                        onChange={(e) => handleInputChange("location", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="workMode">Work Mode</Label>
+                      <Select value={formData.workMode} onValueChange={(value) => handleInputChange("workMode", value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select work mode" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="remote">Remote</SelectItem>
+                          <SelectItem value="hybrid">Hybrid</SelectItem>
+                          <SelectItem value="onsite">On-site</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="jobType">Job Type</Label>
+                      <Select value={formData.jobType} onValueChange={(value) => handleInputChange("jobType", value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select job type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="full-time">Full-time</SelectItem>
+                          <SelectItem value="part-time">Part-time</SelectItem>
+                          <SelectItem value="contract">Contract</SelectItem>
+                          <SelectItem value="internship">Internship</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="experienceLevel">Experience Level</Label>
+                    <Select value={formData.experienceLevel} onValueChange={(value) => handleInputChange("experienceLevel", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select experience level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="entry">Entry Level</SelectItem>
+                        <SelectItem value="mid">Mid Level</SelectItem>
+                        <SelectItem value="senior">Senior Level</SelectItem>
+                        <SelectItem value="lead">Lead / Principal</SelectItem>
+                        <SelectItem value="executive">Executive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Skills */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Required Skills
+                  </CardTitle>
+                  <CardDescription>
+                    Add the key skills candidates should have
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="e.g., React, TypeScript, Python"
+                      value={skillInput}
+                      onChange={(e) => setSkillInput(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          addSkill();
+                        }
+                      }}
+                    />
+                    <Button type="button" onClick={addSkill}>
+                      Add
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.skills.map((skill) => (
+                      <Badge key={skill} variant="secondary" className="flex items-center gap-1">
+                        {skill}
+                        <X
+                          className="w-3 h-3 cursor-pointer"
+                          onClick={() => removeSkill(skill)}
+                        />
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Compensation */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="w-5 h-5" />
+                    Compensation
+                  </CardTitle>
+                  <CardDescription>
+                    Specify the salary range for this position
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="minSalary">Min Salary</Label>
+                      <Input
+                        id="minSalary"
+                        type="number"
+                        placeholder="50000"
+                        value={formData.minSalary}
+                        onChange={(e) => handleInputChange("minSalary", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="maxSalary">Max Salary</Label>
+                      <Input
+                        id="maxSalary"
+                        type="number"
+                        placeholder="100000"
+                        value={formData.maxSalary}
+                        onChange={(e) => handleInputChange("maxSalary", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="currency">Currency</Label>
+                      <Select value={formData.currency} onValueChange={(value) => handleInputChange("currency", value)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="EUR">EUR</SelectItem>
+                          <SelectItem value="GBP">GBP</SelectItem>
+                          <SelectItem value="CAD">CAD</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Additional Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="w-5 h-5" />
+                    Additional Details
+                  </CardTitle>
+                  <CardDescription>
+                    Provide more context about the role and company
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="requirements">Requirements</Label>
+                    <Textarea
+                      id="requirements"
+                      placeholder="List the key requirements for this position..."
+                      value={formData.requirements}
+                      onChange={(e) => handleInputChange("requirements", e.target.value)}
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="responsibilities">Responsibilities</Label>
+                    <Textarea
+                      id="responsibilities"
+                      placeholder="Describe the main responsibilities and duties..."
+                      value={formData.responsibilities}
+                      onChange={(e) => handleInputChange("responsibilities", e.target.value)}
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="benefits">Benefits & Perks</Label>
+                    <Textarea
+                      id="benefits"
+                      placeholder="Health insurance, stock options, flexible PTO, remote work allowance..."
+                      value={formData.benefits}
+                      onChange={(e) => handleInputChange("benefits", e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Submit */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex gap-4 justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setLocation('/recruiter-dashboard')}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      disabled={createJobMutation.isPending}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {createJobMutation.isPending ? "Posting..." : "Post Job"}
+                    </Button>
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      💡 After posting, you can share this job to LinkedIn instantly
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={!formData.title || !formData.description || postToLinkedInMutation.isPending}
+                      onClick={() => postToLinkedInMutation.mutate({
+                        title: formData.title,
+                        description: formData.description,
+                        location: formData.location,
+                        company: formData.companyName
+                      })}
+                      className="w-full"
+                    >
+                      <SiLinkedin className="w-4 h-4 mr-2 text-[#0077B5]" />
+                      {postToLinkedInMutation.isPending ? "Posting to LinkedIn..." : "Also Post to LinkedIn"}
+                    </Button>
+                    <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+                      Requires LinkedIn integration setup in Integration Marketplace
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback - should not reach here
+  return null;
+}

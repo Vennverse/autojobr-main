@@ -1,0 +1,473 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extension API Test - Application Tracking</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .section h2 {
+            color: #764ba2;
+            margin-top: 0;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            background: white;
+            border-left: 4px solid #667eea;
+        }
+        .success {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+        }
+        .error {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        .info {
+            border-left-color: #3b82f6;
+            background: #eff6ff;
+        }
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 AutoJobr Extension API Test Suite</h1>
+        <p class="subtitle">Comprehensive test for application tracking and database verification</p>
+
+        <!-- Authentication Section -->
+        <div class="section">
+            <h2>🔐 Step 1: Authentication</h2>
+            <p>Login with test credentials to authenticate API calls</p>
+            <button id="loginBtn" onclick="authenticate()">Login & Get Session</button>
+            <div id="authResult" class="result" style="display:none;"></div>
+        </div>
+
+        <!-- Test Data Creation -->
+        <div class="section">
+            <h2>📝 Step 2: Send Test Applications</h2>
+            <p>Create multiple test applications using the extension API</p>
+            <button id="sendSingleBtn" onclick="sendSingleApplication()" disabled>Send 1 Test Application</button>
+            <button id="sendBulkBtn" onclick="sendBulkApplications(5)" disabled>Send 5 Test Applications</button>
+            <button id="sendManyBtn" onclick="sendBulkApplications(20)" disabled>Send 20 Test Applications</button>
+            <div id="trackingResult" class="result" style="display:none;"></div>
+        </div>
+
+        <!-- Database Verification -->
+        <div class="section">
+            <h2>✅ Step 3: Verify Database</h2>
+            <p>Check if applications were saved correctly in the database</p>
+            <button id="verifyBtn" onclick="verifyDatabase()" disabled>Verify Applications in DB</button>
+            <div id="verifyResult" class="result" style="display:none;"></div>
+            <div id="statsContainer" style="display:none;">
+                <div class="stats" id="stats"></div>
+            </div>
+        </div>
+
+        <!-- Cleanup -->
+        <div class="section">
+            <h2>🧹 Step 4: Cleanup (Optional)</h2>
+            <p>Remove test applications from database</p>
+            <button id="cleanupBtn" onclick="cleanupTestData()" disabled>Delete Test Applications</button>
+            <div id="cleanupResult" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000';
+        const TEST_CREDENTIALS = {
+            email: 'shubhamdubexskd2001@gmail.com',
+            password: '12345678'
+        };
+
+        let sessionCookie = null;
+        let userId = null;
+        let testApplicationIds = [];
+
+        // Utility functions
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result ${type}`;
+            element.innerHTML = message;
+        }
+
+        function enableButtons(...buttonIds) {
+            buttonIds.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.disabled = false;
+            });
+        }
+
+        // Step 1: Authentication
+        async function authenticate() {
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Authenticating...';
+            
+            try {
+                const response = await fetch(`${API_URL}/api/auth/signin`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        provider: 'credentials',
+                        email: TEST_CREDENTIALS.email,
+                        password: TEST_CREDENTIALS.password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.user) {
+                    userId = data.user.id;
+                    
+                    // Get user profile to confirm authentication
+                    const profileResponse = await fetch(`${API_URL}/api/user`, {
+                        credentials: 'include'
+                    });
+                    const profile = await profileResponse.json();
+
+                    showResult('authResult', `
+                        <strong>✅ Authentication Successful!</strong><br>
+                        <strong>User ID:</strong> ${userId}<br>
+                        <strong>Email:</strong> ${data.user.email}<br>
+                        <strong>Name:</strong> ${data.user.name}<br>
+                        <strong>Plan:</strong> ${profile.planType || 'free'}<br>
+                        <strong>Session:</strong> Active with cookies
+                    `, 'success');
+
+                    enableButtons('sendSingleBtn', 'sendBulkBtn', 'sendManyBtn', 'verifyBtn');
+                } else {
+                    throw new Error(data.message || 'Authentication failed');
+                }
+            } catch (error) {
+                showResult('authResult', `
+                    <strong>❌ Authentication Failed</strong><br>
+                    Error: ${error.message}
+                `, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Login & Get Session';
+            }
+        }
+
+        // Step 2: Send test applications
+        async function sendSingleApplication() {
+            const testJob = generateTestJob();
+            await trackApplication(testJob);
+        }
+
+        async function sendBulkApplications(count) {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="loading"></span> Sending ${count} applications...`;
+
+            let successful = 0;
+            let failed = 0;
+            const results = [];
+
+            for (let i = 0; i < count; i++) {
+                try {
+                    const testJob = generateTestJob(i);
+                    const result = await trackApplication(testJob, false);
+                    if (result.success) {
+                        successful++;
+                        if (result.applicationId) {
+                            testApplicationIds.push(result.applicationId);
+                        }
+                    } else {
+                        failed++;
+                    }
+                    results.push(result);
+                } catch (error) {
+                    failed++;
+                    results.push({ success: false, error: error.message });
+                }
+            }
+
+            showResult('trackingResult', `
+                <strong>📊 Bulk Application Results</strong><br>
+                <strong>Total Sent:</strong> ${count}<br>
+                <strong>✅ Successful:</strong> ${successful}<br>
+                <strong>❌ Failed:</strong> ${failed}<br>
+                <strong>Test IDs:</strong> ${testApplicationIds.length} saved
+            `, successful > 0 ? 'success' : 'error');
+
+            btn.disabled = false;
+            btn.innerHTML = `Send ${count} Test Applications`;
+            enableButtons('verifyBtn', 'cleanupBtn');
+        }
+
+        async function trackApplication(jobData, showIndividualResult = true) {
+            try {
+                const response = await fetch(`${API_URL}/api/track-application`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        jobTitle: jobData.title,
+                        company: jobData.company,
+                        location: jobData.location,
+                        jobUrl: jobData.url,
+                        status: 'applied',
+                        source: 'extension',
+                        platform: 'test_suite',
+                        appliedDate: new Date().toISOString()
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    if (showIndividualResult) {
+                        showResult('trackingResult', `
+                            <strong>✅ Application Tracked Successfully!</strong><br>
+                            <strong>Job:</strong> ${jobData.title}<br>
+                            <strong>Company:</strong> ${jobData.company}<br>
+                            <strong>Location:</strong> ${jobData.location}<br>
+                            <strong>Source:</strong> extension (test_suite)<br>
+                            <pre>${JSON.stringify(result, null, 2)}</pre>
+                        `, 'success');
+                    }
+                    return { success: true, applicationId: result.application?.id, data: result };
+                } else {
+                    throw new Error(result.error || 'Tracking failed');
+                }
+            } catch (error) {
+                if (showIndividualResult) {
+                    showResult('trackingResult', `
+                        <strong>❌ Tracking Failed</strong><br>
+                        Error: ${error.message}
+                    `, 'error');
+                }
+                return { success: false, error: error.message };
+            }
+        }
+
+        // Step 3: Verify database
+        async function verifyDatabase() {
+            const btn = document.getElementById('verifyBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Checking database...';
+
+            try {
+                const response = await fetch(`${API_URL}/api/applications`, {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch applications');
+                }
+
+                const applications = await response.json();
+                const extensionApps = applications.filter(app => app.source === 'extension');
+                const testApps = extensionApps.filter(app => 
+                    app.company && app.company.includes('Test Corp')
+                );
+
+                // Get stats
+                const statsResponse = await fetch(`${API_URL}/api/applications/stats`, {
+                    credentials: 'include'
+                });
+                const stats = await statsResponse.json();
+
+                showResult('verifyResult', `
+                    <strong>✅ Database Verification Complete!</strong><br>
+                    <strong>Total Applications:</strong> ${applications.length}<br>
+                    <strong>Extension Source:</strong> ${extensionApps.length}<br>
+                    <strong>Test Applications:</strong> ${testApps.length}<br>
+                    <strong>Latest Test App:</strong> ${testApps[0] ? testApps[0].jobTitle + ' at ' + testApps[0].company : 'None'}
+                `, 'success');
+
+                // Show stats
+                document.getElementById('statsContainer').style.display = 'block';
+                document.getElementById('stats').innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.total || 0}</div>
+                        <div class="stat-label">Total Apps</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.extension || 0}</div>
+                        <div class="stat-label">Extension</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.platform || 0}</div>
+                        <div class="stat-label">Platform</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${testApps.length}</div>
+                        <div class="stat-label">Test Apps</div>
+                    </div>
+                `;
+
+                enableButtons('cleanupBtn');
+            } catch (error) {
+                showResult('verifyResult', `
+                    <strong>❌ Verification Failed</strong><br>
+                    Error: ${error.message}
+                `, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Verify Applications in DB';
+            }
+        }
+
+        // Step 4: Cleanup test data
+        async function cleanupTestData() {
+            const btn = document.getElementById('cleanupBtn');
+            const confirmed = confirm('Are you sure you want to delete all test applications?');
+            
+            if (!confirmed) return;
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Cleaning up...';
+
+            try {
+                // Note: You would need to implement a cleanup endpoint
+                // For now, just show instructions
+                showResult('cleanupResult', `
+                    <strong>ℹ️ Manual Cleanup Required</strong><br>
+                    To remove test applications, run this SQL query:<br>
+                    <pre>DELETE FROM job_applications 
+WHERE user_id = '${userId}' 
+AND company LIKE '%Test Corp%' 
+AND source = 'extension';</pre>
+                    <br>Or go to the Applications page and delete them manually.
+                `, 'info');
+            } catch (error) {
+                showResult('cleanupResult', `
+                    <strong>❌ Cleanup Failed</strong><br>
+                    Error: ${error.message}
+                `, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Delete Test Applications';
+            }
+        }
+
+        // Generate test job data
+        function generateTestJob(index = 0) {
+            const companies = ['Test Corp', 'Demo Inc', 'Sample LLC', 'QA Industries', 'Beta Solutions'];
+            const titles = ['Software Engineer', 'Full Stack Developer', 'Backend Engineer', 'Frontend Developer', 'DevOps Engineer'];
+            const locations = ['Remote', 'New York, NY', 'San Francisco, CA', 'Austin, TX', 'Seattle, WA'];
+            
+            const timestamp = Date.now();
+            const randomCompany = companies[Math.floor(Math.random() * companies.length)];
+            const randomTitle = titles[Math.floor(Math.random() * titles.length)];
+            const randomLocation = locations[Math.floor(Math.random() * locations.length)];
+
+            return {
+                title: `${randomTitle} #${index + 1}`,
+                company: `${randomCompany} ${timestamp}`,
+                location: randomLocation,
+                url: `https://example.com/jobs/test-${timestamp}-${index}`
+            };
+        }
+
+        // Show instructions on load
+        window.addEventListener('load', () => {
+            console.log('🧪 Extension API Test Suite Loaded');
+            console.log('📝 Follow the steps in order:');
+            console.log('   1. Login with test credentials');
+            console.log('   2. Send test applications');
+            console.log('   3. Verify data in database');
+            console.log('   4. Cleanup test data (optional)');
+        });
+    </script>
+</body>
+</html>

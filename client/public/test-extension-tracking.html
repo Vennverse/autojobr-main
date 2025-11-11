@@ -1,0 +1,262 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Senior Software Engineer - Test Company | Jobs</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .job-header {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #0073b1;
+        }
+        .job-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .job-company {
+            font-size: 20px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .job-location {
+            font-size: 16px;
+            color: #888;
+        }
+        .job-description {
+            line-height: 1.8;
+            margin: 20px 0;
+            color: #444;
+        }
+        .job-description h2, .job-description h3 {
+            color: #333;
+            margin-top: 20px;
+        }
+        button {
+            background: #0073b1;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #005885;
+        }
+        #test-results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f0f8ff;
+            border-radius: 8px;
+            border: 1px solid #b3d9ff;
+        }
+        #test-results h3 {
+            margin-top: 0;
+            color: #0073b1;
+        }
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-dot.loading {
+            background: #ffa500;
+            animation: pulse 1.5s infinite;
+        }
+        .status-dot.success {
+            background: #22c55e;
+        }
+        .status-dot.error {
+            background: #ef4444;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        ul {
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="job-header">
+            <h1 class="job-title">Senior Software Engineer</h1>
+            <div class="job-company">Test Company Inc.</div>
+            <div class="job-location">San Francisco, CA (Remote)</div>
+        </div>
+
+        <div class="job-description">
+            <h2>About the Role</h2>
+            <p>We are looking for a Senior Software Engineer to join our team. You will be responsible for building scalable web applications using modern technologies.</p>
+            
+            <h3>Requirements</h3>
+            <ul>
+                <li>5+ years of software engineering experience</li>
+                <li>Strong proficiency in JavaScript, React, and Node.js</li>
+                <li>Experience with PostgreSQL and cloud platforms</li>
+                <li>Excellent problem-solving skills</li>
+            </ul>
+
+            <h3>Benefits</h3>
+            <ul>
+                <li>Competitive salary ($120k - $180k)</li>
+                <li>Remote work flexibility</li>
+                <li>Health insurance and 401k</li>
+                <li>Professional development budget</li>
+            </ul>
+        </div>
+
+        <button id="apply-button">Easy Apply</button>
+
+        <div id="test-results">
+            <h3>Extension Test Results</h3>
+            <div id="results-content">
+                <span class="status-dot loading"></span>Checking extension status...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulate job application page
+        window.jobData = {
+            title: 'Senior Software Engineer',
+            company: 'Test Company Inc.',
+            location: 'San Francisco, CA',
+            description: 'We are looking for a Senior Software Engineer to join our team...',
+            url: window.location.href,
+            jobType: 'full-time',
+            workMode: 'remote',
+            salary: '$120,000 - $180,000'
+        };
+
+        // Check extension status
+        function checkExtensionStatus() {
+            setTimeout(() => {
+                if (window.autojobrContentScriptLoaded) {
+                    document.getElementById('results-content').innerHTML = `
+                        <span class="status-dot success"></span>
+                        <strong>✅ Extension loaded successfully!</strong>
+                        <p style="margin-top: 10px;">Click "Easy Apply" below to test application tracking.</p>
+                    `;
+                } else {
+                    document.getElementById('results-content').innerHTML = `
+                        <span class="status-dot error"></span>
+                        <strong>❌ Extension not detected</strong>
+                        <p style="margin-top: 10px;">Please ensure:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>The AutoJobr extension is installed</li>
+                            <li>The extension is enabled in Chrome</li>
+                            <li>You've refreshed the page after installation</li>
+                        </ul>
+                    `;
+                }
+            }, 1500);
+        }
+
+        // Handle application submission
+        document.getElementById('apply-button').addEventListener('click', async function() {
+            const button = this;
+            button.disabled = true;
+            button.textContent = 'Submitting...';
+            
+            // Log to console for extension to detect
+            console.log('[TEST PAGE] Application submitted:', window.jobData);
+            
+            // Trigger extension tracking via Chrome runtime messaging
+            try {
+                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                    console.log('[TEST PAGE] Sending message to extension...');
+                    
+                    const response = await chrome.runtime.sendMessage({
+                        action: 'trackApplication',
+                        data: {
+                            jobTitle: window.jobData.title,
+                            company: window.jobData.company,
+                            location: window.jobData.location,
+                            jobUrl: window.jobData.url,
+                            status: 'applied',
+                            source: 'extension',
+                            platform: 'test_page',
+                            jobType: window.jobData.jobType,
+                            workMode: window.jobData.workMode
+                        }
+                    });
+                    
+                    console.log('[TEST PAGE] Extension response:', response);
+                    
+                    button.textContent = response?.success ? 'Tracked Successfully! ✅' : 'Application Submitted!';
+                    button.style.background = response?.success ? '#22c55e' : '#0073b1';
+                    
+                    // Update results
+                    document.getElementById('results-content').innerHTML = `
+                        <span class="status-dot ${response?.success ? 'success' : 'loading'}"></span>
+                        <strong>${response?.success ? '✅ Application Tracked!' : 'Application Submitted'}</strong>
+                        <ul style="margin-top: 10px; margin-left: 20px;">
+                            <li><strong>Job Title:</strong> ${window.jobData.title}</li>
+                            <li><strong>Company:</strong> ${window.jobData.company}</li>
+                            <li><strong>Location:</strong> ${window.jobData.location}</li>
+                            <li><strong>Status:</strong> ${response?.success ? 'Successfully tracked in AutoJobr' : 'Submitted'}</li>
+                            <li><strong>Application ID:</strong> ${response?.applicationId || 'Pending'}</li>
+                        </ul>
+                        <p style="margin-top: 10px;">
+                            <em>Check your <a href="/applications" target="_blank">Applications page</a> to see the tracked job!</em>
+                        </p>
+                    `;
+                } else {
+                    throw new Error('Extension not available');
+                }
+            } catch (error) {
+                console.error('[TEST PAGE] Extension tracking failed:', error);
+                
+                button.textContent = 'Extension Not Found ❌';
+                button.style.background = '#ef4444';
+                
+                document.getElementById('results-content').innerHTML = `
+                    <span class="status-dot error"></span>
+                    <strong>❌ Extension tracking failed</strong>
+                    <p style="margin-top: 10px;">
+                        Error: ${error.message}
+                    </p>
+                    <p style="margin-top: 10px;">
+                        Please ensure:
+                    </p>
+                    <ul style="margin-left: 20px;">
+                        <li>The AutoJobr extension is installed and enabled</li>
+                        <li>You're logged in to AutoJobr</li>
+                        <li>The extension has permission to access this page</li>
+                    </ul>
+                `;
+                
+                button.disabled = false;
+            }
+        });
+
+        // Start checking for extension
+        checkExtensionStatus();
+    </script>
+</body>
+</html>

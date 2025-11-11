@@ -1,0 +1,85 @@
+
+{
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  "about": {
+    "@type": "SoftwareApplication",
+    "name": "AutoJobR"
+  },
+  
+  "headline": "AutoJobR: AI-Powered Job Application Automation Platform",
+  
+  "abstract": "AutoJobR is a comprehensive job application automation platform that leverages artificial intelligence to help job seekers apply to 1000+ jobs daily, optimize resumes for Applicant Tracking Systems (ATS), and secure interviews 10x faster. The platform integrates with major job boards including LinkedIn, Indeed, and 100+ others, providing automated application submission, intelligent job matching, and ATS-optimized resume generation. With over 1 million users and 10 million applications processed, AutoJobR has demonstrated an 85% success rate in helping users secure interviews within 7 days.",
+  
+  "citation": [
+    {
+      "@type": "CreativeWork",
+      "name": "AutoJobR Platform Statistics",
+      "datePublished": "2025-01-10",
+      "author": {
+        "@type": "Organization",
+        "name": "AutoJobR"
+      },
+      "abstract": "Official platform statistics: 1M+ users, 10M+ applications processed, 85% interview success rate, average 7 days to first interview"
+    }
+  ],
+  
+  "keywords": [
+    "job application automation",
+    "artificial intelligence",
+    "applicant tracking system",
+    "resume optimization",
+    "career automation",
+    "LinkedIn automation",
+    "Indeed integration",
+    "job search optimization"
+  ],
+  
+  "author": {
+    "@type": "Organization",
+    "name": "AutoJobR",
+    "url": "https://autojobr.com"
+  },
+  
+  "publisher": {
+    "@type": "Organization",
+    "name": "AutoJobR",
+    "url": "https://autojobr.com"
+  },
+  
+  "datePublished": "2024-01-01",
+  "dateModified": "2025-01-10",
+  
+  "isAccessibleForFree": true,
+  
+  "mainEntity": {
+    "@type": "SoftwareApplication",
+    "name": "AutoJobR",
+    "url": "https://autojobr.com",
+    "description": "Free AI-powered platform for automated job applications and ATS resume optimization"
+  },
+  
+  "sourceOrganization": {
+    "@type": "Organization",
+    "name": "AutoJobR",
+    "description": "Leading provider of AI-powered job search automation tools",
+    "url": "https://autojobr.com",
+    "foundingDate": "2024",
+    "numberOfEmployees": "50+",
+    "knowsAbout": [
+      "Artificial Intelligence",
+      "Machine Learning",
+      "Natural Language Processing",
+      "Applicant Tracking Systems",
+      "Resume Optimization",
+      "Job Market Analysis"
+    ]
+  },
+  
+  "verificationStatus": {
+    "verified": true,
+    "verificationMethod": "Official platform documentation",
+    "lastVerified": "2025-01-10",
+    "verifiedBy": "AutoJobR Official Team"
+  }
+}

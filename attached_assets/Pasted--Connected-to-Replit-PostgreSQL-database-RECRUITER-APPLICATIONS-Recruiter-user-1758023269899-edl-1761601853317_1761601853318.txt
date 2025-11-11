@@ -1,0 +1,46 @@
+✅ Connected to Replit PostgreSQL database
+[RECRUITER APPLICATIONS] Recruiter user-1758023269899-edltdmjgu has 28 applications
+🐌 SLOW REQUEST: GET /api/recruiter/applications 304 in 548ms
+9:49:26 PM [express] GET /api/recruiter/applications 304 in 548ms
+[CANDIDATE PROFILES] Loaded 9 profiles for recruiter user-1758023269899-edltdmjgu
+🐌 SLOW REQUEST: GET /api/recruiter/candidate-profiles 304 in 714ms
+9:49:26 PM [express] GET /api/recruiter/candidate-profiles 304 in 714ms
+[STORAGE] Fetching job postings for recruiter: user-1758023269899-edltdmjgu
+[STORAGE] Found 122 active job postings for recruiter user-1758023269899-edltdmjgu
+[RECRUITER JOBS] Recruiter user-1758023269899-edltdmjgu has 122 jobs
+🐌 SLOW REQUEST: GET /api/recruiter/jobs 304 in 774ms
+9:49:40 PM [express] GET /api/recruiter/jobs 304 in 774ms
+[STORAGE] Fetching job postings for recruiter: user-1758023269899-edltdmjgu
+🐌 SLOW REQUEST: GET /api/crm/dashboard-stats 200 in 1106ms :: {"success":true,"stats":{"totalCo…
+9:49:40 PM [express] GET /api/crm/dashboard-stats 200 in 1106ms :: {"success":true,"stats":{"totalCo…
+[STORAGE] Found 122 active job postings for recruiter user-1758023269899-edltdmjgu
+🐌 SLOW REQUEST: GET /api/recruiter/advanced-analytics 200 in 919ms :: {"overview":{"totalJobs":…
+9:49:41 PM [express] GET /api/recruiter/advanced-analytics 200 in 919ms :: {"overview":{"totalJobs":…
+9:49:41 PM [express] GET /api/crm/deals 200 in 311ms :: {"success":true,"deals":[]}
+✅ Connected to Replit PostgreSQL database
+✅ Connected to Replit PostgreSQL database
+✅ Connected to Replit PostgreSQL database
+9:49:41 PM [express] GET /api/crm/email-templates 200 in 207ms :: {"success":true,"templates":[]}
+🐌 SLOW REQUEST: GET /api/crm/companies 200 in 1397ms :: {"success":true,"companies":[]}
+9:49:41 PM [express] GET /api/crm/companies 200 in 1397ms :: {"success":true,"companies":[]}
+🐌 SLOW REQUEST: GET /api/crm/contacts 200 in 1412ms :: {"success":true,"contacts":[]}
+9:49:41 PM [express] GET /api/crm/contacts 200 in 1412ms :: {"success":true,"contacts":[]}
+👤 [USER_API] User user-1758023269899-edltdmjgu - planType: premium, status: active
+🐌 SLOW REQUEST: GET /api/user 304 in 1441ms
+9:49:41 PM [express] GET /api/user 304 in 1441ms
+🐌 SLOW REQUEST: GET /api/crm/meetings 200 in 520ms :: {"success":true,"meetings":[]}
+9:49:41 PM [express] GET /api/crm/meetings 200 in 520ms :: {"success":true,"meetings":[]}
+9:49:42 PM [express] GET /api/crm/activities 200 in 458ms :: {"success":true,"activities":[]}
+9:49:42 PM [express] GET /api/crm/workflows 200 in 451ms :: {"success":true,"workflows":[]}
+[RECRUITER APPLICATIONS] Recruiter user-1758023269899-edltdmjgu has 28 applications
+🐌 SLOW REQUEST: GET /api/recruiter/applications 200 in 989ms :: [{"id":223,"jobPostingId":115,"…
+9:49:42 PM [express] GET /api/recruiter/applications 200 in 989ms :: [{"id":223,"jobPostingId":115,"…
+9:49:43 PM [express] GET /api/chat/conversations 404 in 330ms :: {"message":"API route not found"}
+🐌 SLOW REQUEST: GET /api/recruiter/pipeline-analytics 200 in 3816ms :: {"totalApplications":28,…
+9:49:46 PM [express] GET /api/recruiter/pipeline-analytics 200 in 3816ms :: {"totalApplications":28,…
+📊 [ATS] Dashboard data loaded for user-1758023269899-edltdmjgu
+🐌 SLOW REQUEST: GET /api/ats/unified-dashboard 200 in 4179ms :: {"pipeline":{"new":[],"screenin…
+9:49:46 PM [express] GET /api/ats/unified-dashboard 200 in 4179ms :: {"pipeline":{"new":[],"screenin…
+[CANDIDATE PROFILES] Loaded 9 profiles for recruiter user-1758023269899-edltdmjgu
+🐌 SLOW REQUEST: GET /api/recruiter/candidate-profiles 200 in 5402ms :: {"user-1757962639021-loq…
+9:49:47 PM [express] GET /api/recruiter/candidate-profiles 200 in 5402ms :: {"user-1757962639021-loq…

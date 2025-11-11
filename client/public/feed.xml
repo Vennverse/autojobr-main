@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+    <channel>
+        <title>AutoJobR - AI-Powered Job Application Automation</title>
+        <description>The ultimate AI-powered platform for automating job applications, beating ATS systems, and landing your dream job faster.</description>
+        <link>https://autojobr.com</link>
+        <atom:link href="https://autojobr.com/feed.xml" rel="self" type="application/rss+xml"/>
+        <language>en-us</language>
+        <lastBuildDate>Tue, 13 Aug 2025 16:00:00 GMT</lastBuildDate>
+        <pubDate>Tue, 13 Aug 2025 16:00:00 GMT</pubDate>
+        <ttl>60</ttl>
+        
+        <item>
+            <title>AutoJobR Platform Updated - Enhanced AI Job Matching</title>
+            <description>We've enhanced our AI job matching algorithm to provide even better job recommendations and automated application features.</description>
+            <link>https://autojobr.com/blog/enhanced-ai-job-matching</link>
+            <guid>https://autojobr.com/blog/enhanced-ai-job-matching</guid>
+            <pubDate>Tue, 13 Aug 2025 16:00:00 GMT</pubDate>
+        </item>
+        
+        <item>
+            <title>Free ATS System Beating Tools Now Available</title>
+            <description>Access our free tools to optimize your resume and beat Applicant Tracking Systems (ATS) for better job application success rates.</description>
+            <link>https://autojobr.com/beat-ats-systems-free</link>
+            <guid>https://autojobr.com/beat-ats-systems-free</guid>
+            <pubDate>Mon, 12 Aug 2025 16:00:00 GMT</pubDate>
+        </item>
+        
+        <item>
+            <title>Chrome Extension for LinkedIn Auto-Apply</title>
+            <description>Our new Chrome extension helps you automatically apply to jobs on LinkedIn, Indeed, and other major job boards with AI-powered customization.</description>
+            <link>https://autojobr.com/chrome-extension</link>
+            <guid>https://autojobr.com/chrome-extension</guid>
+            <pubDate>Sun, 11 Aug 2025 16:00:00 GMT</pubDate>
+        </item>
+        
+        <item>
+            <title>Apply to 1000+ Jobs Daily with AI Automation</title>
+            <description>Learn how AutoJobR's AI can help you apply to over 1000 jobs per day with personalized applications and cover letters.</description>
+            <link>https://autojobr.com/auto-apply-1000-jobs-daily</link>
+            <guid>https://autojobr.com/auto-apply-1000-jobs-daily</guid>
+            <pubDate>Sat, 10 Aug 2025 16:00:00 GMT</pubDate>
+        </item>
+        
+    </channel>
+</rss>

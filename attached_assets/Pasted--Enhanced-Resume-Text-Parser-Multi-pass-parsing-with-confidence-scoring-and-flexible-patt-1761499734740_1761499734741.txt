@@ -1,0 +1,830 @@
+/**
+ * Enhanced Resume Text Parser
+ * Multi-pass parsing with confidence scoring and flexible pattern matching
+ */
+
+export interface ParsedResumeData {
+  fullName: string;
+  email: string;
+  phone?: string;
+  location?: string;
+  linkedinUrl?: string;
+  githubUrl?: string;
+  portfolioUrl?: string;
+  summary?: string;
+  experience: Array<{
+    company: string;
+    position: string;
+    location?: string;
+    startDate: string;
+    endDate?: string;
+    isCurrent?: boolean;
+    bulletPoints: string[];
+    confidence?: number;
+  }>;
+  education: Array<{
+    institution: string;
+    degree: string;
+    fieldOfStudy?: string;
+    graduationYear?: number;
+    gpa?: string;
+    achievements?: string[];
+    confidence?: number;
+  }>;
+  skills: {
+    all: string[];
+    categorized?: Record<string, string[]>;
+  };
+  projects?: Array<{
+    name: string;
+    description: string;
+    technologies?: string[];
+    url?: string;
+  }>;
+  certifications?: string[];
+  awards?: string[];
+  metadata?: {
+    parsingConfidence: number;
+    warnings: string[];
+  };
+}
+
+export class EnhancedResumeParser {
+  private sectionPatterns = {
+    experience: [
+      /^(PROFESSIONAL\s+)?EXPERIENCE$/i,
+      /^WORK\s+(EXPERIENCE|HISTORY)$/i,
+      /^EMPLOYMENT(\s+HISTORY)?$/i,
+      /^CAREER\s+HISTORY$/i
+    ],
+    education: [
+      /^EDUCATION(AL\s+BACKGROUND)?$/i,
+      /^ACADEMIC\s+(BACKGROUND|QUALIFICATIONS?)$/i,
+      /^QUALIFICATIONS?$/i
+    ],
+    skills: [
+      /^(TECHNICAL\s+)?SKILLS?$/i,
+      /^CORE\s+COMPETENC(Y|IES)$/i,
+      /^TECHNOLOGIES?$/i,
+      /^EXPERTISE$/i,
+      /^SKILLS?\s+(AND\s+)?TECHNOLOGIES?$/i
+    ],
+    projects: [
+      /^(KEY\s+)?PROJECTS?$/i,
+      /^PORTFOLIO$/i,
+      /^SELECTED\s+PROJECTS?$/i
+    ],
+    certifications: [
+      /^CERTIFICATIONS?$/i,
+      /^LICENSES?\s+(AND\s+)?CERTIFICATIONS?$/i,
+      /^PROFESSIONAL\s+CERTIFICATIONS?$/i
+    ],
+    summary: [
+      /^(PROFESSIONAL\s+)?SUMMARY$/i,
+      /^CAREER\s+(SUMMARY|OBJECTIVE)$/i,
+      /^OBJECTIVE$/i,
+      /^PROFILE$/i,
+      /^ABOUT(\s+ME)?$/i
+    ]
+  };
+
+  private warnings: string[] = [];
+
+  /**
+   * Parse resume text with enhanced multi-pass approach
+   */
+  parse(resumeText: string): ParsedResumeData {
+    this.warnings = [];
+    const lines = resumeText.split('\n').map(l => l.trim()).filter(l => l);
+    
+    // First pass: Extract contact info (most reliable)
+    const contactInfo = this.extractContactInfo(resumeText);
+    
+    // Second pass: Identify all sections
+    const sections = this.identifySections(lines);
+    
+    // Third pass: Parse each section with context
+    const experience = this.parseExperience(lines, sections);
+    const education = this.parseEducation(lines, sections);
+    const skills = this.parseSkills(lines, sections);
+    const projects = this.parseProjects(lines, sections);
+    const certifications = this.parseCertifications(lines, sections);
+    const summary = this.extractSummary(lines, sections);
+
+    // Calculate overall confidence
+    const confidence = this.calculateConfidence({
+      hasName: !!contactInfo.fullName && contactInfo.fullName !== 'Your Name',
+      hasEmail: !!contactInfo.email,
+      hasExperience: experience.length > 0,
+      hasEducation: education.length > 0,
+      hasSkills: skills.all.length > 0
+    });
+
+    return {
+      ...contactInfo,
+      summary,
+      experience,
+      education,
+      skills,
+      projects,
+      certifications,
+      awards: [],
+      metadata: {
+        parsingConfidence: confidence,
+        warnings: this.warnings
+      }
+    };
+  }
+
+  /**
+   * Extract all contact information with multiple strategies
+   */
+  private extractContactInfo(text: string) {
+    return {
+      fullName: this.extractName(text),
+      email: this.extractEmail(text),
+      phone: this.extractPhone(text),
+      location: this.extractLocation(text),
+      linkedinUrl: this.extractLinkedIn(text),
+      githubUrl: this.extractGitHub(text),
+      portfolioUrl: this.extractPortfolio(text)
+    };
+  }
+
+  /**
+   * Improved name extraction with multiple strategies
+   */
+  private extractName(text: string): string {
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    
+    // Strategy 1: Look for ALL CAPS name in first 5 lines
+    for (const line of lines.slice(0, 5)) {
+      if (line === line.toUpperCase() && 
+          line.length > 3 && 
+          line.length < 60 &&
+          /^[A-Z\s\.]+$/.test(line) &&
+          !line.includes('@') &&
+          !line.includes('RESUME') &&
+          !line.includes('CURRICULUM')) {
+        return this.titleCase(line);
+      }
+    }
+    
+    // Strategy 2: Look for Title Case name (First Last)
+    for (const line of lines.slice(0, 8)) {
+      const namePattern = /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})$/;
+      const match = line.match(namePattern);
+      if (match && !line.includes('@')) {
+        return match[1];
+      }
+    }
+    
+    // Strategy 3: Look for "Name:" prefix
+    const namePrefix = text.match(/Name:\s*([A-Za-z\s\.]+)/i);
+    if (namePrefix) {
+      return this.titleCase(namePrefix[1].trim());
+    }
+    
+    this.warnings.push('Could not confidently extract name');
+    return 'Your Name';
+  }
+
+  /**
+   * Enhanced email extraction
+   */
+  private extractEmail(text: string): string {
+    // Multiple email patterns
+    const patterns = [
+      /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/,
+      /Email:\s*([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,})/i
+    ];
+    
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        return match[match.length - 1];
+      }
+    }
+    
+    this.warnings.push('No email found');
+    return '';
+  }
+
+  /**
+   * Dramatically improved phone extraction
+   */
+  private extractPhone(text: string): string {
+    const patterns = [
+      // +1-234-567-8900
+      /\+\d{1,3}[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/,
+      // (123) 456-7890
+      /\(\d{3}\)\s*\d{3}[-.\s]?\d{4}/,
+      // 123-456-7890 or 123.456.7890
+      /\b\d{3}[-.\s]\d{3}[-.\s]\d{4}\b/,
+      // +911234567890 (Indian format)
+      /\+\d{10,15}/,
+      // With label: Phone: 123-456-7890
+      /(?:Phone|Mobile|Tel|Contact):\s*([\d\s\-\.\(\)\+]+)/i
+    ];
+    
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        const phone = match[match.length - 1];
+        // Validate it has enough digits
+        const digitCount = phone.replace(/\D/g, '').length;
+        if (digitCount >= 10) {
+          return phone.trim();
+        }
+      }
+    }
+    
+    return '';
+  }
+
+  /**
+   * Improved location extraction
+   */
+  private extractLocation(text: string): string {
+    const patterns = [
+      // Location: City, State/Country
+      /Location:\s*([A-Za-z\s,]+(?:USA|India|UK|Canada|Australia|Singapore|Remote)[A-Za-z\s,]*)/i,
+      // City, State ZIP
+      /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?,\s*[A-Z]{2}(?:\s+\d{5})?)\b/,
+      // City, Country
+      /\b([A-Z][a-z]+,\s*(?:USA|India|UK|Canada|Australia|Singapore))\b/i,
+      // Just before email/phone in header
+      /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?,\s*[A-Z]{2,})\s*[•|]/m
+    ];
+    
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        return match[1].trim();
+      }
+    }
+    
+    return '';
+  }
+
+  /**
+   * Enhanced LinkedIn extraction
+   */
+  private extractLinkedIn(text: string): string {
+    const patterns = [
+      /https?:\/\/(?:www\.)?linkedin\.com\/in\/[^\s\n)]+/i,
+      /linkedin\.com\/in\/[^\s\n)]+/i,
+      /LinkedIn:\s*([^\s\n]+)/i,
+      /in\/([a-zA-Z0-9-]+)/  // Just the username
+    ];
+    
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        const url = match[0];
+        return url.startsWith('http') ? url : `https://linkedin.com/in/${url.replace(/^in\//, '')}`;
+      }
+    }
+    
+    return '';
+  }
+
+  /**
+   * Enhanced GitHub extraction
+   */
+  private extractGitHub(text: string): string {
+    const patterns = [
+      /https?:\/\/(?:www\.)?github\.com\/[^\s\n)]+/i,
+      /github\.com\/[^\s\n)]+/i,
+      /GitHub:\s*([^\s\n]+)/i
+    ];
+    
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        const url = match[0];
+        return url.startsWith('http') ? url : `https://${url}`;
+      }
+    }
+    
+    return '';
+  }
+
+  /**
+   * Portfolio/Website extraction
+   */
+  private extractPortfolio(text: string): string {
+    const patterns = [
+      /(?:Portfolio|Website):\s*(https?:\/\/[^\s\n]+)/i,
+      /\b(https?:\/\/(?:www\.)?[a-zA-Z0-9-]+\.[a-z]{2,}(?:\/[^\s]*)?)\b/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        const url = match[1] || match[0];
+        // Exclude LinkedIn and GitHub
+        if (!url.includes('linkedin.com') && !url.includes('github.com')) {
+          return url;
+        }
+      }
+    }
+    
+    return '';
+  }
+
+  /**
+   * Identify all sections and their line ranges
+   */
+  private identifySections(lines: string[]): Map<string, { start: number; end: number }> {
+    const sections = new Map<string, { start: number; end: number }>();
+    let currentSection: string | null = null;
+    let sectionStart = -1;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const sectionType = this.detectSectionHeader(line);
+
+      if (sectionType) {
+        // Save previous section
+        if (currentSection && sectionStart >= 0) {
+          sections.set(currentSection, { start: sectionStart, end: i - 1 });
+        }
+        
+        currentSection = sectionType;
+        sectionStart = i + 1;
+      }
+    }
+
+    // Save last section
+    if (currentSection && sectionStart >= 0) {
+      sections.set(currentSection, { start: sectionStart, end: lines.length - 1 });
+    }
+
+    return sections;
+  }
+
+  /**
+   * Detect section header using flexible patterns
+   */
+  private detectSectionHeader(line: string): string | null {
+    const trimmed = line.trim();
+    
+    // Must be relatively short and not a bullet point
+    if (trimmed.length > 60 || trimmed.startsWith('•') || trimmed.startsWith('-')) {
+      return null;
+    }
+
+    for (const [sectionType, patterns] of Object.entries(this.sectionPatterns)) {
+      for (const pattern of patterns) {
+        if (pattern.test(trimmed)) {
+          return sectionType;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Parse experience section with flexible format support
+   */
+  private parseExperience(lines: string[], sections: Map<string, { start: number; end: number }>) {
+    const section = sections.get('experience');
+    if (!section) return [];
+
+    const experiences: any[] = [];
+    let currentExp: any = null;
+    let i = section.start;
+
+    while (i <= section.end) {
+      const line = lines[i].trim();
+
+      // Skip empty lines
+      if (!line) {
+        i++;
+        continue;
+      }
+
+      // Bullet points belong to current experience
+      if ((line.startsWith('•') || line.startsWith('-') || line.startsWith('*')) && currentExp) {
+        const bullet = line.replace(/^[•\-\*]\s*/, '').trim();
+        if (bullet) {
+          currentExp.bulletPoints.push(bullet);
+        }
+        i++;
+        continue;
+      }
+
+      // Try to detect a new job entry
+      const jobEntry = this.parseJobEntry(lines, i, section.end);
+      if (jobEntry) {
+        if (currentExp) {
+          experiences.push(currentExp);
+        }
+        currentExp = jobEntry.data;
+        i = jobEntry.nextIndex;
+      } else {
+        i++;
+      }
+    }
+
+    // Add last experience
+    if (currentExp) {
+      experiences.push(currentExp);
+    }
+
+    return experiences;
+  }
+
+  /**
+   * Parse a single job entry with multiple format support
+   */
+  private parseJobEntry(lines: string[], startIndex: number, endIndex: number): 
+    { data: any; nextIndex: number } | null {
+    
+    const line = lines[startIndex];
+    const nextLine = lines[startIndex + 1] || '';
+    const thirdLine = lines[startIndex + 2] || '';
+
+    // Format 1: Position | Company | Location | Dates (all on one line)
+    if (line.includes('|')) {
+      const parts = line.split('|').map(p => p.trim());
+      if (parts.length >= 2) {
+        const dates = this.extractDates(parts[parts.length - 1]);
+        return {
+          data: {
+            position: parts[0],
+            company: parts.length >= 2 ? parts[1] : '',
+            location: parts.length >= 3 ? parts[2] : '',
+            startDate: dates.start,
+            endDate: dates.end,
+            isCurrent: dates.isCurrent,
+            bulletPoints: [],
+            confidence: 0.9
+          },
+          nextIndex: startIndex + 1
+        };
+      }
+    }
+
+    // Format 2: Position on line 1, metadata on line 2
+    if (!line.startsWith('•') && !line.startsWith('-') && line.length > 5 && line.length < 100) {
+      // Check if next line has company/dates info
+      if (nextLine && (nextLine.includes('|') || this.looksLikeMetadata(nextLine))) {
+        const metadata = this.parseMetadataLine(nextLine);
+        return {
+          data: {
+            position: line,
+            company: metadata.company,
+            location: metadata.location,
+            startDate: metadata.startDate,
+            endDate: metadata.endDate,
+            isCurrent: metadata.isCurrent,
+            bulletPoints: [],
+            confidence: 0.85
+          },
+          nextIndex: startIndex + 2
+        };
+      }
+
+      // Format 3: Position, Company, Dates on separate lines
+      if (nextLine && !nextLine.startsWith('•') && !nextLine.startsWith('-')) {
+        const dates = this.extractDates(thirdLine);
+        if (dates.start) {
+          return {
+            data: {
+              position: line,
+              company: nextLine,
+              location: '',
+              startDate: dates.start,
+              endDate: dates.end,
+              isCurrent: dates.isCurrent,
+              bulletPoints: [],
+              confidence: 0.75
+            },
+            nextIndex: startIndex + 3
+          };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Check if a line looks like metadata (company/dates)
+   */
+  private looksLikeMetadata(line: string): boolean {
+    // Has dates
+    if (/\b(19|20)\d{2}\b/.test(line)) return true;
+    // Has common date words
+    if (/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Present)/i.test(line)) return true;
+    // Has pipe separator
+    if (line.includes('|')) return true;
+    return false;
+  }
+
+  /**
+   * Parse metadata line (Company | Location | Dates)
+   */
+  private parseMetadataLine(line: string) {
+    const parts = line.split('|').map(p => p.trim());
+    const result: any = {
+      company: '',
+      location: '',
+      startDate: '',
+      endDate: '',
+      isCurrent: false
+    };
+
+    // Extract dates from any part
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const dates = this.extractDates(parts[i]);
+      if (dates.start) {
+        result.startDate = dates.start;
+        result.endDate = dates.end;
+        result.isCurrent = dates.isCurrent;
+        parts.splice(i, 1);
+        break;
+      }
+    }
+
+    // Remaining parts are company and location
+    if (parts.length >= 1) result.company = parts[0];
+    if (parts.length >= 2) result.location = parts[1];
+
+    return result;
+  }
+
+  /**
+   * Extract dates with support for multiple formats
+   */
+  private extractDates(text: string): { start: string; end: string; isCurrent: boolean } {
+    const result = { start: '', end: '', isCurrent: false };
+
+    // Pattern: "Month YYYY - Month YYYY" or "Month YYYY - Present"
+    const dateRange = text.match(/(\w+\s+\d{4}|\d{4})\s*[-–—to]\s*(\w+\s+\d{4}|Present|\d{4})/i);
+    if (dateRange) {
+      result.start = dateRange[1].trim();
+      result.end = dateRange[2].trim();
+      result.isCurrent = /present/i.test(result.end);
+      return result;
+    }
+
+    // Pattern: Just "YYYY - YYYY" or "YYYY - Present"
+    const yearRange = text.match(/\b(19|20)\d{2}\s*[-–—to]\s*((19|20)\d{2}|Present)\b/i);
+    if (yearRange) {
+      result.start = yearRange[1];
+      result.end = yearRange[2];
+      result.isCurrent = /present/i.test(result.end);
+      return result;
+    }
+
+    return result;
+  }
+
+  /**
+   * Parse education section
+   */
+  private parseEducation(lines: string[], sections: Map<string, { start: number; end: number }>) {
+    const section = sections.get('education');
+    if (!section) return [];
+
+    const education: any[] = [];
+    let currentEdu: any = null;
+
+    for (let i = section.start; i <= section.end; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      // Detect degree
+      const degreePattern = /(Bachelor|Master|B\.?\s*Tech|M\.?\s*Tech|B\.?\s*S\.?|M\.?\s*S\.?|B\.?\s*A\.?|M\.?\s*A\.?|PhD|Ph\.D|Doctorate|Diploma|Associate)/i;
+      if (degreePattern.test(line)) {
+        if (currentEdu) {
+          education.push(currentEdu);
+        }
+
+        currentEdu = {
+          degree: line,
+          institution: '',
+          fieldOfStudy: this.extractFieldOfStudy(line),
+          graduationYear: this.extractYear(line),
+          gpa: '',
+          achievements: [],
+          confidence: 0.85
+        };
+
+        // Look for institution in next line
+        if (i + 1 <= section.end) {
+          const nextLine = lines[i + 1].trim();
+          if (nextLine && !degreePattern.test(nextLine) && !nextLine.toLowerCase().includes('gpa')) {
+            currentEdu.institution = nextLine;
+            if (!currentEdu.graduationYear) {
+              currentEdu.graduationYear = this.extractYear(nextLine);
+            }
+            i++;
+          }
+        }
+      }
+      // Extract GPA
+      else if (currentEdu && /gpa|grade/i.test(line)) {
+        currentEdu.gpa = line;
+      }
+    }
+
+    if (currentEdu) {
+      education.push(currentEdu);
+    }
+
+    return education;
+  }
+
+  /**
+   * Extract field of study from degree line
+   */
+  private extractFieldOfStudy(line: string): string {
+    const inPattern = /\bin\s+([A-Za-z\s&]+?)(?:\s*[,|]|\s*$)/i;
+    const match = line.match(inPattern);
+    return match ? match[1].trim() : '';
+  }
+
+  /**
+   * Extract year from text
+   */
+  private extractYear(text: string): number | undefined {
+    const match = text.match(/\b(19|20)\d{2}\b/);
+    return match ? parseInt(match[0]) : undefined;
+  }
+
+  /**
+   * Parse skills with categorization
+   */
+  private parseSkills(lines: string[], sections: Map<string, { start: number; end: number }>) {
+    const section = sections.get('skills');
+    if (!section) return { all: [], categorized: {} };
+
+    const allSkills: string[] = [];
+    const categorized: Record<string, string[]> = {};
+    let currentCategory = 'General';
+
+    for (let i = section.start; i <= section.end; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      // Check if this is a category header (e.g., "Programming Languages:", "Tools:")
+      const categoryMatch = line.match(/^([A-Za-z\s&]+):\s*(.+)$/);
+      if (categoryMatch) {
+        currentCategory = categoryMatch[1].trim();
+        const skillsText = categoryMatch[2];
+        const skills = this.splitSkills(skillsText);
+        categorized[currentCategory] = skills;
+        allSkills.push(...skills);
+      } else {
+        // Parse as general skills
+        const skills = this.splitSkills(line);
+        if (!categorized[currentCategory]) {
+          categorized[currentCategory] = [];
+        }
+        categorized[currentCategory].push(...skills);
+        allSkills.push(...skills);
+      }
+    }
+
+    return {
+      all: [...new Set(allSkills)], // Remove duplicates
+      categorized
+    };
+  }
+
+  /**
+   * Split skills by common delimiters
+   */
+  private splitSkills(text: string): string[] {
+    return text
+      .split(/[,•\-|;]/)
+      .map(s => s.trim())
+      .filter(s => s && s.length > 1 && s.length < 50);
+  }
+
+  /**
+   * Parse projects section
+   */
+  private parseProjects(lines: string[], sections: Map<string, { start: number; end: number }>) {
+    const section = sections.get('projects');
+    if (!section) return [];
+
+    const projects: any[] = [];
+    let currentProject: any = null;
+
+    for (let i = section.start; i <= section.end; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      // Project name (not a bullet, not tech stack line)
+      if (!line.startsWith('•') && !line.startsWith('-') && 
+          !line.toLowerCase().includes('tech') && 
+          line.length > 5 && line.length < 100) {
+        
+        if (currentProject) {
+          projects.push(currentProject);
+        }
+
+        currentProject = {
+          name: line,
+          description: '',
+          technologies: []
+        };
+      }
+      // Tech stack
+      else if (currentProject && /tech\s*stack/i.test(line)) {
+        const techMatch = line.match(/tech\s*stack:?\s*(.+)/i);
+        if (techMatch) {
+          currentProject.technologies = this.splitSkills(techMatch[1]);
+        }
+      }
+      // Description or bullet
+      else if (currentProject) {
+        const text = line.replace(/^[•\-]\s*/, '').trim();
+        currentProject.description += (currentProject.description ? ' ' : '') + text;
+      }
+    }
+
+    if (currentProject) {
+      projects.push(currentProject);
+    }
+
+    return projects;
+  }
+
+  /**
+   * Parse certifications section
+   */
+  private parseCertifications(lines: string[], sections: Map<string, { start: number; end: number }>) {
+    const section = sections.get('certifications');
+    if (!section) return [];
+
+    const certifications: string[] = [];
+
+    for (let i = section.start; i <= section.end; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      const cert = line.replace(/^[•\-]\s*/, '').trim();
+      if (cert) {
+        certifications.push(cert);
+      }
+    }
+
+    return certifications;
+  }
+
+  /**
+   * Extract summary/objective
+   */
+  private extractSummary(lines: string[], sections: Map<string, { start: number; end: number }>): string {
+    const section = sections.get('summary');
+    if (!section) return '';
+
+    const summaryLines: string[] = [];
+    for (let i = section.start; i <= section.end; i++) {
+      const line = lines[i].trim();
+      if (line) {
+        summaryLines.push(line);
+      }
+    }
+
+    return summaryLines.join(' ');
+  }
+
+  /**
+   * Calculate overall parsing confidence
+   */
+  private calculateConfidence(checks: Record<string, boolean>): number {
+    const weights = {
+      hasName: 0.2,
+      hasEmail: 0.2,
+      hasExperience: 0.25,
+      hasEducation: 0.2,
+      hasSkills: 0.15
+    };
+
+    let score = 0;
+    for (const [key, value] of Object.entries(checks)) {
+      if (value) {
+        score += weights[key as keyof typeof weights] || 0;
+      }
+    }
+
+    return Math.round(score * 100);
+  }
+
+  /**
+   * Utility: Convert to title case
+   */
+  private titleCase(str: string): string {
+    return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  }
+}
+
+export const enhancedResumeParser = new EnhancedResumeParser();
