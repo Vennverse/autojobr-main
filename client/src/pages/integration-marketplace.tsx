@@ -391,11 +391,7 @@ export default function IntegrationMarketplace() {
   // Mutation to enable/configure integration
   const enableIntegrationMutation = useMutation({
     mutationFn: async (data: { integrationId: string; config: Record<string, string> }) => {
-      return await apiRequest<any>('/api/integrations/user-integrations', {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return await apiRequest('/api/integrations/user-integrations', 'POST', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/integrations/user-integrations'] });
