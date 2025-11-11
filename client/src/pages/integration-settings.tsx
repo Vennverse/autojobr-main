@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "@tantml:parameter>import { useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Navbar } from "@/components/navbar";
 import { RecruiterNavbar } from "@/components/RecruiterNavbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
