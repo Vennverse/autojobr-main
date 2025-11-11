@@ -1,6 +1,6 @@
-
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Navbar } from "@/components/navbar";
 import { RecruiterNavbar } from "@/components/RecruiterNavbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,15 +27,14 @@ import {
   Globe,
   Mail,
   Calendar,
-  FileText,
-  CreditCard,
-  MessageSquare,
   Video,
-  Database,
-  Shield
+  Shield,
+  ExternalLink,
+  Settings
 } from "lucide-react";
 import { SiPaypal, SiStripe, SiOpenai, SiGoogle, SiLinkedin, SiZapier, SiSlack, SiNotion, SiAirtable } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface Integration {
   id: string;
@@ -51,6 +50,32 @@ interface Integration {
   features: string[];
   pricing?: string;
   setupTime?: string;
+}
+
+interface IntegrationFeature {
+  name: string;
+  path: string;
+}
+
+interface IntegrationFeatureMapping {
+  name: string;
+  features: IntegrationFeature[];
+  requiresSetup: boolean;
+  setupFields: string[];
+}
+
+interface UserIntegration {
+  id: number;
+  userId: string;
+  integrationId: string;
+  isEnabled: boolean;
+  apiKey?: string;
+  apiSecret?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  config?: any;
+  features?: IntegrationFeature[];
+  setupRequired?: boolean;
 }
 
 const integrations: Integration[] = [
@@ -137,6 +162,174 @@ const integrations: Integration[] = [
       "Network insights",
       "OAuth login"
     ]
+  },
+  {
+    id: "zapier",
+    name: "Zapier",
+    icon: <SiZapier className="w-12 h-12 text-orange-600" />,
+    category: "Automation",
+    description: "Automate workflows with 5000+ apps",
+    longDescription: "Connect AutoJobr with 5000+ apps using Zapier. Automate repetitive tasks, sync data across platforms, and create custom workflows without code.",
+    rating: 4.7,
+    installs: "4.1k",
+    status: "active",
+    isPremium: false,
+    pricing: "Free",
+    setupTime: "3 min",
+    features: [
+      "5000+ app integrations",
+      "Custom workflows",
+      "Multi-step automation",
+      "Real-time triggers",
+      "Data transformation"
+    ]
+  },
+  {
+    id: "slack",
+    name: "Slack",
+    icon: <SiSlack className="w-12 h-12 text-purple-600" />,
+    category: "Communication",
+    description: "Send notifications to your Slack workspace",
+    longDescription: "Receive instant notifications in Slack for new applications, interview schedules, and important updates. Keep your team in sync.",
+    rating: 4.8,
+    installs: "7.2k",
+    status: "active",
+    isPremium: false,
+    pricing: "Free",
+    setupTime: "2 min",
+    features: [
+      "Application alerts",
+      "Interview reminders",
+      "Team collaboration",
+      "Custom channels",
+      "Webhook support"
+    ]
+  },
+  {
+    id: "openai",
+    name: "OpenAI",
+    icon: <SiOpenai className="w-12 h-12 text-gray-900 dark:text-white" />,
+    category: "Productivity",
+    description: "AI-powered resume and cover letter generation",
+    longDescription: "Leverage GPT-4 to generate tailored resumes, cover letters, and interview responses. Get AI suggestions for profile optimization.",
+    rating: 4.9,
+    installs: "8.5k",
+    status: "active",
+    isPremium: true,
+    pricing: "Premium plan",
+    setupTime: "1 min",
+    features: [
+      "GPT-4 powered content",
+      "Resume optimization",
+      "Cover letter generation",
+      "Interview prep",
+      "Job description analysis"
+    ]
+  },
+  {
+    id: "notion",
+    name: "Notion",
+    icon: <SiNotion className="w-12 h-12 text-gray-900 dark:text-white" />,
+    category: "Productivity",
+    description: "Track applications in your Notion workspace",
+    longDescription: "Sync your job applications, interview schedules, and notes directly to Notion. Keep all your career information organized in one place.",
+    rating: 4.6,
+    installs: "3.2k",
+    status: "beta",
+    isPremium: false,
+    pricing: "Free",
+    setupTime: "4 min",
+    features: [
+      "Two-way sync",
+      "Custom databases",
+      "Template support",
+      "Automated updates",
+      "Rich text notes"
+    ]
+  },
+  {
+    id: "airtable",
+    name: "Airtable",
+    icon: <SiAirtable className="w-12 h-12 text-yellow-600" />,
+    category: "Database",
+    description: "Manage recruitment data in Airtable",
+    longDescription: "Export and sync candidate data, applications, and analytics to Airtable. Create custom views and collaborate with your hiring team.",
+    rating: 4.5,
+    installs: "2.8k",
+    status: "active",
+    isPremium: true,
+    pricing: "Pro plan",
+    setupTime: "5 min",
+    features: [
+      "Data export",
+      "Real-time sync",
+      "Custom views",
+      "Team collaboration",
+      "API access"
+    ]
+  },
+  {
+    id: "calendly",
+    name: "Calendly",
+    icon: <Calendar className="w-12 h-12 text-blue-500" />,
+    category: "Scheduling",
+    description: "Schedule interviews with Calendly",
+    longDescription: "Integrate Calendly for seamless interview scheduling. Share availability, automate reminders, and eliminate scheduling conflicts.",
+    rating: 4.7,
+    installs: "5.6k",
+    status: "active",
+    isPremium: false,
+    pricing: "Free",
+    setupTime: "3 min",
+    features: [
+      "Automated scheduling",
+      "Calendar sync",
+      "Email reminders",
+      "Timezone detection",
+      "Booking confirmations"
+    ]
+  },
+  {
+    id: "sendgrid",
+    name: "SendGrid",
+    icon: <Mail className="w-12 h-12 text-blue-600" />,
+    category: "Email",
+    description: "Send professional emails at scale",
+    longDescription: "Use SendGrid to send transactional emails, application updates, and marketing campaigns with high deliverability rates.",
+    rating: 4.6,
+    installs: "4.3k",
+    status: "active",
+    isPremium: false,
+    pricing: "Free",
+    setupTime: "4 min",
+    features: [
+      "Email templates",
+      "High deliverability",
+      "Analytics dashboard",
+      "A/B testing",
+      "Webhook events"
+    ]
+  },
+  {
+    id: "zoom",
+    name: "Zoom",
+    icon: <Video className="w-12 h-12 text-blue-600" />,
+    category: "Video",
+    description: "Conduct virtual interviews via Zoom",
+    longDescription: "Schedule and conduct video interviews directly through Zoom. Automatic meeting links, calendar integration, and recording capabilities.",
+    rating: 4.8,
+    installs: "9.1k",
+    status: "active",
+    isPremium: false,
+    pricing: "Free",
+    setupTime: "2 min",
+    features: [
+      "Instant meeting links",
+      "Interview recording",
+      "Screen sharing",
+      "Waiting rooms",
+      "Calendar integration"
+    ]
   }
 ];
 
@@ -155,20 +348,37 @@ const categories = [
 
 export default function IntegrationMarketplace() {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
   const [showDialog, setShowDialog] = useState(false);
+  const [configFields, setConfigFields] = useState<Record<string, string>>({});
 
   // Fetch user data to determine user type
   const { data: user } = useQuery<{userType?: string; planType?: string}>({
     queryKey: ['/api/user']
   });
 
+  // Fetch user integrations
+  const { data: userIntegrations = [] } = useQuery<UserIntegration[]>({
+    queryKey: ['/api/integrations/user-integrations']
+  });
+
+  // Fetch integration feature mapping for selected integration
+  const { data: integrationFeatures } = useQuery<IntegrationFeatureMapping>({
+    queryKey: ['/api/integrations/integration-features', selectedIntegration?.id],
+    enabled: !!selectedIntegration?.id
+  });
+
   const isRecruiter = user?.userType === 'recruiter';
   const isPremium = user?.planType === 'premium' || user?.planType === 'enterprise' || 
                      user?.planType === 'ultra-plan' || user?.planType === 'professional';
+
+  // Check if integration is already enabled
+  const isIntegrationEnabled = (integrationId: string) => {
+    return userIntegrations.some(ui => ui.integrationId === integrationId && ui.isEnabled);
+  };
 
   // Filter integrations
   const filteredIntegrations = integrations.filter(integration => {
@@ -176,6 +386,33 @@ export default function IntegrationMarketplace() {
                          integration.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === "All" || integration.category === selectedCategory;
     return matchesSearch && matchesCategory;
+  });
+
+  // Mutation to enable/configure integration
+  const enableIntegrationMutation = useMutation({
+    mutationFn: async (data: { integrationId: string; config: Record<string, string> }) => {
+      return await apiRequest<any>('/api/integrations/user-integrations', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: { 'Content-Type': 'application/json' }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/integrations/user-integrations'] });
+      toast({
+        title: "Integration Enabled",
+        description: `${selectedIntegration?.name} is now connected to your AutoJobr account.`,
+      });
+      setShowDialog(false);
+      setConfigFields({});
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to enable integration",
+        description: error.message || "Please try again later.",
+        variant: "destructive"
+      });
+    }
   });
 
   const handleConnect = (integration: Integration) => {
@@ -211,11 +448,42 @@ export default function IntegrationMarketplace() {
   const installIntegration = () => {
     if (!selectedIntegration) return;
 
-    toast({
-      title: "🎉 Integration Connected!",
-      description: `${selectedIntegration.name} has been added to your account. Configure it in Settings.`,
+    // Payment integrations don't need setup
+    if (selectedIntegration.id === 'paypal' || selectedIntegration.id === 'stripe') {
+      enableIntegrationMutation.mutate({ 
+        integrationId: selectedIntegration.id,
+        config: {}
+      });
+      return;
+    }
+
+    // Other integrations that don't need setup
+    if (!integrationFeatures?.requiresSetup) {
+      enableIntegrationMutation.mutate({ 
+        integrationId: selectedIntegration.id,
+        config: {}
+      });
+      return;
+    }
+
+    // Validate required fields
+    const missingFields = integrationFeatures.setupFields.filter(
+      field => !configFields[field]?.trim()
+    );
+
+    if (missingFields.length > 0) {
+      toast({
+        title: "Required Fields Missing",
+        description: `Please fill in: ${missingFields.join(', ')}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    enableIntegrationMutation.mutate({
+      integrationId: selectedIntegration.id,
+      config: configFields
     });
-    setShowDialog(false);
   };
 
   return (
@@ -260,6 +528,7 @@ export default function IntegrationMarketplace() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 h-12 text-base"
+              data-testid="input-integration-search"
             />
           </div>
 
@@ -272,6 +541,7 @@ export default function IntegrationMarketplace() {
                 variant={selectedCategory === category ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedCategory(category)}
+                data-testid={`button-category-${category.toLowerCase()}`}
               >
                 {category}
               </Button>
@@ -286,10 +556,17 @@ export default function IntegrationMarketplace() {
               key={integration.id}
               className="relative hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => handleConnect(integration)}
+              data-testid={`card-integration-${integration.id}`}
             >
               {integration.isPremium && (
                 <Badge className="absolute top-4 right-4 bg-yellow-500 text-white">
                   Premium
+                </Badge>
+              )}
+              {isIntegrationEnabled(integration.id) && (
+                <Badge className="absolute top-4 left-4 bg-green-500 text-white">
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  Enabled
                 </Badge>
               )}
 
@@ -353,9 +630,19 @@ export default function IntegrationMarketplace() {
                 <Button 
                   className="w-full"
                   variant={integration.status === 'active' ? 'default' : 'outline'}
+                  data-testid={`button-connect-${integration.id}`}
                 >
-                  {integration.status === 'active' ? 'Connect Now' : 'Learn More'}
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  {isIntegrationEnabled(integration.id) ? (
+                    <>
+                      <Settings className="w-4 h-4 mr-2" />
+                      Configure
+                    </>
+                  ) : (
+                    <>
+                      {integration.status === 'active' ? 'Connect Now' : 'Learn More'}
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </>
+                  )}
                 </Button>
               </CardContent>
             </Card>
@@ -407,17 +694,71 @@ export default function IntegrationMarketplace() {
                   </div>
                 </div>
 
+                {/* AutoJobr Feature Links */}
+                {integrationFeatures && integrationFeatures.features.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-3">AutoJobr Features Using This Integration:</h4>
+                    <div className="space-y-2">
+                      {integrationFeatures.features.map((feature, index) => (
+                        <Button
+                          key={index}
+                          variant="outline"
+                          className="w-full justify-between"
+                          onClick={() => navigate(feature.path)}
+                          data-testid={`button-feature-${feature.name.toLowerCase().replace(/\s+/g, '-')}`}
+                        >
+                          <span>{feature.name}</span>
+                          <ExternalLink className="w-4 h-4" />
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Setup Form for integrations that require configuration */}
+                {integrationFeatures?.requiresSetup && integrationFeatures.setupFields.length > 0 && (
+                  <div className="space-y-4">
+                    <h4 className="font-semibold">Configuration:</h4>
+                    {integrationFeatures.setupFields.map((field) => {
+                      const isSecret = ['apiKey', 'apiSecret', 'accessToken', 'refreshToken'].includes(field);
+                      const fieldLabel = field
+                        .replace(/([A-Z])/g, ' $1')
+                        .replace(/^./, (str) => str.toUpperCase())
+                        .trim();
+                      
+                      return (
+                        <div key={field} className="space-y-2">
+                          <Label htmlFor={field}>{fieldLabel} *</Label>
+                          <Input
+                            id={field}
+                            type={isSecret ? "password" : "text"}
+                            placeholder={`Enter your ${fieldLabel.toLowerCase()}`}
+                            value={configFields[field] || ''}
+                            onChange={(e) => setConfigFields(prev => ({
+                              ...prev,
+                              [field]: e.target.value
+                            }))}
+                            data-testid={`input-${field}`}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
                 {/* CTA */}
                 <div className="flex gap-3">
                   <Button 
                     className="flex-1"
                     onClick={installIntegration}
-                    disabled={selectedIntegration.status !== 'active'}
+                    disabled={selectedIntegration.status !== 'active' || enableIntegrationMutation.isPending}
+                    data-testid="button-install-integration"
                   >
                     {selectedIntegration.status === 'active' ? (
                       <>
                         <Zap className="w-4 h-4 mr-2" />
-                        Install Integration
+                        {enableIntegrationMutation.isPending ? 'Connecting...' : 
+                         isIntegrationEnabled(selectedIntegration.id) ? 'Update Configuration' : 'Install Integration'}
                       </>
                     ) : (
                       `Available ${selectedIntegration.status === 'beta' ? 'in Beta' : 'Soon'}`
@@ -426,6 +767,7 @@ export default function IntegrationMarketplace() {
                   <Button 
                     variant="outline"
                     onClick={() => setShowDialog(false)}
+                    data-testid="button-cancel"
                   >
                     Cancel
                   </Button>
