@@ -184,16 +184,17 @@ export function Navbar() {
           current: location === "/internships" || location.startsWith("/internships")
         },
         {
-          name: "CRM",
-          href: "/enhanced-crm",
-          icon: Users,
-          current: location === "/enhanced-crm" || location.startsWith("/enhanced-crm") || location === "/crm"
-        },
-        {
           name: "Get Referred",
           href: "/referral-marketplace",
           icon: Handshake,
           current: location === "/referral-marketplace" || location.startsWith("/referral-marketplace"),
+          badge: "New"
+        },
+        {
+          name: "Networking",
+          href: "/networking-hub",
+          icon: Users,
+          current: location === "/networking-hub" || location.startsWith("/networking-hub"),
           badge: "New"
         },
         {

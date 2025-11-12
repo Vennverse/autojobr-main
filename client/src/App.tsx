@@ -127,6 +127,7 @@ import RankingTestTaking from './pages/ranking-test-taking';
 import InterviewPrepTools from './pages/interview-prep-tools';
 import UnifiedAtsPlatform from '@/pages/unified-ats-platform';
 import CollaborativeHiringScorecard from '@/pages/collaborative-hiring-scorecard';
+import NetworkingHub from '@/pages/networking-hub';
 
 // Import lazy for dynamic imports
 import { lazy } from "react";
@@ -508,6 +509,7 @@ function Router() {
                   <Route path="/referral-marketplace" component={ReferralMarketplace} />
                   <Route path="/become-referrer" component={BecomeReferrer} />
                   <Route path="/my-bookings" component={MyBookings} />
+                  <Route path="/networking-hub" component={NetworkingHub} />
                   <Route path="/job-alerts" component={JobAlertsPage} />
                   <Route path="/bidder-dashboard" component={BidderDashboard} />
                   <Route path="/bidder-profile" component={BidderProfile} />
@@ -554,6 +556,7 @@ function Router() {
               <Route path="/referral-marketplace" component={ReferralMarketplace} />
               <Route path="/become-referrer" component={BecomeReferrer} />
               <Route path="/my-bookings" component={MyBookings} />
+              <Route path="/networking-hub" component={NetworkingHub} />
               <Route path="/bidder-dashboard" component={BidderDashboard} />
               <Route path="/bidder-profile" component={BidderProfile} />
               <Route path="/chat" component={SimpleChatPage} />
