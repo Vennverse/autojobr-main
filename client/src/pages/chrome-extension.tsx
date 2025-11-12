@@ -2,7 +2,7 @@ import SEOHead from "@/components/seo-head";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Download, Chrome, Zap, Shield, Star, Users, Target } from "lucide-react";
+import { CheckCircle2, Download, Chrome, Zap, Shield, Star, Users, Target, Sparkles } from "lucide-react";
 import { Link } from "wouter";
 
 export default function ChromeExtension() {
@@ -26,6 +26,11 @@ export default function ChromeExtension() {
       icon: <Users className="h-6 w-6" />,
       title: "Auto-Fill Forms",
       description: "Instantly fills job application forms with your profile information."
+    },
+    {
+      icon: <Sparkles className="h-6 w-6" />,
+      title: "AI Connection Notes",
+      description: "Generate personalized LinkedIn connection requests with one click."
     }
   ];
 
@@ -112,21 +117,54 @@ export default function ChromeExtension() {
           </div>
 
           {/* Features Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-16">
             {features.map((feature, index) => (
-              <Card key={index} className="text-center border-0 shadow-xl">
+              <Card key={index} className="text-center border-0 shadow-xl hover-elevate">
                 <CardHeader>
                   <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mx-auto mb-4">
                     <div className="text-blue-600">{feature.icon}</div>
                   </div>
-                  <CardTitle className="text-xl">{feature.title}</CardTitle>
+                  <CardTitle className="text-lg">{feature.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-600 dark:text-gray-300">{feature.description}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{feature.description}</p>
                 </CardContent>
               </Card>
             ))}
           </div>
+
+          {/* NEW: AI Connection Notes Highlight */}
+          <Card className="mb-16 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 shadow-xl">
+            <CardHeader className="text-center">
+              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="h-8 w-8 text-white" />
+              </div>
+              <CardTitle className="text-3xl mb-2">AI-Powered Connection Notes</CardTitle>
+              <CardDescription className="text-lg">
+                Get more LinkedIn connections accepted with personalized AI-generated notes
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-center text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+                Our AI analyzes your networking goals and creates authentic, professional connection requests that get results. Available on LinkedIn profiles with one click.
+              </p>
+              <div className="flex gap-4 justify-center">
+                <Button
+                  size="lg"
+                  onClick={() => window.location.href = '/networking-hub'}
+                  data-testid="button-try-connection-notes"
+                >
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  Try Connection Notes
+                </Button>
+                <Link href="/connection-note-generator">
+                  <Button size="lg" variant="outline">
+                    Learn More
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Supported Job Boards */}
           <Card className="border-0 shadow-xl mb-16">

@@ -4562,6 +4562,41 @@ export const aiUsageTracking = pgTable("ai_usage_tracking", {
   unique("ai_usage_unique_user_month_feature").on(table.userId, table.monthYear, table.featureType),
 ]);
 
+// Networking Events - Professional networking events management
+export const networkingEvents = pgTable("networking_events", {
+  id: serial("id").primaryKey(),
+  creatorId: varchar("creator_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  eventDate: timestamp("event_date", { withTimezone: true }).notNull(),
+  locationName: varchar("location_name"),
+  locationUrl: varchar("location_url"),
+  eventType: varchar("event_type").notNull().default("virtual"), // virtual, in_person, hybrid
+  capacity: integer("capacity"),
+  registrationUrl: varchar("registration_url"),
+  isFeatured: boolean("is_featured").default(false),
+  attendeesCount: integer("attendees_count").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("networking_events_creator_idx").on(table.creatorId),
+  index("networking_events_date_idx").on(table.eventDate),
+  index("networking_events_type_idx").on(table.eventType),
+]);
+
+// Networking Event Attendees - Track who registered/attended events
+export const networkingEventAttendees = pgTable("networking_event_attendees", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id").references(() => networkingEvents.id, { onDelete: "cascade" }).notNull(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  status: varchar("status").notNull().default("registered"), // registered, attended, cancelled, waitlist
+  joinedAt: timestamp("joined_at").defaultNow(),
+}, (table) => [
+  unique("unique_event_attendee").on(table.eventId, table.userId),
+  index("event_attendees_event_idx").on(table.eventId),
+  index("event_attendees_user_idx").on(table.userId),
+]);
+
 // Recruiter Task Management - Dedicated task management for recruiters
 export const recruiterTasks = pgTable("recruiter_tasks", {
   id: serial("id").primaryKey(),
@@ -5047,3 +5082,23 @@ export const insertUserIntegrationSchema = createInsertSchema(userIntegrations).
 
 export type UserIntegration = typeof userIntegrations.$inferSelect;
 export type InsertUserIntegration = z.infer<typeof insertUserIntegrationSchema>;
+
+// Networking Events schemas and types
+export const insertNetworkingEventSchema = createInsertSchema(networkingEvents).omit({
+  id: true,
+  attendeesCount: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type NetworkingEvent = typeof networkingEvents.$inferSelect;
+export type InsertNetworkingEvent = z.infer<typeof insertNetworkingEventSchema>;
+
+// Networking Event Attendees schemas and types
+export const insertNetworkingEventAttendeeSchema = createInsertSchema(networkingEventAttendees).omit({
+  id: true,
+  joinedAt: true,
+});
+
+export type NetworkingEventAttendee = typeof networkingEventAttendees.$inferSelect;
+export type InsertNetworkingEventAttendee = z.infer<typeof insertNetworkingEventAttendeeSchema>;
