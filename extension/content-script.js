@@ -3386,47 +3386,97 @@ class AutoJobrContentScript {
   async trackApplicationSubmission() {
     try {
       console.log('[TRACK] Starting application tracking...');
+      console.log('[TRACK] Current URL:', window.location.href);
+      console.log('[TRACK] Platform:', this.detectPlatform(window.location.hostname));
 
       // Double-check this is actually a job application submission
       if (!this.isJobApplicationPage()) {
         console.log('[TRACK] Not a job application page - skipping');
-        return;
+        return { success: false, reason: 'Not a job application page' };
       }
 
-      const jobData = await this.extractJobDetails();
+      // Extract job details with retry logic
+      let jobData = await this.extractJobDetails();
       console.log('[TRACK] Extracted job data:', jobData);
 
+      // If extraction failed, try one more time after a short delay
+      if (!jobData.success || !jobData.jobData) {
+        console.log('[TRACK] First extraction failed, retrying in 1 second...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        jobData = await this.extractJobDetails();
+        console.log('[TRACK] Retry result:', jobData);
+      }
+
       if (jobData.success && jobData.jobData && jobData.jobData.title) {
-        console.log('[TRACK] Sending to background script:', jobData.jobData);
+        const trackingData = {
+          jobTitle: jobData.jobData.title,
+          company: jobData.jobData.company || 'Unknown Company',
+          location: jobData.jobData.location || '',
+          jobUrl: window.location.href,
+          status: 'applied',
+          source: 'extension',
+          platform: this.detectPlatform(window.location.hostname),
+          appliedDate: new Date().toISOString(),
+          jobType: jobData.jobData.jobType || null,
+          workMode: jobData.jobData.workMode || null
+        };
 
-        const response = await chrome.runtime.sendMessage({
-          action: 'trackApplication',
-          data: {
-            jobTitle: jobData.jobData.title,
-            company: jobData.jobData.company || 'Unknown Company',
-            location: jobData.jobData.location || '',
-            jobUrl: window.location.href,
-            status: 'applied',
-            source: 'extension',
-            platform: this.detectPlatform(window.location.hostname),
-            appliedDate: new Date().toISOString()
+        console.log('[TRACK] Sending to background script:', trackingData);
+
+        try {
+          const response = await chrome.runtime.sendMessage({
+            action: 'trackApplication',
+            data: trackingData
+          });
+
+          console.log('[TRACK] Background response:', response);
+
+          if (response && response.success) {
+            this.showNotification('✅ Application tracked successfully!', 'success');
+            console.log('[TRACK] ✅ Application saved to database');
+            console.log('[TRACK] Application ID:', response.applicationId || response.application?.id);
+            return { success: true, application: response.application };
+          } else {
+            const errorMsg = response?.error || 'Unknown error';
+            console.error('[TRACK] ❌ Tracking failed:', errorMsg);
+            this.showNotification(`⚠️ Tracking failed: ${errorMsg}`, 'error');
+            return { success: false, error: errorMsg };
           }
-        });
-
-        console.log('[TRACK] Background response:', response);
-
-        if (response && response.success) {
-          this.showNotification('✅ Application tracked successfully!', 'success');
-          console.log('[TRACK] ✅ Application saved to database');
-        } else {
-          console.error('[TRACK] ❌ Tracking failed:', response);
-          this.showNotification('⚠️ Failed to track application', 'error');
+        } catch (runtimeError) {
+          // Handle extension context errors
+          if (runtimeError.message?.includes('Extension context invalidated') ||
+              runtimeError.message?.includes('Could not establish connection')) {
+            console.error('[TRACK] ❌ Extension needs reload. Please refresh the page.');
+            this.showNotification('⚠️ Extension needs reload. Refresh page to continue.', 'error');
+            return { success: false, error: 'Extension context invalidated' };
+          }
+          throw runtimeError;
         }
       } else {
-        console.log('[TRACK] Invalid job data - cannot track');
+        const reason = 'Could not extract job title or company';
+        console.log('[TRACK] Invalid job data - cannot track:', reason);
+        console.log('[TRACK] Job data details:', {
+          success: jobData.success,
+          hasJobData: !!jobData.jobData,
+          title: jobData.jobData?.title,
+          company: jobData.jobData?.company
+        });
+        return { success: false, reason };
       }
     } catch (error) {
-      console.error('Failed to track application:', error);
+      console.error('[TRACK] ❌ Failed to track application:', error);
+      console.error('[TRACK] Error stack:', error.stack);
+      
+      // Show user-friendly error
+      let errorMessage = 'Failed to track application';
+      if (error.message?.includes('not authenticated')) {
+        errorMessage = 'Please log into AutoJobr first';
+      } else if (error.message?.includes('Extension context')) {
+        errorMessage = 'Extension needs reload. Refresh page.';
+      }
+      
+      this.showNotification(`❌ ${errorMessage}`, 'error');
+      return { success: false, error: error.message };
     }
   }
 
