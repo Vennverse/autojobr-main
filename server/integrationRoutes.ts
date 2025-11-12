@@ -531,4 +531,44 @@ router.post("/schedule/google-meet", isAuthenticated, async (req: Request, res: 
   }
 });
 
+// Create Outlook Calendar event
+router.post("/schedule/outlook", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { subject, body, startTime, endTime, attendees, location, isOnlineMeeting } = req.body;
+
+    if (!subject || !startTime || !endTime) {
+      return res.status(400).json({ message: "Subject, start time, and end time are required" });
+    }
+
+    const { IntegrationService } = await import("./integrationService.js");
+
+    const result = await IntegrationService.createOutlookEvent(userId, {
+      subject,
+      body,
+      startTime,
+      endTime,
+      attendees,
+      location,
+      isOnlineMeeting
+    });
+
+    if (!result.success) {
+      return res.status(400).json({ 
+        message: "Microsoft Calendar not configured or event creation failed. Please configure Microsoft Outlook Calendar in Integration Marketplace."
+      });
+    }
+
+    res.json({ 
+      message: "Outlook event created successfully",
+      eventUrl: result.eventUrl,
+      eventId: result.eventId,
+      onlineMeetingUrl: result.onlineMeetingUrl
+    });
+  } catch (error) {
+    console.error("Error creating Outlook event:", error);
+    res.status(500).json({ message: "Failed to create Outlook event" });
+  }
+});
+
 export default router;

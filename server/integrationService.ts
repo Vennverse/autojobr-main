@@ -351,6 +351,81 @@ export class IntegrationService {
   }
 
   /**
+   * Create Outlook Calendar event
+   */
+  static async createOutlookEvent(userId: string, eventData: {
+    subject: string;
+    body?: string;
+    startTime: string;
+    endTime: string;
+    attendees?: string[];
+    location?: string;
+    isOnlineMeeting?: boolean;
+  }) {
+    const integration = await this.getUserIntegration(userId, 'microsoft-calendar');
+    if (!integration || !integration.config?.accessToken) {
+      console.log('Microsoft Calendar integration not configured for user:', userId);
+      return { success: false, eventUrl: null };
+    }
+
+    try {
+      const eventPayload: any = {
+        subject: eventData.subject,
+        body: {
+          contentType: 'HTML',
+          content: eventData.body || ''
+        },
+        start: {
+          dateTime: eventData.startTime,
+          timeZone: 'UTC'
+        },
+        end: {
+          dateTime: eventData.endTime,
+          timeZone: 'UTC'
+        },
+        location: eventData.location ? {
+          displayName: eventData.location
+        } : undefined,
+        attendees: eventData.attendees?.map(email => ({
+          emailAddress: { address: email },
+          type: 'required'
+        }))
+      };
+
+      if (eventData.isOnlineMeeting) {
+        eventPayload.isOnlineMeeting = true;
+        eventPayload.onlineMeetingProvider = 'teamsForBusiness';
+      }
+
+      const response = await axios.post(
+        'https://graph.microsoft.com/v1.0/me/events',
+        eventPayload,
+        {
+          headers: {
+            'Authorization': `Bearer ${integration.config.accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      // Update last synced
+      await db.update(userIntegrations)
+        .set({ lastSyncedAt: new Date() })
+        .where(eq(userIntegrations.id, integration.id));
+      
+      return { 
+        success: true, 
+        eventUrl: response.data.webLink,
+        eventId: response.data.id,
+        onlineMeetingUrl: response.data.onlineMeeting?.joinUrl
+      };
+    } catch (error) {
+      console.error('Failed to create Outlook event:', error);
+      return { success: false, eventUrl: null };
+    }
+  }
+
+  /**
    * Check if user has an integration enabled
    */
   static async hasIntegration(userId: string, integrationId: string): Promise<boolean> {
