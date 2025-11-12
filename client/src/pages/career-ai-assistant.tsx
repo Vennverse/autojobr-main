@@ -180,7 +180,7 @@ export default function CareerAIAssistant() {
   // Optimized loading state - only wait for critical data
   useEffect(() => {
     // Only wait for profile to load, skills can load progressively
-    const criticalLoading = profileLoading;
+    const criticalLoading = profileLoading && !userProfile;
     setIsLoading(criticalLoading);
     
     // Check for critical errors
@@ -188,8 +188,9 @@ export default function CareerAIAssistant() {
       console.error("Profile loading error:", profileError);
       // Don't block the UI, just log it
       setIsLoading(false);
+      setError("Failed to load profile");
     }
-  }, [profileLoading, profileError]);
+  }, [profileLoading, profileError, userProfile]);
 
   // Simple HTTP-based progress tracking (no websockets needed)
   const [analysisJobId, setAnalysisJobId] = useState<string | null>(null);
@@ -651,8 +652,32 @@ export default function CareerAIAssistant() {
     }
   };
 
+  // Show error state if profile failed to load
+  if (error && !userProfile) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center space-y-4">
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                <p className="text-red-600 dark:text-red-400">{error}</p>
+                <Button 
+                  onClick={() => window.location.reload()} 
+                  className="mt-4"
+                >
+                  Retry
+                </Button>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   // Show minimal loading state only for profile
-  if (isLoading && !userProfile) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -660,7 +685,7 @@ export default function CareerAIAssistant() {
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center space-y-4">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto" />
-              <p className="text-muted-foreground">Loading your profile...</p>
+              <p className="text-muted-foreground">Loading your career assistant...</p>
             </div>
           </div>
         </main>
