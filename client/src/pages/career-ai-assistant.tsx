@@ -1,3 +1,11 @@
+
+/**
+ * Career AI Assistant - Optimized for fast loading
+ * - Progressive data loading (profile first, then skills)
+ * - Cached queries (5-10 min stale time)
+ * - Non-blocking UI (show page even with partial data)
+ */
+
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -142,40 +150,46 @@ export default function CareerAIAssistant() {
     message: ''
   });
 
-  // Fetch user profile for AI analysis
+  // Fetch user profile for AI analysis (priority: critical)
   const { data: userProfile, isLoading: profileLoading, error: profileError } = useQuery({
     queryKey: ['/api/profile'],
     enabled: !!user,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
-  // Fetch user skills
-  const { data: userSkills, isLoading: skillsLoading, error: skillsError } = useQuery({
+  // Fetch user skills (priority: high)
+  const { data: userSkills, isLoading: skillsLoading } = useQuery({
     queryKey: ['/api/skills'],
-    enabled: !!user,
+    enabled: !!user && !!userProfile,
+    staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch user applications for behavioral analysis
-  const { data: userApplications, isLoading: appsLoading, error: appsError } = useQuery({
+  // Fetch user applications for behavioral analysis (priority: low - optional)
+  const { data: userApplications } = useQuery({
     queryKey: ['/api/applications'],
-    enabled: !!user,
+    enabled: !!user && !!userProfile,
+    staleTime: 10 * 60 * 1000,
   });
 
-  // Fetch job analyses for pattern recognition
-  const { data: jobAnalyses, isLoading: analysesLoading, error: analysesError } = useQuery({
+  // Fetch job analyses for pattern recognition (priority: low - optional)
+  const { data: jobAnalyses } = useQuery({
     queryKey: ['/api/jobs/analyses'],
-    enabled: !!user,
+    enabled: false, // Disable this - it's returning 404 anyway
   });
 
-  // Combined loading state
+  // Optimized loading state - only wait for critical data
   useEffect(() => {
-    const allLoading = profileLoading || skillsLoading || appsLoading || analysesLoading;
-    setIsLoading(allLoading);
+    // Only wait for profile to load, skills can load progressively
+    const criticalLoading = profileLoading;
+    setIsLoading(criticalLoading);
     
     // Check for critical errors
-    if (profileError && !user) {
-      setError("Unable to load user profile. Please try refreshing the page.");
+    if (profileError) {
+      console.error("Profile loading error:", profileError);
+      // Don't block the UI, just log it
+      setIsLoading(false);
     }
-  }, [profileLoading, skillsLoading, appsLoading, analysesLoading, profileError, user]);
+  }, [profileLoading, profileError]);
 
   // Simple HTTP-based progress tracking (no websockets needed)
   const [analysisJobId, setAnalysisJobId] = useState<string | null>(null);
@@ -372,18 +386,21 @@ export default function CareerAIAssistant() {
     return () => clearInterval(interval);
   }, [analysisJobId, isGenerating]);
 
-  // Load saved analysis on component mount
+  // Load saved analysis on component mount with better error handling
   useEffect(() => {
-    if (user) {
+    if (user && userProfile) {
       fetchSavedAnalysis();
     }
-  }, [user]);
+  }, [user, userProfile]);
 
   const fetchSavedAnalysis = async () => {
     try {
       const response = await fetch('/api/career-ai/saved');
-      if (response.ok) {
-        const data = await response.json();
+      if (!response.ok) {
+        console.warn('No saved analysis found');
+        return;
+      }
+      const data = await response.json();
         // Set AI tier information
         setAiTier(data.aiTier || 'basic');
         setUpgradeMessage(data.upgradeMessage || "");
@@ -635,8 +652,8 @@ export default function CareerAIAssistant() {
     }
   };
 
-  // Show loading state
-  if (isLoading) {
+  // Show minimal loading state only for profile
+  if (isLoading && !userProfile) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -644,30 +661,7 @@ export default function CareerAIAssistant() {
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center space-y-4">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto" />
-              <p className="text-muted-foreground">Loading Career AI Assistant...</p>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  // Show error state
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <main className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center space-y-4">
-              <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-xl">
-                <Brain className="h-16 w-16 text-red-600 mx-auto mb-4" />
-              </div>
-              <h2 className="text-2xl font-bold text-red-600">Something went wrong</h2>
-              <p className="text-muted-foreground max-w-md">{error}</p>
-              <Button onClick={() => window.location.reload()}>
-                Reload Page
-              </Button>
+              <p className="text-muted-foreground">Loading your profile...</p>
             </div>
           </div>
         </main>
@@ -1041,7 +1035,17 @@ Examples:
                 </TabsTrigger>
               </TabsList>
 
-              {/* Overview Tab */}
+              {/* Loading skeleton for skills */}
+          {skillsLoading && (
+            <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
+                Loading your skills data...
+              </div>
+            </div>
+          )}
+
+          {/* Overview Tab */}
               <TabsContent value="overview" className="space-y-6">
                 {/* Goal Proximity Widget - Featured at top */}
                 {careerPath?.goalProximityScore !== undefined && careerPath?.targetRole && (
