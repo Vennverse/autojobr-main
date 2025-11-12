@@ -10693,6 +10693,310 @@ Return ONLY the JSON object, no additional text.`;
   app.get('/api/crm/lead-scores', isAuthenticated, EnhancedCrmService.getLeadScores);
   app.post('/api/crm/lead-scores/calculate', isAuthenticated, EnhancedCrmService.calculateLeadScores);
 
+  // ============= USER AI API KEYS MANAGEMENT (Extension Feature) =============
+  
+  // Get user's AI API keys
+  app.get('/api/extension/ai-keys', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    const userId = req.user.id;
+    
+    const keys = await db
+      .select({
+        id: schema.userIntegrations.id,
+        provider: schema.userIntegrations.integrationId,
+        isEnabled: schema.userIntegrations.isEnabled,
+        createdAt: schema.userIntegrations.createdAt,
+        lastUsed: schema.userIntegrations.lastSyncedAt,
+      })
+      .from(schema.userIntegrations)
+      .where(
+        and(
+          eq(schema.userIntegrations.userId, userId),
+          or(
+            eq(schema.userIntegrations.integrationId, 'groq'),
+            eq(schema.userIntegrations.integrationId, 'openai'),
+            eq(schema.userIntegrations.integrationId, 'anthropic'),
+            eq(schema.userIntegrations.integrationId, 'google-ai')
+          )
+        )
+      );
+    
+    res.json({ success: true, keys });
+  }));
+
+  // Add or update AI API key
+  app.post('/api/extension/ai-keys', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    const userId = req.user.id;
+    const { provider, apiKey } = req.body;
+    
+    if (!provider || !apiKey) {
+      return res.status(400).json({ error: 'Provider and API key are required' });
+    }
+    
+    // Validate provider
+    const validProviders = ['groq', 'openai', 'anthropic', 'google-ai'];
+    if (!validProviders.includes(provider)) {
+      return res.status(400).json({ error: 'Invalid provider' });
+    }
+    
+    // Check if key already exists
+    const existing = await db
+      .select()
+      .from(schema.userIntegrations)
+      .where(
+        and(
+          eq(schema.userIntegrations.userId, userId),
+          eq(schema.userIntegrations.integrationId, provider)
+        )
+      )
+      .limit(1);
+    
+    if (existing.length > 0) {
+      // Update existing key
+      await db
+        .update(schema.userIntegrations)
+        .set({
+          apiKey: apiKey,
+          isEnabled: true,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.userIntegrations.id, existing[0].id));
+      
+      res.json({ success: true, message: 'API key updated successfully' });
+    } else {
+      // Insert new key
+      await db.insert(schema.userIntegrations).values({
+        userId,
+        integrationId: provider,
+        apiKey: apiKey,
+        isEnabled: true,
+      });
+      
+      res.json({ success: true, message: 'API key added successfully' });
+    }
+  }));
+
+  // Delete AI API key
+  app.delete('/api/extension/ai-keys/:provider', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    const userId = req.user.id;
+    const { provider } = req.params;
+    
+    await db
+      .delete(schema.userIntegrations)
+      .where(
+        and(
+          eq(schema.userIntegrations.userId, userId),
+          eq(schema.userIntegrations.integrationId, provider)
+        )
+      );
+    
+    res.json({ success: true, message: 'API key deleted successfully' });
+  }));
+
+  // Generate resume using user's own API key
+  app.post('/api/extension/generate-resume', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    const userId = req.user.id;
+    const { jobData, userProfile, provider } = req.body;
+    
+    if (!jobData || !userProfile) {
+      return res.status(400).json({ error: 'Job data and user profile are required' });
+    }
+    
+    // Get user's API key for the specified provider (default: groq)
+    const selectedProvider = provider || 'groq';
+    const userKey = await db
+      .select()
+      .from(schema.userIntegrations)
+      .where(
+        and(
+          eq(schema.userIntegrations.userId, userId),
+          eq(schema.userIntegrations.integrationId, selectedProvider),
+          eq(schema.userIntegrations.isEnabled, true)
+        )
+      )
+      .limit(1);
+    
+    if (!userKey.length || !userKey[0].apiKey) {
+      return res.status(400).json({ 
+        error: 'No API key found. Please add your API key in settings.',
+        needsSetup: true
+      });
+    }
+    
+    // Generate resume using the user's API key
+    try {
+      let resumeData;
+      
+      if (selectedProvider === 'groq') {
+        const Groq = (await import('groq-sdk')).default;
+        const groq = new Groq({ apiKey: userKey[0].apiKey });
+        
+        const prompt = `Generate a professional resume tailored for this job:
+
+Job Title: ${jobData.title}
+Company: ${jobData.company}
+Description: ${jobData.description}
+
+User Profile:
+Name: ${userProfile.fullName}
+Title: ${userProfile.professionalTitle}
+Skills: ${userProfile.skills?.join(', ')}
+Experience: ${userProfile.experience?.map((exp: any) => `${exp.title} at ${exp.company}`).join(', ')}
+Education: ${userProfile.education?.map((edu: any) => `${edu.degree} from ${edu.school}`).join(', ')}
+
+Generate a complete resume in JSON format with these fields:
+{
+  "fullName": "string",
+  "email": "string",
+  "phone": "string",
+  "location": "string",
+  "summary": "string (2-3 sentences highlighting relevant skills)",
+  "experience": [{"title": "string", "company": "string", "dates": "string", "achievements": ["string"]}],
+  "education": [{"degree": "string", "school": "string", "year": "string"}],
+  "skills": ["string"],
+  "certifications": ["string"]
+}
+
+Make sure the resume is tailored to the job description and highlights relevant keywords.`;
+        
+        const completion = await groq.chat.completions.create({
+          messages: [{ role: 'user', content: prompt }],
+          model: 'llama-3.3-70b-versatile',
+          temperature: 0.7,
+          max_tokens: 2000,
+        });
+        
+        const content = completion.choices[0]?.message?.content || '';
+        resumeData = JSON.parse(content.replace(/```json\n?/g, '').replace(/```\n?/g, ''));
+        
+      } else if (selectedProvider === 'openai') {
+        const OpenAI = (await import('openai')).default;
+        const openai = new OpenAI({ apiKey: userKey[0].apiKey });
+        
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [{ 
+            role: 'user', 
+            content: `Generate resume JSON for ${jobData.title} at ${jobData.company}` 
+          }],
+          response_format: { type: 'json_object' },
+        });
+        
+        resumeData = JSON.parse(completion.choices[0].message.content || '{}');
+      }
+      
+      // Update last used timestamp
+      await db
+        .update(schema.userIntegrations)
+        .set({ lastSyncedAt: new Date() })
+        .where(eq(schema.userIntegrations.id, userKey[0].id));
+      
+      res.json({ success: true, resume: resumeData });
+      
+    } catch (error: any) {
+      console.error('Resume generation error:', error);
+      res.status(500).json({ 
+        error: error.message || 'Failed to generate resume',
+        provider: selectedProvider
+      });
+    }
+  }));
+
+  // Generate cover letter using user's own API key
+  app.post('/api/extension/generate-cover-letter', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    const userId = req.user.id;
+    const { jobData, userProfile, provider } = req.body;
+    
+    if (!jobData || !userProfile) {
+      return res.status(400).json({ error: 'Job data and user profile are required' });
+    }
+    
+    // Get user's API key
+    const selectedProvider = provider || 'groq';
+    const userKey = await db
+      .select()
+      .from(schema.userIntegrations)
+      .where(
+        and(
+          eq(schema.userIntegrations.userId, userId),
+          eq(schema.userIntegrations.integrationId, selectedProvider),
+          eq(schema.userIntegrations.isEnabled, true)
+        )
+      )
+      .limit(1);
+    
+    if (!userKey.length || !userKey[0].apiKey) {
+      return res.status(400).json({ 
+        error: 'No API key found. Please add your API key in settings.',
+        needsSetup: true
+      });
+    }
+    
+    try {
+      let coverLetter;
+      
+      if (selectedProvider === 'groq') {
+        const Groq = (await import('groq-sdk')).default;
+        const groq = new Groq({ apiKey: userKey[0].apiKey });
+        
+        const prompt = `Write a professional cover letter for this job application:
+
+Job Title: ${jobData.title}
+Company: ${jobData.company}
+Description: ${jobData.description}
+
+Applicant:
+Name: ${userProfile.fullName}
+Title: ${userProfile.professionalTitle}
+Key Skills: ${userProfile.skills?.join(', ')}
+
+Write a compelling 3-paragraph cover letter that:
+1. Opens with enthusiasm and mentions the specific role
+2. Highlights 2-3 relevant achievements/skills that match the job
+3. Closes with a call to action
+
+Keep it professional, concise (under 300 words), and personalized to the company and role.`;
+        
+        const completion = await groq.chat.completions.create({
+          messages: [{ role: 'user', content: prompt }],
+          model: 'llama-3.3-70b-versatile',
+          temperature: 0.8,
+          max_tokens: 800,
+        });
+        
+        coverLetter = completion.choices[0]?.message?.content || '';
+        
+      } else if (selectedProvider === 'openai') {
+        const OpenAI = (await import('openai')).default;
+        const openai = new OpenAI({ apiKey: userKey[0].apiKey });
+        
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [{ 
+            role: 'user', 
+            content: `Write a cover letter for ${jobData.title} at ${jobData.company}` 
+          }],
+        });
+        
+        coverLetter = completion.choices[0].message.content || '';
+      }
+      
+      // Update last used
+      await db
+        .update(schema.userIntegrations)
+        .set({ lastSyncedAt: new Date() })
+        .where(eq(schema.userIntegrations.id, userKey[0].id));
+      
+      res.json({ success: true, coverLetter });
+      
+    } catch (error: any) {
+      console.error('Cover letter generation error:', error);
+      res.status(500).json({ 
+        error: error.message || 'Failed to generate cover letter',
+        provider: selectedProvider
+      });
+    }
+  }));
+
   // Apply ensureRoleConsistency middleware after auth setup and before any sensitive routes
   app.use(ensureRoleConsistency);
 

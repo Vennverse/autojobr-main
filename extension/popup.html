@@ -1080,6 +1080,31 @@
 
       <div class="settings-section">
         <div class="section-title">
+          🤖 Premium Features (BYOK)
+        </div>
+        <div style="background: linear-gradient(135deg, #eff6ff, #dbeafe); padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #3b82f6;">
+          <div style="font-size: 12px; color: #1e40af; margin-bottom: 6px; font-weight: 600;">
+            ✨ Use Your Own API Key
+          </div>
+          <div style="font-size: 11px; color: #3b82f6; line-height: 1.4;">
+            Add your free Groq API key to unlock unlimited resume & cover letter generation!
+          </div>
+        </div>
+        <div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+          <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+            <span class="setting-label">API Keys</span>
+            <button class="action-btn" id="manageKeysBtn" style="padding: 6px 12px; font-size: 11px; min-width: auto;">
+              <span>Manage</span>
+            </button>
+          </div>
+          <div id="apiKeyStatus" style="font-size: 11px; color: #6b7280; width: 100%;">
+            No API keys configured
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="section-title">
           ⚙️ Settings
         </div>
         <div class="setting-item">
@@ -1110,6 +1135,61 @@
 
     <div class="footer">
       <a href="#" id="openDashboard">🚀 Open Dashboard</a>
+    </div>
+  </div>
+
+  <!-- API Key Management Modal -->
+  <div class="modal-overlay" id="apiKeyModal">
+    <div class="task-modal">
+      <div class="modal-header">
+        <h3 class="modal-title">🔑 Manage API Keys</h3>
+        <button class="modal-close" id="closeApiKeyModal">×</button>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <div style="background: linear-gradient(135deg, #fef3c7, #fde68a); padding: 12px; border-radius: 8px; border-left: 3px solid #f59e0b; margin-bottom: 16px;">
+          <div style="font-size: 12px; color: #92400e; font-weight: 600; margin-bottom: 4px;">🎁 Get FREE API Access</div>
+          <div style="font-size: 11px; color: #78350f; line-height: 1.4;">
+            Groq offers <strong>free API keys</strong> with generous limits! Sign up at 
+            <a href="https://console.groq.com" target="_blank" style="color: #b45309; text-decoration: underline;">console.groq.com</a>
+          </div>
+        </div>
+
+        <div id="existingKeys" style="margin-bottom: 16px;">
+          <!-- Existing keys will be shown here -->
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Select Provider</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+            <button type="button" class="priority-btn selected" id="groqProviderBtn" data-provider="groq">
+              🚀 Groq (Free)
+            </button>
+            <button type="button" class="priority-btn" id="openaiProviderBtn" data-provider="openai">
+              🤖 OpenAI
+            </button>
+            <button type="button" class="priority-btn" id="anthropicProviderBtn" data-provider="anthropic">
+              🧠 Anthropic
+            </button>
+            <button type="button" class="priority-btn" id="googleProviderBtn" data-provider="google-ai">
+              🌐 Google AI
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="apiKeyInput">API Key *</label>
+          <input type="password" id="apiKeyInput" class="form-input" placeholder="Enter your API key..." autocomplete="off">
+          <div style="font-size: 10px; color: #6b7280; margin-top: 4px;">
+            Your key is stored securely and only used for your requests
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="modal-btn cancel" id="cancelApiKeyModal">Cancel</button>
+        <button type="button" class="modal-btn primary" id="saveApiKey">Save Key</button>
+      </div>
     </div>
   </div>
 
