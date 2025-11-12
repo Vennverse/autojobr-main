@@ -3313,53 +3313,121 @@ class AutoJobrContentScript {
 
   // Application tracking system - Only tracks actual form submissions
   async setupApplicationTracking() {
-    console.log('Setting up application tracking for form submissions only...');
+    console.log('✅ Setting up application tracking - attaching submit listener globally');
 
-    // Only track actual form submissions - not page visits
-    document.addEventListener('submit', async (e) => {
-      if (this.isJobApplicationForm(e.target)) {
-        console.log('Job application form submitted - tracking application');
-        // Only track if form actually submitted successfully
-        setTimeout(() => this.trackApplicationSubmission(), 3000);
-      }
-    });
-
-    // Track confirmation pages only when navigating FROM a form submission
+    // Track form submission state
     let lastFormSubmissionTime = 0;
     let currentUrl = window.location.href;
 
-    // Enhanced form submission tracking
-    document.addEventListener('submit', (e) => {
-      if (this.isJobApplicationForm(e.target)) {
+    // ALWAYS attach submit listener - validate inside the handler
+    document.addEventListener('submit', async (e) => {
+      const form = e.target;
+      
+      console.log('[SUBMIT EVENT] Form submitted:', {
+        action: form.action,
+        method: form.method,
+        url: window.location.href,
+        formText: form.textContent.substring(0, 100)
+      });
+
+      // Check if this is a job application form
+      if (this.isJobApplicationForm(form)) {
+        console.log('[SUBMIT EVENT] ✅ Identified as job application form - will track');
         lastFormSubmissionTime = Date.now();
-        console.log('Form submitted, will monitor for confirmation page');
+        
+        // Track with a delay to allow form submission to complete
+        setTimeout(() => {
+          console.log('[SUBMIT EVENT] Executing delayed tracking...');
+          this.trackApplicationSubmission();
+        }, 3000);
+      } else {
+        console.log('[SUBMIT EVENT] ⚠️ Not a job application form - skipping tracking');
       }
     });
 
-    // Only check for confirmation if we recently submitted a form (within 30 seconds)
+    // Also listen for button clicks on submit buttons (for SPAs that don't use form submit)
+    document.addEventListener('click', async (e) => {
+      const target = e.target;
+      
+      // Check if this is a submit button
+      if (this.isSubmissionButton(target) || this.isSubmissionButton(target.closest('button'))) {
+        console.log('[CLICK EVENT] Submit button clicked:', {
+          text: target.textContent,
+          url: window.location.href
+        });
+        
+        // Wait for form submission to complete, then track
+        setTimeout(() => {
+          console.log('[CLICK EVENT] Executing delayed tracking after button click...');
+          this.trackApplicationSubmission();
+        }, 3000);
+      }
+    }, true); // Use capture phase to catch clicks before they're handled
+
+    // Monitor for confirmation pages after submission
     setInterval(() => {
       if (window.location.href !== currentUrl) {
         currentUrl = window.location.href;
 
-        // Only check for confirmation within 30 seconds of form submission
+        // Check for confirmation within 30 seconds of form submission
         if (Date.now() - lastFormSubmissionTime < 30000 && lastFormSubmissionTime > 0) {
+          console.log('[URL CHANGE] Checking for confirmation page...');
           this.checkForSubmissionConfirmation();
         }
       }
     }, 2000);
+
+    console.log('✅ Application tracking setup complete - listeners attached');
   }
 
   isJobApplicationForm(form) {
-    if (!form || form.tagName !== 'FORM') return false;
+    if (!form) return false;
+    
+    // Handle both FORM elements and form-like containers (for SPAs)
+    const isFormElement = form.tagName === 'FORM';
+    const hasFormRole = form.getAttribute('role') === 'form';
+    
+    if (!isFormElement && !hasFormRole) {
+      // Check if parent is a form
+      const parentForm = form.closest('form');
+      if (parentForm) {
+        return this.isJobApplicationForm(parentForm);
+      }
+      return false;
+    }
 
     const formText = form.textContent.toLowerCase();
     const actionUrl = form.action?.toLowerCase() || '';
+    const formId = form.id?.toLowerCase() || '';
+    const formClass = form.className?.toLowerCase() || '';
 
-    return formText.includes('apply') ||
-           formText.includes('application') ||
-           formText.includes('submit') ||
-           actionUrl.includes('apply') ||
-           actionUrl.includes('application');
+    // Check for job application indicators
+    const hasApplyKeyword = formText.includes('apply') || 
+                           formText.includes('application') ||
+                           formText.includes('submit application') ||
+                           actionUrl.includes('apply') ||
+                           actionUrl.includes('application') ||
+                           formId.includes('apply') ||
+                           formId.includes('application') ||
+                           formClass.includes('apply') ||
+                           formClass.includes('application');
+
+    // Check for resume/CV upload fields (strong indicator)
+    const hasResumeField = form.querySelector('input[type="file"][accept*="pdf"], input[name*="resume"], input[name*="cv"], input[id*="resume"]');
+    
+    // Check for cover letter field (strong indicator)
+    const hasCoverLetterField = form.querySelector('textarea[name*="cover"], textarea[id*="cover"], textarea[placeholder*="cover"]');
+    
+    // LinkedIn Easy Apply specific
+    const isLinkedInEasyApply = form.closest('[data-test-modal="jobs-easy-apply-modal"]') || 
+                                form.classList.contains('jobs-easy-apply-modal') ||
+                                formClass.includes('easy-apply');
+    
+    // Workday specific
+    const isWorkdayApplication = form.hasAttribute('data-automation-id') || 
+                                 formClass.includes('workday');
+
+    return hasApplyKeyword || hasResumeField || hasCoverLetterField || isLinkedInEasyApply || isWorkdayApplication;
   }
 
   isSubmissionButton(button) {
@@ -3602,32 +3670,57 @@ class AutoJobrContentScript {
     const url = window.location.href.toLowerCase();
     const hostname = window.location.hostname.toLowerCase();
 
-    // LinkedIn specific detection - avoid feeds, home, search pages
+    // RELAXED LinkedIn detection - focus on URL patterns, not DOM (DOM may load later)
     if (hostname.includes('linkedin.com')) {
-      // Must be jobs page AND have easy apply or application form
-      const isJobsPage = url.includes('/jobs/view/') || url.includes('/jobs/collections/');
-      const hasEasyApply = document.querySelector('[data-test-modal="jobs-easy-apply-modal"], .jobs-easy-apply-content, .jobs-apply-button');
-      const isFeedPage = url.includes('/feed/') || url.includes('/mynetwork/') || url === 'https://www.linkedin.com/';
-
-      return isJobsPage && hasEasyApply && !isFeedPage;
+      const isJobsPage = url.includes('/jobs/view/') || 
+                         url.includes('/jobs/collections/') || 
+                         url.includes('/jobs/apply/') ||
+                         url.includes('currentjobid=');
+      const isFeedPage = url.includes('/feed/') || 
+                         url.includes('/mynetwork/') || 
+                         url === 'https://www.linkedin.com/';
+      
+      return isJobsPage && !isFeedPage;
     }
 
-    // Workday specific detection
-    if (hostname.includes('myworkdayjobs.com')) {
-      return url.includes('/job/') && document.querySelector('form[data-automation-id="jobApplicationForm"], .css-1x9zq2f');
+    // RELAXED Workday detection - URL-based (forms load dynamically)
+    if (hostname.includes('myworkdayjobs.com') || hostname.includes('workday.com')) {
+      return url.includes('/job/') || url.includes('/application/');
     }
 
-    // Indeed specific detection
+    // RELAXED Indeed detection - URL-based
     if (hostname.includes('indeed.com')) {
-      return url.includes('/viewjob') && document.querySelector('.indeed-apply-button, .ia-IndeedApplyButton');
+      return url.includes('/viewjob') || url.includes('/apply/');
     }
 
-    // Generic detection for other sites
-    const pageText = document.body.textContent.toLowerCase();
-    const hasStrictJobForm = document.querySelectorAll('input[type="file"][accept*="pdf"], textarea[name*="cover"], input[name*="resume"]').length > 0;
-    const hasApplyButton = document.querySelector('[class*="apply"], [id*="apply"], button[data-test*="apply"]');
+    // Greenhouse
+    if (hostname.includes('greenhouse.io') || hostname.includes('boards.greenhouse.io')) {
+      return url.includes('/jobs/') || url.includes('/application/');
+    }
 
-    return hasStrictJobForm && hasApplyButton;
+    // Lever
+    if (hostname.includes('lever.co') || hostname.includes('jobs.lever.co')) {
+      return url.includes('/jobs/') || url.includes('/apply/');
+    }
+
+    // AshbyHQ
+    if (hostname.includes('ashbyhq.com') || hostname.includes('jobs.ashbyhq.com')) {
+      return true; // All pages on Ashby are job-related
+    }
+
+    // Generic detection for other sites - more relaxed
+    const hasJobKeywords = url.includes('/job') || 
+                          url.includes('/career') || 
+                          url.includes('/apply') ||
+                          url.includes('/application');
+    
+    if (hasJobKeywords) {
+      return true; // Let the form handler decide if it's actually a job form
+    }
+
+    // Fallback: check DOM for job application indicators
+    const hasJobForm = document.querySelectorAll('input[type="file"][accept*="pdf"], input[name*="resume"], textarea[name*="cover"]').length > 0;
+    return hasJobForm;
   }
 
   // Setup automatic job analysis when new pages load - prevent duplicates
