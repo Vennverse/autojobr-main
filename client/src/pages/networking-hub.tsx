@@ -30,10 +30,25 @@ export default function NetworkingHub() {
   const [followUpStyle, setFollowUpStyle] = useState<"email" | "linkedin">("email");
   const [generatedMessage, setGeneratedMessage] = useState("");
 
+  // Event form states
+  const [eventTitle, setEventTitle] = useState("");
+  const [eventDescription, setEventDescription] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [eventLocation, setEventLocation] = useState("");
+  const [eventType, setEventType] = useState("virtual");
+  const [eventCapacity, setEventCapacity] = useState("");
+  const [eventRegUrl, setEventRegUrl] = useState("");
+
   // Connection note generator states
   const [connectionReason, setConnectionReason] = useState("");
   const [connectionContext, setConnectionContext] = useState("");
   const [generatedNote, setGeneratedNote] = useState("");
+
+  // Fetch networking events
+  const { data: eventsData, isLoading: eventsLoading } = useQuery({
+    queryKey: ['/api/networking/events'],
+  });
+  const events = eventsData?.events || [];
 
   // Fetch contacts
   const { data: contacts = [] } = useQuery({
@@ -48,6 +63,11 @@ export default function NetworkingHub() {
   // Fetch tasks
   const { data: tasks = [] } = useQuery({
     queryKey: ['/api/tasks'],
+  });
+
+  // Fetch AI usage stats for quota display
+  const { data: aiUsageStats } = useQuery({
+    queryKey: ['/api/ai-usage-stats'],
   });
 
   // Add contact mutation
@@ -72,15 +92,69 @@ export default function NetworkingHub() {
     },
     onSuccess: (data) => {
       setGeneratedNote(data.note);
+      // Update quota display
+      queryClient.invalidateQueries({ queryKey: ['/api/ai-usage-stats'] });
       toast({
         title: "Note Generated!",
-        description: "Your personalized connection note is ready",
+        description: data.quota ? `Used ${data.quota.used}/${data.quota.limit} this month` : "Your personalized connection note is ready",
+      });
+    },
+    onError: (error: any) => {
+      const message = error?.message || "Failed to generate note. Please try again.";
+      toast({
+        title: error?.quotaExceeded ? "Quota Exceeded" : "Generation Failed",
+        description: message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create networking event mutation
+  const createEventMutation = useMutation({
+    mutationFn: async (eventData: any) => {
+      return apiRequest('/api/networking/events', 'POST', eventData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/networking/events'] });
+      setShowCreateEvent(false);
+      // Reset form
+      setEventTitle("");
+      setEventDescription("");
+      setEventDate("");
+      setEventLocation("");
+      setEventType("virtual");
+      setEventCapacity("");
+      setEventRegUrl("");
+      toast({
+        title: "Event Created!",
+        description: "Your networking event has been created successfully",
       });
     },
     onError: () => {
       toast({
-        title: "Generation Failed",
-        description: "Failed to generate note. Please try again.",
+        title: "Creation Failed",
+        description: "Failed to create event. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Register for event mutation
+  const registerForEventMutation = useMutation({
+    mutationFn: async (eventId: number) => {
+      return apiRequest(`/api/networking/events/${eventId}/register`, 'POST', {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/networking/events'] });
+      toast({
+        title: "Registered!",
+        description: "You've successfully registered for the event",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Registration Failed",
+        description: error?.message || "Failed to register for event.",
         variant: "destructive",
       });
     },
@@ -174,10 +248,10 @@ Best,
             </TabsList>
 
             {/* Events Tab */}
-            <TabsContent value="events" className="space-y-4">
+            <TabsContent value="events" className="space-y-4" data-testid="tab-events">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-semibold">Networking Events</h2>
-                <Button onClick={() => setShowCreateEvent(!showCreateEvent)}>
+                <Button onClick={() => setShowCreateEvent(!showCreateEvent)} data-testid="button-create-event">
                   <Plus className="h-4 w-4 mr-2" />
                   Create Event
                 </Button>
@@ -189,41 +263,186 @@ Best,
                     <CardTitle>Create Networking Event</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <Input placeholder="Event Title" />
-                    <Textarea placeholder="Event Description" />
-                    <Input type="datetime-local" />
-                    <Input placeholder="Location (Virtual/In-person)" />
-                    <Button className="w-full">Create Event</Button>
+                    <div>
+                      <Label>Event Title *</Label>
+                      <Input 
+                        placeholder="Tech Meetup 2025" 
+                        value={eventTitle}
+                        onChange={(e) => setEventTitle(e.target.value)}
+                        data-testid="input-event-title"
+                      />
+                    </div>
+                    <div>
+                      <Label>Description</Label>
+                      <Textarea 
+                        placeholder="Join us for an evening of networking and learning..." 
+                        value={eventDescription}
+                        onChange={(e) => setEventDescription(e.target.value)}
+                        data-testid="input-event-description"
+                      />
+                    </div>
+                    <div>
+                      <Label>Event Date & Time *</Label>
+                      <Input 
+                        type="datetime-local" 
+                        value={eventDate}
+                        onChange={(e) => setEventDate(e.target.value)}
+                        data-testid="input-event-date"
+                      />
+                    </div>
+                    <div>
+                      <Label>Event Type *</Label>
+                      <Select value={eventType} onValueChange={setEventType}>
+                        <SelectTrigger data-testid="select-event-type">
+                          <SelectValue placeholder="Select event type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="virtual">Virtual</SelectItem>
+                          <SelectItem value="in_person">In-Person</SelectItem>
+                          <SelectItem value="hybrid">Hybrid</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Location</Label>
+                      <Input 
+                        placeholder="Zoom link or venue address" 
+                        value={eventLocation}
+                        onChange={(e) => setEventLocation(e.target.value)}
+                        data-testid="input-event-location"
+                      />
+                    </div>
+                    <div>
+                      <Label>Capacity (optional)</Label>
+                      <Input 
+                        type="number" 
+                        placeholder="50" 
+                        value={eventCapacity}
+                        onChange={(e) => setEventCapacity(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label>Registration URL (optional)</Label>
+                      <Input 
+                        placeholder="https://eventbrite.com/..." 
+                        value={eventRegUrl}
+                        onChange={(e) => setEventRegUrl(e.target.value)}
+                      />
+                    </div>
+                    <Button 
+                      className="w-full"
+                      onClick={() => {
+                        if (!eventTitle || !eventDate) {
+                          toast({
+                            title: "Missing Required Fields",
+                            description: "Please fill in title and date",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        createEventMutation.mutate({
+                          title: eventTitle,
+                          description: eventDescription || null,
+                          eventDate: new Date(eventDate).toISOString(),
+                          locationName: eventLocation || null,
+                          eventType: eventType,
+                          capacity: eventCapacity ? parseInt(eventCapacity) : null,
+                          registrationUrl: eventRegUrl || null,
+                        });
+                      }}
+                      disabled={createEventMutation.isPending}
+                      data-testid="button-submit-event"
+                    >
+                      {createEventMutation.isPending ? "Creating..." : "Create Event"}
+                    </Button>
                   </CardContent>
                 </Card>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {eventsLoading ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Loading events...</p>
+                </div>
+              ) : events.length === 0 ? (
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="h-5 w-5" />
-                      Sample Event
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      Join us for networking
+                  <CardContent className="py-8 text-center">
+                    <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-lg font-semibold mb-2">No Events Yet</p>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Create your first networking event to get started
                     </p>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="h-4 w-4" />
-                      <span>Coming Soon</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="h-4 w-4" />
-                      <span>Virtual</span>
-                    </div>
-                    <Button className="w-full" size="sm">
-                      Register
+                    <Button onClick={() => setShowCreateEvent(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Event
                     </Button>
                   </CardContent>
                 </Card>
-              </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {events.map((event: any) => (
+                    <Card key={event.id} className="hover-elevate" data-testid={`card-event-${event.id}`}>
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <CardTitle className="flex items-center gap-2">
+                            <Users className="h-5 w-5" />
+                            {event.title}
+                          </CardTitle>
+                          {event.isFeatured && (
+                            <Badge variant="secondary">Featured</Badge>
+                          )}
+                        </div>
+                        {event.description && (
+                          <CardDescription className="line-clamp-2">
+                            {event.description}
+                          </CardDescription>
+                        )}
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Calendar className="h-4 w-4" />
+                          <span>{new Date(event.eventDate).toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <MapPin className="h-4 w-4" />
+                          <span className="capitalize">{event.eventType}</span>
+                          {event.locationName && ` - ${event.locationName}`}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Users className="h-4 w-4" />
+                          <span>
+                            {event.attendeesCount} registered
+                            {event.capacity && ` / ${event.capacity} capacity`}
+                          </span>
+                        </div>
+                        {event.registrationUrl ? (
+                          <Button 
+                            className="w-full" 
+                            size="sm" 
+                            onClick={() => window.open(event.registrationUrl, '_blank')}
+                            data-testid={`button-register-external-${event.id}`}
+                          >
+                            Register on External Site
+                          </Button>
+                        ) : (
+                          <Button 
+                            className="w-full" 
+                            size="sm"
+                            onClick={() => registerForEventMutation.mutate(event.id)}
+                            disabled={registerForEventMutation.isPending || (event.capacity && event.attendeesCount >= event.capacity)}
+                            data-testid={`button-register-${event.id}`}
+                          >
+                            {event.capacity && event.attendeesCount >= event.capacity 
+                              ? "Event Full" 
+                              : registerForEventMutation.isPending 
+                              ? "Registering..." 
+                              : "Register"}
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </TabsContent>
 
             {/* Contacts Tab */}
