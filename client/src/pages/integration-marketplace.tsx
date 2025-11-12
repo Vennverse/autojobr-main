@@ -519,15 +519,25 @@ export default function IntegrationMarketplace() {
           <p className="text-xl text-muted-foreground">
             Connect AutoJobr with your favorite tools and supercharge your workflow
           </p>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/integration-settings')}
-            className="mt-2"
-            data-testid="button-manage-integrations"
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Manage My Integrations
-          </Button>
+          <div className="flex items-center justify-center gap-3 mt-4">
+            <Button
+              size="lg"
+              onClick={() => navigate('/integration-settings')}
+              data-testid="button-manage-integrations"
+            >
+              <Settings className="w-5 h-5 mr-2" />
+              Manage Integration Settings
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => navigate('/integration-settings')}
+              data-testid="button-add-credentials"
+            >
+              <Shield className="w-5 h-5 mr-2" />
+              Add API Keys & Tokens
+            </Button>
+          </div>
           <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <CheckCircle className="w-4 h-4 text-green-500" />
