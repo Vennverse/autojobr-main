@@ -122,8 +122,10 @@ export default function CareerAIAssistant() {
   const [daysLeft, setDaysLeft] = useState<number>(0);
   const [networkingOpportunities, setNetworkingOpportunities] = useState<any[]>([]);
   const [marketTiming, setMarketTiming] = useState<any[]>([]);
-  const [isConnected, setIsConnected] = useState(true); // HTTP polling connection status
-  const [hasUserInput, setHasUserInput] = useState(false); // Track if user has made changes
+  const [isConnected, setIsConnected] = useState(true);
+  const [hasUserInput, setHasUserInput] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null)
 
   // Real-time progress tracking
   const [analysisProgress, setAnalysisProgress] = useState<{
@@ -141,28 +143,39 @@ export default function CareerAIAssistant() {
   });
 
   // Fetch user profile for AI analysis
-  const { data: userProfile } = useQuery({
+  const { data: userProfile, isLoading: profileLoading, error: profileError } = useQuery({
     queryKey: ['/api/profile'],
     enabled: !!user,
   });
 
   // Fetch user skills
-  const { data: userSkills } = useQuery({
+  const { data: userSkills, isLoading: skillsLoading, error: skillsError } = useQuery({
     queryKey: ['/api/skills'],
     enabled: !!user,
   });
 
   // Fetch user applications for behavioral analysis
-  const { data: userApplications } = useQuery({
+  const { data: userApplications, isLoading: appsLoading, error: appsError } = useQuery({
     queryKey: ['/api/applications'],
     enabled: !!user,
   });
 
   // Fetch job analyses for pattern recognition
-  const { data: jobAnalyses } = useQuery({
+  const { data: jobAnalyses, isLoading: analysesLoading, error: analysesError } = useQuery({
     queryKey: ['/api/jobs/analyses'],
     enabled: !!user,
   });
+
+  // Combined loading state
+  useEffect(() => {
+    const allLoading = profileLoading || skillsLoading || appsLoading || analysesLoading;
+    setIsLoading(allLoading);
+    
+    // Check for critical errors
+    if (profileError && !user) {
+      setError("Unable to load user profile. Please try refreshing the page.");
+    }
+  }, [profileLoading, skillsLoading, appsLoading, analysesLoading, profileError, user]);
 
   // Simple HTTP-based progress tracking (no websockets needed)
   const [analysisJobId, setAnalysisJobId] = useState<string | null>(null);
@@ -622,6 +635,46 @@ export default function CareerAIAssistant() {
     }
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center space-y-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto" />
+              <p className="text-muted-foreground">Loading Career AI Assistant...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center space-y-4">
+              <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-xl">
+                <Brain className="h-16 w-16 text-red-600 mx-auto mb-4" />
+              </div>
+              <h2 className="text-2xl font-bold text-red-600">Something went wrong</h2>
+              <p className="text-muted-foreground max-w-md">{error}</p>
+              <Button onClick={() => window.location.reload()}>
+                Reload Page
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -991,7 +1044,7 @@ Examples:
               {/* Overview Tab */}
               <TabsContent value="overview" className="space-y-6">
                 {/* Goal Proximity Widget - Featured at top */}
-                {careerPath?.goalProximityScore !== undefined && (
+                {careerPath?.goalProximityScore !== undefined && careerPath?.targetRole && (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1032,19 +1085,19 @@ Examples:
                         {/* Key Metrics */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                           <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border text-center">
-                            <div className="text-2xl font-bold text-purple-600">{careerPath.stepsRemaining || 0}</div>
+                            <div className="text-2xl font-bold text-purple-600">{careerPath?.stepsRemaining || 0}</div>
                             <div className="text-xs text-muted-foreground">Steps Remaining</div>
                           </div>
                           <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border text-center">
-                            <div className="text-2xl font-bold text-blue-600">{careerPath.estimatedTimeToGoal}</div>
+                            <div className="text-2xl font-bold text-blue-600">{careerPath?.estimatedTimeToGoal || 'N/A'}</div>
                             <div className="text-xs text-muted-foreground">Time to Goal</div>
                           </div>
                           <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border text-center">
-                            <div className="text-2xl font-bold text-green-600">{Math.round(careerPath.successProbability ?? 70)}%</div>
+                            <div className="text-2xl font-bold text-green-600">{Math.round(careerPath?.successProbability ?? 70)}%</div>
                             <div className="text-xs text-muted-foreground">Success Rate</div>
                           </div>
                           <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border text-center">
-                            <div className="text-2xl font-bold text-orange-600">{skillGaps.length}</div>
+                            <div className="text-2xl font-bold text-orange-600">{skillGaps?.length || 0}</div>
                             <div className="text-xs text-muted-foreground">Skill Gaps</div>
                           </div>
                         </div>
