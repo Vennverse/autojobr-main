@@ -234,27 +234,13 @@ export default function IntegrationSettings() {
     }
   };
 
-  // Install integration mutation (This is where the fix is applied)
+  // Install integration mutation
   const installMutation = useMutation({
     mutationFn: async (integrationId: string) => {
-      const response = await fetch('/api/integrations/install', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ 
-          integrationId,
-          config: {} 
-        }),
+      return await apiRequest('/api/integrations/user-integrations', 'POST', {
+        integrationId,
+        config: {}
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to install integration');
-      }
-
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/integrations/user-integrations'] });
