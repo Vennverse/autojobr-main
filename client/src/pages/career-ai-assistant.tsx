@@ -125,7 +125,7 @@ export default function CareerAIAssistant() {
   const [isConnected, setIsConnected] = useState(true);
   const [hasUserInput, setHasUserInput] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null);
 
   // Real-time progress tracking
   const [analysisProgress, setAnalysisProgress] = useState<{
@@ -1226,7 +1226,7 @@ Examples:
                           return {
                             step: step.position && step.position.length > 15 ? step.position.substring(0, 15) + '...' : (step.position || `Step ${index + 1}`),
                             fullPosition: step.position || `Step ${index + 1}`,
-                            salary: salary,
+                            salary: baseSalary,
                             timeline: step.timeline || 'N/A',
                             demand: demandScore,
                             marketDemand: step.marketDemand || 'N/A',
