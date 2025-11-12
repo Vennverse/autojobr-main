@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 import { db } from "./db";
 import { eq, desc, and, or, like, isNotNull, count, asc, isNull, sql, inArray, gte } from "drizzle-orm";
 import * as schema from "@shared/schema";
-import { resumes, userResumes, insertInternshipApplicationSchema, companyEmailVerifications, virtualInterviews, mockInterviews, jobPostingApplications, invitationUses, insertUserProfileSchema, insertUserSkillSchema, scrapedJobs, crmContacts, contactInteractions, pipelineStages, jobPostings } from "@shared/schema";
+import { resumes, userResumes, insertInternshipApplicationSchema, companyEmailVerifications, virtualInterviews, mockInterviews, jobPostingApplications, invitationUses, insertUserProfileSchema, insertUserSkillSchema, scrapedJobs, crmContacts, contactInteractions, pipelineStages, jobPostings, networkingEvents, networkingEventAttendees, insertNetworkingEventSchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated, isAuthenticatedExtension } from "./auth";
 import { storage } from "./storage";
@@ -5298,6 +5298,19 @@ Return only the cover letter text, no additional formatting or explanations.`;
 
       console.log(`🔗 Generating connection note for user ${userId}, reason: ${reason}`);
 
+      // Check quota before generating
+      const { enforceQuota, incrementUsage, AI_FEATURE_TYPES } = await import('./aiUsageService');
+      
+      try {
+        await enforceQuota(userId, AI_FEATURE_TYPES.CONNECTION_NOTE);
+      } catch (quotaError: any) {
+        return res.status(429).json({
+          success: false,
+          message: quotaError.message,
+          quotaExceeded: true
+        });
+      }
+
       // Map reason to friendly text
       const reasonMap: { [key: string]: string } = {
         'job_opportunity': 'interested in job opportunities at their company',
@@ -5344,17 +5357,199 @@ Generate ONLY the connection note text, nothing else.`
 
       const connectionNote = aiResponse.choices[0]?.message?.content?.trim() || '';
 
+      // Increment usage counter after successful generation
+      await incrementUsage(userId, AI_FEATURE_TYPES.CONNECTION_NOTE);
+
+      // Get updated quota info
+      const { checkQuota } = await import('./aiUsageService');
+      const quotaInfo = await checkQuota(userId, AI_FEATURE_TYPES.CONNECTION_NOTE);
+
       console.log('✅ Connection note generated successfully');
 
       res.json({
         success: true,
-        note: connectionNote
+        note: connectionNote,
+        quota: {
+          used: quotaInfo.used,
+          limit: quotaInfo.limit,
+          remaining: quotaInfo.remaining
+        }
       });
     } catch (error: any) {
       console.error("❌ Error generating connection note:", error);
       res.status(500).json({ 
         success: false,
         message: "Failed to generate connection note. Please try again.",
+        error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred'
+      });
+    }
+  });
+
+  // Get AI Usage Stats - Check quota for all AI features
+  app.get('/api/ai-usage-stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { getUserUsageStats } = await import('./aiUsageService');
+      
+      const stats = await getUserUsageStats(userId);
+      
+      res.json({
+        success: true,
+        stats
+      });
+    } catch (error: any) {
+      console.error("❌ Error fetching AI usage stats:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch usage stats",
+        error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred'
+      });
+    }
+  });
+
+  // Networking Events CRUD - Create new networking event
+  app.post('/api/networking/events', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      const validationResult = insertNetworkingEventSchema.safeParse({
+        ...req.body,
+        creatorId: userId
+      });
+
+      if (!validationResult.success) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid event data',
+          errors: validationResult.error.errors
+        });
+      }
+
+      const [newEvent] = await db.insert(networkingEvents).values(validationResult.data).returning();
+      
+      res.json({
+        success: true,
+        event: newEvent
+      });
+    } catch (error: any) {
+      console.error("❌ Error creating networking event:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to create event",
+        error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred'
+      });
+    }
+  });
+
+  // Get all networking events
+  app.get('/api/networking/events', isAuthenticated, async (req: any, res) => {
+    try {
+      const events = await db.query.networkingEvents.findMany({
+        orderBy: (events, { desc }) => [desc(events.eventDate)],
+        with: {
+          // We'll add relations after schema is deployed
+        }
+      });
+      
+      res.json({
+        success: true,
+        events
+      });
+    } catch (error: any) {
+      console.error("❌ Error fetching networking events:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch events",
+        error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred'
+      });
+    }
+  });
+
+  // Get single networking event
+  app.get('/api/networking/events/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const eventId = parseInt(req.params.id);
+      
+      const event = await db.query.networkingEvents.findFirst({
+        where: eq(networkingEvents.id, eventId),
+      });
+
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          message: 'Event not found'
+        });
+      }
+      
+      res.json({
+        success: true,
+        event
+      });
+    } catch (error: any) {
+      console.error("❌ Error fetching networking event:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch event",
+        error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred'
+      });
+    }
+  });
+
+  // Register for networking event
+  app.post('/api/networking/events/:id/register', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const eventId = parseInt(req.params.id);
+
+      // Check if event exists
+      const event = await db.query.networkingEvents.findFirst({
+        where: eq(networkingEvents.id, eventId),
+      });
+
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          message: 'Event not found'
+        });
+      }
+
+      // Check capacity
+      if (event.capacity && event.attendeesCount >= event.capacity) {
+        return res.status(400).json({
+          success: false,
+          message: 'Event is full'
+        });
+      }
+
+      // Register attendee
+      await db.insert(networkingEventAttendees).values({
+        eventId,
+        userId,
+        status: 'registered'
+      });
+
+      // Update attendees count
+      await db
+        .update(networkingEvents)
+        .set({ attendeesCount: event.attendeesCount + 1 })
+        .where(eq(networkingEvents.id, eventId));
+
+      res.json({
+        success: true,
+        message: 'Successfully registered for event'
+      });
+    } catch (error: any) {
+      if (error.code === '23505') { // Unique constraint violation
+        return res.status(400).json({
+          success: false,
+          message: 'Already registered for this event'
+        });
+      }
+      
+      console.error("❌ Error registering for event:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to register for event",
         error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred'
       });
     }
