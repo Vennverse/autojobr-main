@@ -22,13 +22,15 @@ The project employs a monolithic architecture, combining the frontend and backen
     -   ATS Resume Optimization for AI-powered analysis.
     -   Personalized Cover Letter Generation.
     -   AI-powered Interview Preparation with feedback.
-    -   Chrome Extension for one-click applications.
+    -   Chrome Extension for one-click applications with BYOK (Bring Your Own Key) support.
     -   Dashboard for Job Tracking.
     -   Subscription Management.
     -   WebSocket-based Real-time Chat.
     -   Employee Referral Marketplace with dual-party confirmation and escrow protection.
     -   Unified ATS Platform for recruiters with candidate management, filtering, bulk emailing, and interview scheduling.
     -   LinkedIn Profile Optimizer.
+    -   LinkedIn Connection Note Generator with AI (web app: 5 free/month, unlimited premium; extension: BYOK supported).
+    -   Networking Events platform with CRUD operations and registration system.
     -   Test retake system with LinkedIn share or payment options.
 -   **System Design Choices**:
     -   Vite dev server operates in middleware mode during development.
@@ -37,6 +39,23 @@ The project employs a monolithic architecture, combining the frontend and backen
     -   The WebSocket server runs on the same port as the HTTP server.
     -   Replit-specific configurations include running `npm run dev` on port 5000, utilizing Replit PostgreSQL, and configured for Replit Autoscale deployment.
     -   Performance enhancements include database indexing and caching for frequently accessed endpoints.
+
+## AI Usage Quotas & BYOK Implementation
+
+### Web App AI Quotas
+- **Connection Note Generator**: 5 free generations per month, unlimited for premium users
+- **Resume Optimization**: 3 free per month, unlimited for premium
+- **Cover Letter Generation**: 3 free per month, unlimited for premium  
+- **Interview Practice**: 2 free per month, unlimited for premium
+- Quota tracking uses existing `aiUsageTracking` table with monthly reset (YYYY-MM format)
+- Service layer: `server/aiUsageService.ts` handles quota checks and enforcement
+
+### Chrome Extension BYOK (Bring Your Own Key)
+- **CRITICAL**: When users add their own Groq API key in the Chrome Extension, the extension MUST use the user's key for ALL AI service calls
+- BYOK is EXTENSION-ONLY feature (not available in web app)
+- Extension should call Groq API directly with user-provided key or pass key to backend
+- Users with BYOK bypass all quota limits (unlimited usage with their own key)
+- Stored securely in extension's local storage, encrypted
 
 ## External Dependencies
 -   **Databases**: PostgreSQL (via Neon/Replit Database)
