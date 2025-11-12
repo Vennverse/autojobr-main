@@ -120,6 +120,10 @@ class AutoJobrPopup {
     document.getElementById('addTaskBtn').addEventListener('click', () => this.handleAddTask());
     this.initializeTaskModal();
 
+    // API Key management
+    document.getElementById('manageKeysBtn')?.addEventListener('click', () => this.handleManageApiKeys());
+    this.initializeApiKeyModal();
+
     // Settings toggles
     this.initializeToggle('autofillToggle', 'autofillEnabled');
     this.initializeToggle('trackingToggle', 'trackingEnabled');
@@ -1511,6 +1515,188 @@ class AutoJobrPopup {
     });
   }
 
+  // ============= API KEY MANAGEMENT METHODS =============
+
+  initializeApiKeyModal() {
+    const modal = document.getElementById('apiKeyModal');
+    const closeBtn = document.getElementById('closeApiKeyModal');
+    const cancelBtn = document.getElementById('cancelApiKeyModal');
+    const saveBtn = document.getElementById('saveApiKey');
+    const providerBtns = document.querySelectorAll('[data-provider]');
+
+    // Close modal handlers
+    closeBtn?.addEventListener('click', () => this.hideApiKeyModal());
+    cancelBtn?.addEventListener('click', () => this.hideApiKeyModal());
+
+    // Click outside to close
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        this.hideApiKeyModal();
+      }
+    });
+
+    // Provider selection
+    providerBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        providerBtns.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+      });
+    });
+
+    // Save button
+    saveBtn?.addEventListener('click', () => this.saveApiKey());
+
+    // Load API key status on init
+    this.loadApiKeyStatus();
+  }
+
+  async loadApiKeyStatus() {
+    try {
+      const response = await this.makeApiRequest('/api/extension/ai-keys', { method: 'GET' });
+      
+      if (response && response.success && response.keys) {
+        const statusEl = document.getElementById('apiKeyStatus');
+        const keys = response.keys;
+        
+        if (keys.length === 0) {
+          statusEl.textContent = 'No API keys configured';
+          statusEl.style.color = '#6b7280';
+        } else {
+          const providerNames = {
+            'groq': '🚀 Groq',
+            'openai': '🤖 OpenAI',
+            'anthropic': '🧠 Anthropic',
+            'google-ai': '🌐 Google AI'
+          };
+          const keyList = keys.map(k => providerNames[k.provider] || k.provider).join(', ');
+          statusEl.textContent = `Active: ${keyList}`;
+          statusEl.style.color = '#22c55e';
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load API keys:', error);
+    }
+  }
+
+  async handleManageApiKeys() {
+    const modal = document.getElementById('apiKeyModal');
+    modal.classList.add('show');
+    
+    // Load existing keys
+    await this.loadExistingKeys();
+  }
+
+  async loadExistingKeys() {
+    try {
+      const response = await this.makeApiRequest('/api/extension/ai-keys', { method: 'GET' });
+      const existingKeysEl = document.getElementById('existingKeys');
+      
+      if (!response || !response.success || !response.keys || response.keys.length === 0) {
+        existingKeysEl.innerHTML = '<div style="font-size: 12px; color: #9ca3af; text-align: center; padding: 12px;">No API keys added yet</div>';
+        return;
+      }
+      
+      const providerNames = {
+        'groq': '🚀 Groq',
+        'openai': '🤖 OpenAI',
+        'anthropic': '🧠 Anthropic',
+        'google-ai': '🌐 Google AI'
+      };
+      
+      const keysHtml = response.keys.map(key => `
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 4px;">
+              ${providerNames[key.provider] || key.provider}
+            </div>
+            <div style="font-size: 10px; color: #6b7280;">
+              Added: ${new Date(key.createdAt).toLocaleDateString()}
+              ${key.lastUsed ? `• Last used: ${new Date(key.lastUsed).toLocaleDateString()}` : ''}
+            </div>
+          </div>
+          <button 
+            onclick="popup.deleteApiKey('${key.provider}')" 
+            style="background: #fee2e2; color: #dc2626; border: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 500;">
+            Delete
+          </button>
+        </div>
+      `).join('');
+      
+      existingKeysEl.innerHTML = keysHtml;
+    } catch (error) {
+      console.error('Failed to load existing keys:', error);
+    }
+  }
+
+  async saveApiKey() {
+    const providerBtn = document.querySelector('[data-provider].selected');
+    const apiKeyInput = document.getElementById('apiKeyInput');
+    
+    if (!providerBtn || !apiKeyInput.value.trim()) {
+      this.showNotification('Please select a provider and enter an API key', 'error');
+      return;
+    }
+    
+    const provider = providerBtn.dataset.provider;
+    const apiKey = apiKeyInput.value.trim();
+    
+    try {
+      this.showLoading(true);
+      
+      const response = await this.makeApiRequest('/api/extension/ai-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider, apiKey })
+      });
+      
+      if (response && response.success) {
+        this.showNotification('API key saved successfully!', 'success');
+        apiKeyInput.value = '';
+        await this.loadExistingKeys();
+        await this.loadApiKeyStatus();
+      } else {
+        throw new Error(response?.error || 'Failed to save API key');
+      }
+    } catch (error) {
+      console.error('Error saving API key:', error);
+      this.showNotification(error.message || 'Failed to save API key', 'error');
+    } finally {
+      this.showLoading(false);
+    }
+  }
+
+  async deleteApiKey(provider) {
+    if (!confirm(`Delete ${provider} API key?`)) return;
+    
+    try {
+      this.showLoading(true);
+      
+      const response = await this.makeApiRequest(`/api/extension/ai-keys/${provider}`, {
+        method: 'DELETE'
+      });
+      
+      if (response && response.success) {
+        this.showNotification('API key deleted', 'success');
+        await this.loadExistingKeys();
+        await this.loadApiKeyStatus();
+      } else {
+        throw new Error(response?.error || 'Failed to delete API key');
+      }
+    } catch (error) {
+      console.error('Error deleting API key:', error);
+      this.showNotification(error.message || 'Failed to delete API key', 'error');
+    } finally {
+      this.showLoading(false);
+    }
+  }
+
+  hideApiKeyModal() {
+    const modal = document.getElementById('apiKeyModal');
+    modal.classList.remove('show');
+  }
+
+  // ============= END API KEY MANAGEMENT =============
+
   getTaskTemplates() {
     return {
       follow_up: {
@@ -1858,11 +2044,14 @@ class AutoJobrPopup {
 
 // Make popup instance globally accessible for task management
 let autojobr;
+let popup; // Also expose as popup for API key management
 
 // Initialize popup when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
   autojobr = new AutoJobrPopup();
+  popup = autojobr; // Same instance
 
   // Make methods globally accessible for onclick handlers
   window.autojobr = autojobr;
+  window.popup = popup;
 });
