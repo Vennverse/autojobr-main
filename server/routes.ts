@@ -5284,6 +5284,82 @@ Return only the cover letter text, no additional formatting or explanations.`;
     }
   });
 
+  // LinkedIn Connection Note Generation API - Generate personalized connection notes
+  app.post('/api/networking/generate-connection-note', isAuthenticated, async (req: any, res) => {
+    try {
+      const { reason, context } = req.body;
+      const userId = req.user.id;
+
+      if (!reason) {
+        return res.status(400).json({ 
+          message: 'Connection reason is required' 
+        });
+      }
+
+      console.log(`🔗 Generating connection note for user ${userId}, reason: ${reason}`);
+
+      // Map reason to friendly text
+      const reasonMap: { [key: string]: string } = {
+        'job_opportunity': 'interested in job opportunities at their company',
+        'industry_networking': 'wanting to network and learn within the industry',
+        'career_advice': 'seeking career guidance and mentorship',
+        'collaboration': 'exploring potential collaboration or partnership opportunities',
+        'alumni_connection': 'connecting as fellow alumni or from the same educational background'
+      };
+
+      const reasonText = reasonMap[reason] || reason;
+      const contextText = context ? `\n\nAdditional Context: ${context}` : '';
+
+      // Generate connection note using AI service
+      const aiResponse = await aiService.generateCompletion([
+        {
+          role: "system",
+          content: `You are a professional networking expert who helps craft compelling LinkedIn connection requests. Your notes are:
+- Personal and authentic (not generic templates)
+- Concise (200-300 characters maximum)
+- Professional yet friendly
+- Focused on mutual value and genuine interest
+- Free of clichés and overly formal language`
+        },
+        {
+          role: "user",
+          content: `Generate a personalized LinkedIn connection note for someone ${reasonText}.${contextText}
+
+Requirements:
+1. Keep it under 300 characters
+2. Be specific and authentic
+3. Show genuine interest
+4. Avoid generic phrases like "I'd love to connect"
+5. Focus on mutual value or specific shared interests
+6. Don't use emojis
+7. Write in first person
+
+Generate ONLY the connection note text, nothing else.`
+        }
+      ], {
+        temperature: 0.8,
+        max_tokens: 200,
+        user: req.user
+      });
+
+      const connectionNote = aiResponse.choices[0]?.message?.content?.trim() || '';
+
+      console.log('✅ Connection note generated successfully');
+
+      res.json({
+        success: true,
+        note: connectionNote
+      });
+    } catch (error: any) {
+      console.error("❌ Error generating connection note:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to generate connection note. Please try again.",
+        error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred'
+      });
+    }
+  });
+
   // Extension-compatible endpoint for interview prep (forwards to AI endpoint)
   app.post('/api/interview-prep', isAuthenticated, async (req: any, res) => {
     try {
