@@ -18,7 +18,7 @@ import {
   Users, Calendar, MapPin, Clock, Share2, Plus, 
   Mail, Linkedin, Copy, CheckCircle, Building, 
   Phone, Globe, Bell, CalendarDays, CheckSquare,
-  Send, Edit, Trash2, UserPlus, Link2
+  Send, Edit, Trash2, UserPlus, Link2, Sparkles, Zap
 } from "lucide-react";
 
 export default function NetworkingHub() {
@@ -29,6 +29,11 @@ export default function NetworkingHub() {
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [followUpStyle, setFollowUpStyle] = useState<"email" | "linkedin">("email");
   const [generatedMessage, setGeneratedMessage] = useState("");
+
+  // Connection note generator states
+  const [connectionReason, setConnectionReason] = useState("");
+  const [connectionContext, setConnectionContext] = useState("");
+  const [generatedNote, setGeneratedNote] = useState("");
 
   // Fetch contacts
   const { data: contacts = [] } = useQuery({
@@ -56,6 +61,27 @@ export default function NetworkingHub() {
       toast({
         title: "Contact Added",
         description: "New contact has been added to your network",
+      });
+    },
+  });
+
+  // Generate connection note mutation
+  const generateConnectionNoteMutation = useMutation({
+    mutationFn: async (data: { reason: string; context: string }) => {
+      return apiRequest('/api/networking/generate-connection-note', 'POST', data);
+    },
+    onSuccess: (data) => {
+      setGeneratedNote(data.note);
+      toast({
+        title: "Note Generated!",
+        description: "Your personalized connection note is ready",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Generation Failed",
+        description: "Failed to generate note. Please try again.",
+        variant: "destructive",
       });
     },
   });
@@ -124,7 +150,7 @@ Best,
 
           {/* Tabs */}
           <Tabs defaultValue="events" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="events">
                 <Calendar className="h-4 w-4 mr-2" />
                 Events
@@ -140,6 +166,10 @@ Best,
               <TabsTrigger value="followups">
                 <Send className="h-4 w-4 mr-2" />
                 Follow-ups
+              </TabsTrigger>
+              <TabsTrigger value="connection-notes" data-testid="tab-connection-notes">
+                <Linkedin className="h-4 w-4 mr-2" />
+                Connection Notes
               </TabsTrigger>
             </TabsList>
 
@@ -443,6 +473,212 @@ Best,
                   ))
                 )}
               </div>
+            </TabsContent>
+
+            {/* Connection Notes Tab */}
+            <TabsContent value="connection-notes" className="space-y-4">
+              <div>
+                <h2 className="text-2xl font-semibold mb-2 flex items-center gap-2">
+                  <Sparkles className="h-6 w-6 text-blue-600" />
+                  AI Connection Note Generator
+                </h2>
+                <p className="text-muted-foreground">
+                  Create personalized LinkedIn connection requests that get accepted
+                </p>
+              </div>
+
+              <Card className="border-blue-200 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-blue-600" />
+                    Generate Your Connection Note
+                  </CardTitle>
+                  <CardDescription>
+                    Tell us why you want to connect, and our AI will craft a perfect message
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="connection-reason">
+                      Why do you want to connect? *
+                    </Label>
+                    <Select value={connectionReason} onValueChange={setConnectionReason}>
+                      <SelectTrigger id="connection-reason" data-testid="select-connection-reason">
+                        <SelectValue placeholder="Choose a reason..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="job_opportunity" data-testid="option-job-opportunity">
+                          Interested in Job Opportunities
+                        </SelectItem>
+                        <SelectItem value="industry_networking" data-testid="option-industry-networking">
+                          Industry Networking & Learning
+                        </SelectItem>
+                        <SelectItem value="career_advice" data-testid="option-career-advice">
+                          Seeking Career Advice
+                        </SelectItem>
+                        <SelectItem value="collaboration" data-testid="option-collaboration">
+                          Potential Collaboration/Partnership
+                        </SelectItem>
+                        <SelectItem value="alumni_connection" data-testid="option-alumni">
+                          Fellow Alumni/School Connection
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="connection-context">
+                      Add context (Optional but recommended)
+                    </Label>
+                    <Textarea
+                      id="connection-context"
+                      placeholder="Example: I saw your post about AI in healthcare and found it fascinating. I'm a recent graduate interested in this field..."
+                      value={connectionContext}
+                      onChange={(e) => setConnectionContext(e.target.value)}
+                      rows={4}
+                      data-testid="input-connection-context"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      More context helps create a more personalized note
+                    </p>
+                  </div>
+
+                  <Button
+                    onClick={() => {
+                      if (!connectionReason) {
+                        toast({
+                          title: "Missing Information",
+                          description: "Please select a reason for connecting",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      generateConnectionNoteMutation.mutate({
+                        reason: connectionReason,
+                        context: connectionContext,
+                      });
+                    }}
+                    disabled={generateConnectionNoteMutation.isPending || !connectionReason}
+                    className="w-full"
+                    size="lg"
+                    data-testid="button-generate-note"
+                  >
+                    {generateConnectionNoteMutation.isPending ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                        Generating...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4" />
+                        Generate Connection Note
+                      </div>
+                    )}
+                  </Button>
+
+                  {generatedNote && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="space-y-3 pt-4 border-t"
+                    >
+                      <div className="flex items-center justify-between">
+                        <Label className="text-base font-semibold flex items-center gap-2">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                          Your Personalized Note
+                        </Label>
+                        <Badge variant="secondary" className="bg-green-100 text-green-800">
+                          Ready to Use
+                        </Badge>
+                      </div>
+                      <Textarea
+                        value={generatedNote}
+                        readOnly
+                        rows={6}
+                        className="font-sans text-sm resize-none"
+                        data-testid="output-generated-note"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => {
+                            copyToClipboard(generatedNote);
+                          }}
+                          className="flex-1"
+                          data-testid="button-copy-note"
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy Note
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setGeneratedNote("");
+                            setConnectionReason("");
+                            setConnectionContext("");
+                          }}
+                          data-testid="button-generate-new"
+                        >
+                          Generate New
+                        </Button>
+                      </div>
+                      <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <Linkedin className="h-4 w-4 text-blue-600 mt-0.5" />
+                          <div className="text-sm text-blue-800 dark:text-blue-200">
+                            <p className="font-semibold mb-1">Pro Tip</p>
+                            <p>Keep your note under 300 characters for better acceptance rates. Personalize further if you know specific details about the person.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Quick Tips Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Connection Tips</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-sm">Be Specific</p>
+                      <p className="text-sm text-muted-foreground">
+                        Mention something from their profile or a shared interest
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-sm">Keep it Short</p>
+                      <p className="text-sm text-muted-foreground">
+                        Aim for 200-300 characters for best results
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-sm">Value First</p>
+                      <p className="text-sm text-muted-foreground">
+                        Show how the connection is mutually beneficial
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-sm">Professional Tone</p>
+                      <p className="text-sm text-muted-foreground">
+                        Be friendly but maintain professionalism
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </motion.div>
