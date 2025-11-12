@@ -401,30 +401,29 @@ export default function CareerAIAssistant() {
         return;
       }
       const data = await response.json();
-        // Set AI tier information
-        setAiTier(data.aiTier || 'basic');
-        setUpgradeMessage(data.upgradeMessage || "");
-        setDaysLeft(data.daysLeft || 0);
+      // Set AI tier information
+      setAiTier(data.aiTier || 'basic');
+      setUpgradeMessage(data.upgradeMessage || "");
+      setDaysLeft(data.daysLeft || 0);
 
-        if (data.hasAnalysis) {
-          setSavedAnalysis(data);
-          // Only set form values from saved analysis if user hasn't made changes
-          if (!hasUserInput) {
-            setCareerGoal(data.careerGoal || "");
-            setLocation(data.location || "");
-            setTimeframe(data.timeframe || "");
-          }
-          setCompletedTasks(data.completedTasks || []);
-          setProgressUpdate(data.progressUpdate || "");
+      if (data.hasAnalysis) {
+        setSavedAnalysis(data);
+        // Only set form values from saved analysis if user hasn't made changes
+        if (!hasUserInput) {
+          setCareerGoal(data.careerGoal || "");
+          setLocation(data.location || "");
+          setTimeframe(data.timeframe || "");
+        }
+        setCompletedTasks(data.completedTasks || []);
+        setProgressUpdate(data.progressUpdate || "");
 
-          // Set analysis results
-          if (data.analysis) {
-            setInsights(data.analysis.insights || []);
-            setCareerPath(data.analysis.careerPath || null);
-            setSkillGaps(data.analysis.skillGaps || []);
-            setNetworkingOpportunities(data.analysis.networkingOpportunities || []);
-            setMarketTiming(data.analysis.marketTiming || []);
-          }
+        // Set analysis results
+        if (data.analysis) {
+          setInsights(data.analysis.insights || []);
+          setCareerPath(data.analysis.careerPath || null);
+          setSkillGaps(data.analysis.skillGaps || []);
+          setNetworkingOpportunities(data.analysis.networkingOpportunities || []);
+          setMarketTiming(data.analysis.marketTiming || []);
         }
       }
     } catch (error) {
