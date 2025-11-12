@@ -6684,6 +6684,90 @@ Return only the cover letter text, no additional formatting or explanations.`;
     }
   });
 
+  // LinkedIn comment verification for retake
+  app.post('/api/test-assignments/:id/retake/linkedin-comment', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const assignmentId = parseInt(req.params.id);
+      const { linkedinCommentUrl } = req.body;
+
+      if (!linkedinCommentUrl) {
+        return res.status(400).json({ message: 'LinkedIn comment URL is required' });
+      }
+
+      // Validate LinkedIn URL format (comments can be on posts or feed updates)
+      const linkedinUrlPattern = /^https?:\/\/(www\.)?linkedin\.com\/(posts?|feed\/update)\/.+/i;
+      if (!linkedinUrlPattern.test(linkedinCommentUrl)) {
+        return res.status(400).json({ message: 'Invalid LinkedIn comment URL format' });
+      }
+
+      // Verify the assignment exists and belongs to the user
+      const [assignment] = await db
+        .select()
+        .from(schema.testAssignments)
+        .where(
+          and(
+            eq(schema.testAssignments.id, assignmentId),
+            eq(schema.testAssignments.jobSeekerId, userId)
+          )
+        );
+
+      if (!assignment) {
+        return res.status(404).json({ message: 'Test assignment not found' });
+      }
+
+      if (assignment.retakeAllowed) {
+        return res.status(400).json({ message: 'Retake already enabled for this assignment' });
+      }
+
+      // Verify LinkedIn comment using oEmbed API
+      try {
+        const oembedUrl = `https://www.linkedin.com/oembed?url=${encodeURIComponent(linkedinCommentUrl)}&format=json`;
+        const response = await axios.get(oembedUrl);
+
+        if (response.status === 200 && response.data) {
+          // Comment URL exists and is public - grant retake access
+          await db
+            .update(schema.testAssignments)
+            .set({
+              retakeAllowed: true,
+              retakeMethod: 'linkedin_comment',
+              linkedinShareUrl: linkedinCommentUrl,
+              linkedinShareVerified: true,
+              linkedinShareVerifiedAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(schema.testAssignments.id, assignmentId));
+
+          console.log('✅ [RETAKE] LinkedIn comment verified for assignment:', assignmentId);
+
+          res.json({
+            success: true,
+            message: 'LinkedIn comment verified! Retake access granted.',
+            commentPreview: response.data,
+          });
+        } else {
+          res.status(400).json({ message: 'Could not verify LinkedIn comment' });
+        }
+      } catch (verifyError: any) {
+        console.error('LinkedIn comment oEmbed verification error:', verifyError.response?.data || verifyError.message);
+
+        if (verifyError.response?.status === 404) {
+          return res.status(404).json({ 
+            message: 'LinkedIn comment not found or is not public. Please ensure the comment is publicly visible.' 
+          });
+        }
+
+        return res.status(400).json({ 
+          message: 'Failed to verify LinkedIn comment. Please check the URL and try again.' 
+        });
+      }
+    } catch (error) {
+      console.error('LinkedIn comment verification error:', error);
+      res.status(500).json({ message: 'Failed to process LinkedIn comment verification' });
+    }
+  });
+
   // ============ END RETAKE PAYMENT ROUTES ============
 
   // Admin route to send retake warning emails for terminated tests

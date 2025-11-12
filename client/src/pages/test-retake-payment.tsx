@@ -23,7 +23,9 @@ import {
   Lightbulb,
   Award,
   Share2,
-  ExternalLink
+  ExternalLink,
+  MessageCircle,
+  ThumbsUp
 } from "lucide-react";
 import PayPalHostedButton from "@/components/PayPalHostedButton";
 import { SiLinkedin } from "react-icons/si";
@@ -37,7 +39,8 @@ export default function TestRetakePayment() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'amazon_pay'>('paypal');
   const [linkedinPostUrl, setLinkedinPostUrl] = useState('');
-  const [activeTab, setActiveTab] = useState<'payment' | 'linkedin'>('linkedin');
+  const [linkedinCommentUrl, setLinkedinCommentUrl] = useState('');
+  const [activeTab, setActiveTab] = useState<'payment' | 'linkedin' | 'comment'>('comment');
 
   // Fetch test assignment details
   const { data: assignment, isLoading } = useQuery({
@@ -154,6 +157,49 @@ export default function TestRetakePayment() {
     }
 
     verifyLinkedinShareMutation.mutate(linkedinPostUrl);
+  };
+
+  // LinkedIn comment verification mutation
+  const verifyLinkedinCommentMutation = useMutation({
+    mutationFn: async (commentUrl: string) => {
+      return await apiRequest(`/api/test-assignments/${params?.id}/retake/linkedin-comment`, "POST", {
+        linkedinCommentUrl: commentUrl
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "LinkedIn Comment Verified! 🎉",
+        description: "Your retake is now available. You can start the test again.",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/jobseeker/test-assignments"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/test-assignments/${params?.id}`] });
+
+      setTimeout(() => {
+        setLocation(`/test/${params?.id}`);
+      }, 1500);
+    },
+    onError: (error: any) => {
+      console.error('LinkedIn comment verification error:', error);
+      toast({
+        title: "Verification Failed",
+        description: error.message || "Could not verify LinkedIn comment. Please ensure the comment is public and the URL is correct.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleVerifyLinkedinComment = async () => {
+    if (!linkedinCommentUrl.trim()) {
+      toast({
+        title: "URL Required",
+        description: "Please enter your LinkedIn comment URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    verifyLinkedinCommentMutation.mutate(linkedinCommentUrl);
   };
 
   const passingScore = assignment?.testTemplate?.passingScore || 70;
@@ -346,17 +392,146 @@ export default function TestRetakePayment() {
               <CardDescription>Choose your preferred option</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-              <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'payment' | 'linkedin')} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="linkedin" className="flex items-center gap-2" data-testid="tab-linkedin-share">
-                    <Share2 className="w-4 h-4" />
-                    Share on LinkedIn
+              <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'payment' | 'linkedin' | 'comment')} className="w-full">
+                <TabsList className="grid w-full grid-cols-3 mb-6">
+                  <TabsTrigger value="comment" className="flex items-center gap-1 text-xs" data-testid="tab-comment-like">
+                    <MessageCircle className="w-3 h-3" />
+                    <span className="hidden sm:inline">Comment & Like</span>
+                    <span className="sm:hidden">Comment</span>
                   </TabsTrigger>
-                  <TabsTrigger value="payment" className="flex items-center gap-2" data-testid="tab-payment">
-                    <CreditCard className="w-4 h-4" />
+                  <TabsTrigger value="linkedin" className="flex items-center gap-1 text-xs" data-testid="tab-linkedin-share">
+                    <Share2 className="w-3 h-3" />
+                    <span className="hidden sm:inline">Share Post</span>
+                    <span className="sm:hidden">Share</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="payment" className="flex items-center gap-1 text-xs" data-testid="tab-payment">
+                    <CreditCard className="w-3 h-3" />
                     Pay $5
                   </TabsTrigger>
                 </TabsList>
+
+                {/* Comment & Like Tab */}
+                <TabsContent value="comment" className="space-y-4">
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 p-4 rounded-lg border border-green-200">
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="flex gap-1">
+                        <MessageCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
+                        <ThumbsUp className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-green-900 dark:text-green-100 mb-1">Free Retake via LinkedIn Engagement</h3>
+                        <p className="text-sm text-green-700 dark:text-green-300">Comment on our company post and unlock your retake for free!</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <span>Visit our company LinkedIn post</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <span>Like the post and add a meaningful comment</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <span>Comment must be publicly visible</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <span>Paste your comment URL to verify</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <span>Instant retake access after verification</span>
+                    </div>
+                  </div>
+
+                  <Separator className="my-4" />
+
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm">Step 1: View Company Post</h4>
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg border border-yellow-200">
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium mb-2">
+                        📌 Company Post URL (to be added)
+                      </p>
+                      <Input
+                        type="url"
+                        placeholder="Company LinkedIn post URL will be added here"
+                        value="[COMPANY_POST_URL_PLACEHOLDER]"
+                        disabled
+                        className="w-full bg-white dark:bg-gray-800"
+                        data-testid="input-company-post-url"
+                      />
+                      <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-2">
+                        Note: The company will add their LinkedIn post URL here soon
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        const companyPostUrl = '[COMPANY_POST_URL_PLACEHOLDER]';
+                        if (companyPostUrl && companyPostUrl !== '[COMPANY_POST_URL_PLACEHOLDER]') {
+                          window.open(companyPostUrl, '_blank');
+                        } else {
+                          toast({
+                            title: "Coming Soon",
+                            description: "Company post URL will be added shortly",
+                            variant: "default",
+                          });
+                        }
+                      }}
+                      className="w-full bg-[#0077B5] hover:bg-[#006399] text-white"
+                      data-testid="button-view-company-post"
+                    >
+                      <SiLinkedin className="w-4 h-4 mr-2" />
+                      View Company Post
+                      <ExternalLink className="w-4 h-4 ml-2" />
+                    </Button>
+                    <p className="text-xs text-gray-500 text-center">Opens company LinkedIn post in a new window</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm">Step 2: Like & Comment</h4>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200">
+                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                        💡 <strong>Tip:</strong> After liking the post, add a thoughtful comment. Then click the timestamp on your comment to get its unique URL.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm">Step 3: Paste Your Comment URL</h4>
+                    <Input
+                      type="url"
+                      placeholder="https://www.linkedin.com/feed/update/urn:li:activity:..."
+                      value={linkedinCommentUrl}
+                      onChange={(e) => setLinkedinCommentUrl(e.target.value)}
+                      className="w-full"
+                      data-testid="input-comment-url"
+                    />
+                    <p className="text-xs text-gray-500">Copy the URL from your comment (click timestamp on your comment to get the link)</p>
+                  </div>
+
+                  <Button
+                    onClick={handleVerifyLinkedinComment}
+                    disabled={verifyLinkedinCommentMutation.isPending || !linkedinCommentUrl.trim()}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                    data-testid="button-verify-comment"
+                  >
+                    {verifyLinkedinCommentMutation.isPending ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                        Verifying Comment...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4" />
+                        Verify & Unlock Retake
+                      </div>
+                    )}
+                  </Button>
+                </TabsContent>
 
                 {/* LinkedIn Share Tab */}
                 <TabsContent value="linkedin" className="space-y-4">
