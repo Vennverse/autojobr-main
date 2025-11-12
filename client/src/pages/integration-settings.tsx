@@ -40,7 +40,7 @@ import {
   ExternalLink,
   AlertTriangle
 } from "lucide-react";
-import { SiPaypal, SiStripe, SiOpenai, SiGoogle, SiLinkedin, SiZapier, SiSlack, SiNotion, SiAirtable, SiMicrosoft } from "react-icons/si";
+import { SiPaypal, SiStripe, SiOpenai, SiGoogle, SiLinkedin, SiZapier, SiSlack, SiNotion, SiAirtable } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -78,7 +78,7 @@ const getIntegrationIcon = (id: string) => {
     "slack": <SiSlack className="w-8 h-8 text-purple-600" />,
     "notion": <SiNotion className="w-8 h-8 text-gray-900 dark:text-white" />,
     "airtable": <SiAirtable className="w-8 h-8 text-yellow-600" />,
-    "microsoft-calendar": <SiMicrosoft className="w-8 h-8 text-blue-600" />,
+    "microsoft-calendar": <Zap className="w-8 h-8 text-blue-600" />,
   };
   return iconMap[id] || <Zap className="w-8 h-8" />;
 };

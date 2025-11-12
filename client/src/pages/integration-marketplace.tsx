@@ -32,7 +32,7 @@ import {
   ExternalLink,
   Settings
 } from "lucide-react";
-import { SiPaypal, SiStripe, SiOpenai, SiGoogle, SiLinkedin, SiZapier, SiSlack, SiNotion, SiAirtable, SiMicrosoft } from "react-icons/si";
+import { SiPaypal, SiStripe, SiOpenai, SiGoogle, SiLinkedin, SiZapier, SiSlack, SiNotion, SiAirtable } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -292,7 +292,7 @@ const integrations: Integration[] = [
   {
     id: "microsoft-calendar",
     name: "Microsoft Outlook Calendar",
-    icon: <SiMicrosoft className="w-12 h-12 text-blue-600" />,
+    icon: <Calendar className="w-12 h-12 text-blue-600" />,
     category: "Scheduling",
     description: "Sync interviews with Outlook Calendar",
     longDescription: "Connect with Microsoft Outlook Calendar to automatically sync interview schedules, send meeting invites, and manage availability. Works with Office 365 and Outlook.com.",
