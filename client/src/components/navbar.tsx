@@ -280,7 +280,7 @@ export function Navbar() {
                                 item.current
                                   ? "bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 border-blue-500"
                                   : "text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-transparent"
-                              } inline-flex items-center px-2.5 py-2 border-b-2 text-sm font-medium transition-all duration-200 rounded-t-lg relative ${
+                              } inline-flex items-center px-2.5 py-2 border-b-2 text-xs font-medium transition-all duration-200 rounded-t-lg relative ${
                                 !canAccess ? "opacity-50" : ""
                               }`}
                             >
@@ -319,7 +319,7 @@ export function Navbar() {
                           item.current
                             ? "bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 border-blue-500"
                             : "text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-transparent"
-                        } inline-flex items-center px-2.5 py-2 border-b-2 text-sm font-medium transition-all duration-200 rounded-t-lg relative ${
+                        } inline-flex items-center px-2.5 py-2 border-b-2 text-xs font-medium transition-all duration-200 rounded-t-lg relative ${
                           !canAccess ? "opacity-50" : ""
                         }`}
                       >
