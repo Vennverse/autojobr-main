@@ -2,7 +2,7 @@
 console.log('🚀 AutoJobr Autopilot v3.0 loading...');
 
 // Import helper modules
-importScripts('autopilot-engine.js', 'resume-optimizer.js', 'referral-finder.js');
+importScripts('autopilot-engine.js', 'resume-optimizer.js', 'referral-finder.js', 'profile-cache.js', 'match-engine.js');
 
 class AutoJobrBackground {
   constructor() {
@@ -12,6 +12,8 @@ class AutoJobrBackground {
     this.autopilot = null;
     this.resumeOptimizer = null;
     this.referralFinder = null;
+    this.profileCache = null;
+    this.matchEngine = null;
     this.init();
   }
 
@@ -24,8 +26,13 @@ class AutoJobrBackground {
     this.autopilot = new AutopilotEngine();
     this.resumeOptimizer = new ResumeOptimizer();
     this.referralFinder = new ReferralFinder();
+    this.profileCache = new ProfileCache();
+    this.matchEngine = new MatchEngine();
 
-    console.log('🚀 AutoJobr Autopilot v3.0 initialized with advanced features');
+    // Load cached profile on startup
+    await this.ensureCachedProfile();
+
+    console.log('🚀 AutoJobr Autopilot v3.0 initialized with advanced features + client-side matching');
   }
 
   async detectApiUrl() {
@@ -708,9 +715,27 @@ class AutoJobrBackground {
     }
   }
 
+  async ensureCachedProfile() {
+    try {
+      const cachedProfile = await this.profileCache.getProfile();
+      if (!cachedProfile) {
+        console.log('📥 No cached profile - attempting to fetch from server');
+        await this.profileCache.ensureFresh(this.apiUrl);
+      }
+    } catch (error) {
+      console.error('Ensure cached profile error:', error);
+    }
+  }
+
   async getUserProfile() {
     try {
-      // Check cache first to prevent excessive requests
+      // First try to get from ProfileCache
+      const cachedProfile = await this.profileCache.getProfile();
+      if (cachedProfile) {
+        return cachedProfile;
+      }
+
+      // Check in-memory cache
       const cacheKey = 'user_profile';
       const cached = this.cache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < 300000) { // 5 minute cache
@@ -735,6 +760,9 @@ class AutoJobrBackground {
             data: profile,
             timestamp: Date.now()
           });
+          
+          // Also save to ProfileCache for future use
+          await this.profileCache.setProfile(profile);
         }
 
         return profile;
@@ -989,47 +1017,61 @@ class AutoJobrBackground {
         }
       }
 
-      console.log('Background script analyzing job with fresh API call:', {
+      console.log('🎯 Analyzing job with client-side matching engine:', {
         jobTitle: data.jobData?.title,
         company: data.jobData?.company,
         userSkills: userProfile?.skills?.length || 0,
         userProfessionalTitle: userProfile?.professionalTitle,
-        userYearsExperience: userProfile?.yearsExperience,
-        userAuthenticated: userProfile?.authenticated
+        userYearsExperience: userProfile?.yearsExperience
       });
 
-      const headers = {
-        'Content-Type': 'application/json'
-      };
+      // Try local matching first (fast and free)
+      const localAnalysis = await this.matchEngine.analyzeJobMatch(data.jobData, userProfile);
 
-      // Always make fresh API call - don't use any cached data
-      const response = await fetch(`${this.apiUrl}/api/analyze-job-match`, {
-        method: 'POST',
-        headers,
-        credentials: 'include', // Use session cookies
-        mode: 'cors',
-        body: JSON.stringify({
-          jobData: data.jobData,
-          userProfile: userProfile,
-          analyzedAt: new Date().toISOString(),
-          source: 'extension_automatic_popup'
-        })
-      });
+      // Check if we should use API for deep analysis
+      const shouldUseAPI = 
+        data.requestDeepAnalysis === true ||
+        localAnalysis.confidence === 'low' ||
+        localAnalysis.confidenceLevel < this.matchEngine.MIN_CONFIDENCE_THRESHOLD;
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          console.log('User not authenticated - cannot analyze job');
-          throw new Error('Please log in to AutoJobr to analyze jobs');
+      let analysis = localAnalysis;
+
+      // Use API only when necessary
+      if (shouldUseAPI) {
+        console.log('⚡ Using API for deep analysis (low confidence or explicit request)');
+        
+        try {
+          const response = await fetch(`${this.apiUrl}/api/analyze-job-match`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            mode: 'cors',
+            body: JSON.stringify({
+              jobData: data.jobData,
+              userProfile: userProfile,
+              analyzedAt: new Date().toISOString(),
+              source: 'extension_deep_analysis'
+            })
+          });
+
+          if (response.ok) {
+            const apiAnalysis = await response.json();
+            apiAnalysis.source = 'api';
+            analysis = apiAnalysis;
+            console.log('✅ API analysis received:', { matchScore: apiAnalysis.matchScore });
+          } else {
+            console.log('⚠️ API call failed, using local analysis');
+          }
+        } catch (apiError) {
+          console.log('⚠️ API error, falling back to local analysis:', apiError.message);
         }
-        throw new Error('Failed to analyze job');
+      } else {
+        console.log('✅ Using local analysis (high confidence, fast):', {
+          matchScore: localAnalysis.matchScore,
+          executionMs: localAnalysis.executionTimeMs,
+          source: localAnalysis.source
+        });
       }
-
-      const analysis = await response.json();
-
-      console.log('Background script received fresh analysis:', {
-        matchScore: analysis.matchScore,
-        factors: analysis.factors?.length || 0
-      });
 
       const matchLevel = analysis.matchScore >= 80 ? 'Excellent' : 
                         analysis.matchScore >= 60 ? 'Good' : 
@@ -1046,8 +1088,9 @@ class AutoJobrBackground {
 
         if (!lastNotificationTime || (now - lastNotificationTime) > 30000) { // 30 seconds throttle
           this.lastNotifications[jobKey] = now;
+          const sourceLabel = analysis.source === 'local' ? '⚡ Fast' : '🔍 Deep';
           await this.showAdvancedNotification(
-            'Job Analysis Complete! 🎯',
+            `${sourceLabel} Analysis Complete! 🎯`,
             `Match Score: ${analysis.matchScore}% (${matchLevel} match)`,
             analysis.matchScore >= 60 ? 'success' : 'warning'
           );
@@ -1056,7 +1099,6 @@ class AutoJobrBackground {
         }
       }
 
-      // Return the fresh analysis data directly from server
       return analysis;
 
     } catch (error) {
