@@ -325,23 +325,33 @@ export default function Applications() {
 
       <div className="container mx-auto px-4 py-6 md:py-8 max-w-7xl">
         <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-              Applications
-            </h1>
-            <p className="text-sm md:text-base text-gray-500 dark:text-gray-400 mt-1">
-              {applications.length} {applications.length === 1 ? 'application' : 'applications'} tracked
-            </p>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+                Applications
+              </h1>
+              <p className="text-sm md:text-base text-gray-500 dark:text-gray-400 mt-1">
+                {applications.length} {applications.length === 1 ? 'application' : 'applications'} tracked
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => window.location.href = '/dashboard'}
+                variant="outline"
+                className="shadow-sm"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Manual Entry
+              </Button>
+              <Button
+                onClick={() => window.location.href = '/job-seeker-tasks'}
+                variant="default"
+                className="shadow-sm"
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                View Tasks
+              </Button>
+            </div>
           </div>
-          <Button
-            onClick={() => window.location.href = '/job-seeker-tasks'}
-            variant="default"
-            className="shadow-sm"
-          >
-            <Calendar className="w-4 h-4 mr-2" />
-            View Tasks
-          </Button>
-        </div>
 
         {/* Smart Insights - Competitive advantage */}
         {applications.length > 0 && (
