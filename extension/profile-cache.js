@@ -3,12 +3,22 @@ class ProfileCache {
     this.CACHE_KEY = 'autojobr_profile_cache';
     this.METADATA_KEY = 'autojobr_profile_metadata';
     this.CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000;
-    this.version = '1.0';
+    this.CACHE_VERSION = '1.1';
   }
 
   async getProfile({ requireFresh = false } = {}) {
     try {
       const metadata = await this._getMetadata();
+      
+      // Invalidate cache if version mismatch (fixes authentication bug in v1.0)
+      if (metadata && metadata.cacheVersion !== this.CACHE_VERSION) {
+        console.log('🔄 Cache version mismatch - invalidating old cache', {
+          oldVersion: metadata.cacheVersion,
+          newVersion: this.CACHE_VERSION
+        });
+        await this.invalidate();
+        return null;
+      }
       
       if (requireFresh || this._isExpired(metadata)) {
         console.log('📥 Profile cache expired or fresh data required - fetching from server');
@@ -25,6 +35,7 @@ class ProfileCache {
 
       console.log('✅ Using cached profile', {
         lastUpdated: metadata?.lastUpdated,
+        authenticated: cachedProfile.authenticated,
         skillsCount: cachedProfile.skills?.length || 0,
         experienceCount: cachedProfile.workExperience?.length || 0
       });
@@ -42,7 +53,7 @@ class ProfileCache {
       const hash = this._generateHash(normalizedProfile);
       
       const metadata = {
-        version: this.version,
+        cacheVersion: this.CACHE_VERSION,
         lastUpdated: Date.now(),
         lastSyncedAt: Date.now(),
         hash: hash,
@@ -175,7 +186,7 @@ class ProfileCache {
       
       keywordIndex: this._buildKeywordIndex(profile),
       
-      authenticated: profile.authenticated || true,
+      authenticated: profile.authenticated ?? false,
       version: profile.version || 1,
       lastUpdated: Date.now()
     };

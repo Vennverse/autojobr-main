@@ -532,38 +532,45 @@ class AutoJobrPopup {
     }
   }
 
-  async showJobAnalysis() {
+  async showJobAnalysis(forceDeepAnalysis = false) {
     if (!this.jobData || !this.userProfile) return;
 
     try {
-      // Clear ALL cache to ensure completely fresh calculation
-      this.cache.clear();
-
       console.log('Analyzing job with user profile:', {
         jobTitle: this.jobData.title,
         userTitle: this.userProfile.professionalTitle,
         userSkills: this.userProfile.skills?.length || 0,
-        userExperience: this.userProfile.yearsExperience
+        userExperience: this.userProfile.yearsExperience,
+        forceDeepAnalysis
       });
 
-      const analysis = await this.makeApiRequest('/api/analyze-job-match', {
-        method: 'POST',
-        body: JSON.stringify({
+      // Use background script's analyzeJob which now supports local matching
+      const result = await chrome.runtime.sendMessage({
+        action: 'analyzeJob',
+        data: {
           jobData: this.jobData,
-          userProfile: this.userProfile
-        })
+          userProfile: this.userProfile,
+          requestDeepAnalysis: forceDeepAnalysis
+        }
       });
 
-      console.log('Fresh job analysis received:', analysis);
+      if (!result || !result.success) {
+        throw new Error(result?.error || 'Analysis failed');
+      }
+
+      const analysis = result.analysis;
+      console.log('Job analysis received:', {
+        source: analysis.source,
+        matchScore: analysis.matchScore,
+        executionMs: analysis.executionTimeMs
+      });
 
       if (analysis && !analysis.error) {
         const scoreSection = document.getElementById('scoreSection');
         const matchScore = document.getElementById('matchScore');
         const scoreFill = document.getElementById('scoreFill');
 
-        // Use the server-calculated score directly without any local modifications
         const score = analysis.matchScore || 0;
-        console.log('Using server-calculated match score:', score);
 
         matchScore.textContent = `${score}%`;
 
@@ -574,7 +581,7 @@ class AutoJobrPopup {
 
         scoreSection.style.display = 'block';
 
-        // Update colors based on score (consistent with dashboard)
+        // Update colors based on score
         let color = '#ef4444';
         if (score >= 80) color = '#22c55e';
         else if (score >= 60) color = '#f59e0b';
@@ -585,22 +592,86 @@ class AutoJobrPopup {
         matchScore.style.webkitBackgroundClip = 'text';
         matchScore.style.webkitTextFillColor = 'transparent';
 
-        // Show detailed score explanations using consistent server data
+        // Show analysis source indicator and refresh button
+        this.displayAnalysisSource(analysis);
+
+        // Show detailed score explanations
         this.displayScoreExplanations(analysis);
 
-        // Log detailed analysis for debugging
-        console.log('Job Analysis Results:', {
-          matchScore: analysis.matchScore,
-          factors: analysis.factors,
-          recommendation: analysis.recommendation,
-          userSkillsCount: analysis.userProfile?.skillsCount,
-          userTitle: analysis.userProfile?.professionalTitle,
-          jobTitle: this.jobData.title,
-          jobCompany: this.jobData.company
-        });
+        // Store current analysis
+        this.currentAnalysis = analysis;
       }
     } catch (error) {
       console.error('Job analysis failed:', error);
+    }
+  }
+
+  displayAnalysisSource(analysis) {
+    const scoreSection = document.getElementById('scoreSection');
+    
+    // Remove existing source indicator if present
+    const existingIndicator = document.getElementById('analysisSourceIndicator');
+    if (existingIndicator) {
+      existingIndicator.remove();
+    }
+
+    // Create source indicator
+    const sourceIndicator = document.createElement('div');
+    sourceIndicator.id = 'analysisSourceIndicator';
+    sourceIndicator.style.cssText = `
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.1);
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    `;
+
+    const isLocal = analysis.source === 'local';
+    const sourceLabel = isLocal ? '⚡ Fast Analysis' : '🔍 Deep Analysis';
+    const sourceDesc = isLocal 
+      ? `Analyzed locally in ${analysis.executionTimeMs || 0}ms` 
+      : 'Analyzed with server AI';
+
+    sourceIndicator.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span style="color: ${isLocal ? '#22c55e' : '#3b82f6'}; font-weight: 600;">${sourceLabel}</span>
+        <span style="color: #9ca3af; font-size: 10px;">${sourceDesc}</span>
+      </div>
+      ${isLocal ? `
+        <button id="requestDeepAnalysis" style="
+          background: rgba(59, 130, 246, 0.1);
+          border: 1px solid rgba(59, 130, 246, 0.3);
+          color: #60a5fa;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 10px;
+          cursor: pointer;
+          font-weight: 500;
+          transition: all 0.2s;
+        " onmouseover="this.style.background='rgba(59, 130, 246, 0.2)'" onmouseout="this.style.background='rgba(59, 130, 246, 0.1)'">
+          Deep Analysis
+        </button>
+      ` : ''}
+    `;
+
+    scoreSection.appendChild(sourceIndicator);
+
+    // Add click handler for deep analysis button
+    if (isLocal) {
+      const deepAnalysisBtn = document.getElementById('requestDeepAnalysis');
+      if (deepAnalysisBtn) {
+        deepAnalysisBtn.addEventListener('click', async () => {
+          deepAnalysisBtn.disabled = true;
+          deepAnalysisBtn.textContent = 'Analyzing...';
+          await this.showJobAnalysis(true);
+          deepAnalysisBtn.disabled = false;
+        });
+      }
     }
   }
 
