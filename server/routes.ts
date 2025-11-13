@@ -1309,7 +1309,8 @@ ${req.user.firstName} ${req.user.lastName}`,
     try {
       const userId = req.user.id;
       const applicationId = parseInt(req.params.id);
-      const isPremium = req.user.planType === 'premium' || req.user.subscriptionStatus === 'active';
+      const user = await storage.getUser(userId);
+      const isPremium = user?.planType === 'premium' || user?.subscriptionStatus === 'active';
 
       if (!isPremium) {
         return res.status(403).json({
@@ -1318,17 +1319,31 @@ ${req.user.firstName} ${req.user.lastName}`,
         });
       }
 
-      // Get application details
-      const application = await db
+      // Try to get from both tables (platform and extension)
+      let application = await db
         .select()
-        .from(schema.jobApplications)
+        .from(schema.jobPostingApplications)
         .where(
           and(
-            eq(schema.jobApplications.id, applicationId),
-            eq(schema.jobApplications.userId, userId)
+            eq(schema.jobPostingApplications.id, applicationId),
+            eq(schema.jobPostingApplications.applicantId, userId)
           )
         )
         .then(rows => rows[0]);
+
+      // If not found in platform applications, try extension applications
+      if (!application) {
+        application = await db
+          .select()
+          .from(schema.jobApplications)
+          .where(
+            and(
+              eq(schema.jobApplications.id, applicationId),
+              eq(schema.jobApplications.userId, userId)
+            )
+          )
+          .then(rows => rows[0]);
+      }
 
       if (!application) {
         return res.status(404).json({ error: 'Application not found' });
@@ -1339,7 +1354,7 @@ ${req.user.firstName} ${req.user.lastName}`,
       const feedback = [];
 
       // Resume tailored? +25 points
-      if (application.resumeTailored) {
+      if (application.resumeTailored || application.resumeId) {
         score += 25;
       } else {
         feedback.push({
@@ -1350,7 +1365,7 @@ ${req.user.firstName} ${req.user.lastName}`,
       }
 
       // Cover letter? +20 points
-      if (application.coverLetterCreated) {
+      if (application.coverLetterCreated || application.coverLetter) {
         score += 20;
       } else {
         feedback.push({
@@ -1389,16 +1404,25 @@ ${req.user.firstName} ${req.user.lastName}`,
         feedback,
         recommendations: [
           score < 80 ? 'Tailor your resume to include keywords from the job description' : null,
-          !application.coverLetterCreated ? 'Write a compelling cover letter' : null,
+          !application.coverLetterCreated && !application.coverLetter ? 'Write a compelling cover letter' : null,
           !application.linkedinConnectionsMade ? 'Find and connect with employees at this company' : null,
         ].filter(Boolean)
       };
 
-      // Update application with quality score
-      await db
-        .update(schema.jobApplications)
-        .set({ applicationQualityScore: score })
-        .where(eq(schema.jobApplications.id, applicationId));
+      // Update application with quality score in the appropriate table
+      if (application.applicantId) {
+        // Platform application
+        await db
+          .update(schema.jobPostingApplications)
+          .set({ applicationQualityScore: score })
+          .where(eq(schema.jobPostingApplications.id, applicationId));
+      } else {
+        // Extension application
+        await db
+          .update(schema.jobApplications)
+          .set({ applicationQualityScore: score })
+          .where(eq(schema.jobApplications.id, applicationId));
+      }
 
       res.json({
         success: true,
