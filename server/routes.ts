@@ -1329,6 +1329,7 @@ ${req.user.firstName} ${req.user.lastName}`,
             eq(schema.jobPostingApplications.applicantId, userId)
           )
         )
+        .limit(1)
         .then(rows => rows[0]);
 
       // If not found in platform applications, try extension applications
@@ -1342,6 +1343,7 @@ ${req.user.firstName} ${req.user.lastName}`,
               eq(schema.jobApplications.userId, userId)
             )
           )
+          .limit(1)
           .then(rows => rows[0]);
       }
 
