@@ -364,6 +364,24 @@ class AutoJobrBackground {
           sendResponse({ success: true, profile });
           break;
 
+        case 'syncProfile':
+          const syncedProfile = await this.profileCache.ensureFresh(this.apiUrl, true);
+          sendResponse({ success: true, profile: syncedProfile });
+          break;
+
+        case 'invalidateProfileCache':
+          await this.profileCache.invalidate();
+          sendResponse({ success: true });
+          break;
+
+        case 'updateProfile':
+          if (message.profile) {
+            await this.profileCache.setProfile(message.profile);
+            this.cache.delete('user_profile');
+            sendResponse({ success: true });
+          }
+          break;
+
         case 'testConnection':
           const connected = await this.testConnection();
           sendResponse({ success: true, connected });
@@ -1244,12 +1262,11 @@ class AutoJobrBackground {
 
   async syncUserData() {
     try {
-      const result = await chrome.storage.local.get(['sessionToken']);
-      if (result.sessionToken) {
-        // Refresh user profile cache
-        this.cache.delete('user_profile');
-        await this.getUserProfile();
-      }
+      // Refresh user profile cache using ProfileCache
+      console.log('🔄 Periodic profile sync starting...');
+      await this.profileCache.ensureFresh(this.apiUrl);
+      this.cache.delete('user_profile');
+      console.log('✅ Profile sync complete');
     } catch (error) {
       console.error('Sync user data error:', error);
     }
