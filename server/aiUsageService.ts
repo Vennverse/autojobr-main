@@ -1,4 +1,4 @@
-import { db } from "@db";
+import { db } from "./db";
 import { aiUsageTracking, users } from "@db/schema";
 import { eq, and } from "drizzle-orm";
 
