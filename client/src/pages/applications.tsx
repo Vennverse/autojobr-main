@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -80,6 +81,15 @@ export default function Applications() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [quickTaskTitle, setQuickTaskTitle] = useState("");
+  const [showManualAddDialog, setShowManualAddDialog] = useState(false);
+  const [manualAppData, setManualAppData] = useState({
+    jobTitle: '',
+    company: '',
+    location: '',
+    jobUrl: '',
+    status: 'applied',
+    appliedDate: new Date().toISOString().split('T')[0]
+  });
   const queryClient = useQueryClient();
 
   // Redirect to home if not authenticated
@@ -165,6 +175,36 @@ export default function Applications() {
       toast({
         title: "Error",
         description: error.message || "Failed to complete task",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Manual application submission mutation
+  const addManualApplicationMutation = useMutation({
+    mutationFn: async (appData: any) => {
+      return apiRequest('/api/track-application', 'POST', appData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/applications"] });
+      toast({
+        title: "Application Added",
+        description: "Application tracked successfully",
+      });
+      setShowManualAddDialog(false);
+      setManualAppData({
+        jobTitle: '',
+        company: '',
+        location: '',
+        jobUrl: '',
+        status: 'applied',
+        appliedDate: new Date().toISOString().split('T')[0]
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add application",
         variant: "destructive",
       });
     },
@@ -335,16 +375,17 @@ export default function Applications() {
             </div>
             <div className="flex gap-2">
               <Button
-                onClick={() => window.location.href = '/dashboard'}
-                variant="outline"
-                className="shadow-sm"
+                onClick={() => setShowManualAddDialog(true)}
+                variant="default"
+                className="shadow-sm bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                data-testid="button-add-application"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Manual Entry
+                Add Application
               </Button>
               <Button
                 onClick={() => window.location.href = '/job-seeker-tasks'}
-                variant="default"
+                variant="outline"
                 className="shadow-sm"
               >
                 <Calendar className="w-4 h-4 mr-2" />
@@ -1274,6 +1315,114 @@ export default function Applications() {
             </TabsContent>
           </Tabs>
       </div>
+
+      {/* Manual Application Entry Modal */}
+      <Dialog open={showManualAddDialog} onOpenChange={setShowManualAddDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Application Manually</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Job Title *</label>
+              <Input
+                placeholder="e.g. Software Engineer"
+                value={manualAppData.jobTitle}
+                onChange={(e) => setManualAppData({ ...manualAppData, jobTitle: e.target.value })}
+                data-testid="input-job-title"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Company *</label>
+              <Input
+                placeholder="e.g. Google"
+                value={manualAppData.company}
+                onChange={(e) => setManualAppData({ ...manualAppData, company: e.target.value })}
+                data-testid="input-company"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Location</label>
+              <Input
+                placeholder="e.g. San Francisco, CA"
+                value={manualAppData.location}
+                onChange={(e) => setManualAppData({ ...manualAppData, location: e.target.value })}
+                data-testid="input-location"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Job URL</label>
+              <Input
+                placeholder="https://..."
+                value={manualAppData.jobUrl}
+                onChange={(e) => setManualAppData({ ...manualAppData, jobUrl: e.target.value })}
+                data-testid="input-job-url"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Status</label>
+              <Select 
+                value={manualAppData.status} 
+                onValueChange={(value) => setManualAppData({ ...manualAppData, status: value })}
+              >
+                <SelectTrigger data-testid="select-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="applied">Applied</SelectItem>
+                  <SelectItem value="under_review">Under Review</SelectItem>
+                  <SelectItem value="interview">Interview</SelectItem>
+                  <SelectItem value="offered">Offered</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Applied Date</label>
+              <Input
+                type="date"
+                value={manualAppData.appliedDate}
+                onChange={(e) => setManualAppData({ ...manualAppData, appliedDate: e.target.value })}
+                data-testid="input-applied-date"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setShowManualAddDialog(false)}
+              data-testid="button-cancel"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!manualAppData.jobTitle || !manualAppData.company) {
+                  toast({
+                    title: "Missing Information",
+                    description: "Job title and company are required",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                addManualApplicationMutation.mutate({
+                  jobTitle: manualAppData.jobTitle,
+                  company: manualAppData.company,
+                  location: manualAppData.location || null,
+                  jobUrl: manualAppData.jobUrl || null,
+                  status: manualAppData.status,
+                  source: 'manual',
+                  appliedDate: manualAppData.appliedDate
+                });
+              }}
+              disabled={addManualApplicationMutation.isPending}
+              data-testid="button-save-application"
+            >
+              {addManualApplicationMutation.isPending ? "Saving..." : "Save Application"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
