@@ -702,7 +702,7 @@ Best,
                   AI Connection Note Generator
                 </h2>
                 <p className="text-muted-foreground">
-                  Create personalized LinkedIn connection requests that get accepted
+                  Create personalized LinkedIn connection requests (200 characters) that get accepted
                 </p>
               </div>
 
@@ -845,7 +845,7 @@ Best,
                           <Linkedin className="h-4 w-4 text-blue-600 mt-0.5" />
                           <div className="text-sm text-blue-800 dark:text-blue-200">
                             <p className="font-semibold mb-1">Pro Tip</p>
-                            <p>Keep your note under 300 characters for better acceptance rates. Personalize further if you know specific details about the person.</p>
+                            <p>LinkedIn limits connection notes to 200 characters. Our AI generates concise, personalized messages that fit perfectly within this limit.</p>
                           </div>
                         </div>
                       </div>

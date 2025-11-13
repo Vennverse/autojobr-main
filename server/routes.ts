@@ -5329,7 +5329,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
           role: "system",
           content: `You are a professional networking expert who helps craft compelling LinkedIn connection requests. Your notes are:
 - Personal and authentic (not generic templates)
-- Concise (200-300 characters maximum)
+- Concise (200 characters maximum - LinkedIn limit)
 - Professional yet friendly
 - Focused on mutual value and genuine interest
 - Free of clichés and overly formal language`
@@ -5339,7 +5339,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
           content: `Generate a personalized LinkedIn connection note for someone ${reasonText}.${contextText}
 
 Requirements:
-1. Keep it under 300 characters
+1. Keep it under 200 characters (LinkedIn's limit)
 2. Be specific and authentic
 3. Show genuine interest
 4. Avoid generic phrases like "I'd love to connect"
@@ -5351,11 +5351,11 @@ Generate ONLY the connection note text, nothing else.`
         }
       ], {
         temperature: 0.8,
-        max_tokens: 200,
+        max_tokens: 150,
         user: req.user
       });
 
-      const connectionNote = aiResponse.choices[0]?.message?.content?.trim() || '';
+      const connectionNote = (aiResponse.choices[0]?.message?.content?.trim() || '').substring(0, 200);
 
       // Increment usage counter after successful generation
       await incrementUsage(userId, AI_FEATURE_TYPES.CONNECTION_NOTE);
