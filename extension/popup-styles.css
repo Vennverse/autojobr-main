@@ -870,11 +870,6 @@
   line-height: 1.6;
 }
 
-.prep-section ul {
-  list-style: none;
-  padding: 0;
-}
-
 .prep-section li {
   padding: 8px 12px;
   background: #f8fafc;
@@ -1088,4 +1083,44 @@
 .upgrade-benefits li {
   padding: 8px 0;
   font-size: 14px;
+}
+
+.spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #007bff;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+  margin: 10px auto;
+}
+
+.ai-message, .user-message {
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 8px;
+  line-height: 1.5;
+}
+
+.ai-message {
+  background: #e3f2fd;
+  border-left: 3px solid #2196f3;
+}
+
+.user-message {
+  background: #f1f8e9;
+  border-left: 3px solid #4caf50;
+  text-align: right;
+}
+
+.info-card {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 10px 0;
+}
+
+.info-card ul {
+  font-size: 13px;
 }

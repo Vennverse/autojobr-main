@@ -945,6 +945,162 @@
       background: #f3f4f6;
       color: #7c3aed;
     }
+
+    /* Info Card Styling */
+    .info-card {
+      background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+      border: 1px solid #0ea5e9;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: #0c4a6e;
+      line-height: 1.5;
+    }
+
+    .info-card p {
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .info-card ul {
+      margin-left: 20px;
+      margin-bottom: 10px;
+    }
+
+    .info-card li {
+      margin-bottom: 4px;
+    }
+
+    .info-card strong {
+      color: #0369a1;
+    }
+
+    /* Section Header Styling */
+    .section-header {
+      margin-bottom: 16px;
+    }
+
+    .section-header h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-header .section-subtitle {
+      font-size: 13px;
+      color: #64748b;
+    }
+
+    /* Tab Styling */
+    .tab-buttons {
+      display: flex;
+      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 24px;
+      padding: 0 20px; /* Match content padding */
+    }
+
+    .tab-button {
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #64748b;
+      cursor: pointer;
+      border: none;
+      background: none;
+      border-bottom: 2px solid transparent;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tab-button.active {
+      color: #3b82f6;
+      border-bottom-color: #3b82f6;
+    }
+
+    .tab-button:hover {
+      color: #374151;
+    }
+
+    .tab-content {
+      padding: 0 20px; /* Match content padding */
+      display: none; /* Hidden by default */
+    }
+
+    .tab-content.active {
+      display: block; /* Show active tab */
+    }
+
+    /* AI Chat Specific Styles */
+    .ai-message {
+      padding: 8px 12px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      line-height: 1.5;
+    }
+
+    .ai-message strong {
+      color: #3b82f6;
+    }
+
+    .user-message {
+      background: #eff6ff;
+      color: #1d4ed8;
+      text-align: right;
+    }
+
+    .ai-message {
+      background: #f8f9fa;
+      color: #374151;
+    }
+    
+    .primary-button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+      transition: all 0.2s;
+    }
+
+    .primary-button:hover {
+      background: linear-gradient(135deg, #1d4ed8, #1e40af);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .secondary-button {
+      padding: 10px 16px;
+      border: 2px solid #3b82f6;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      background: white;
+      color: #1d4ed8;
+      transition: all 0.2s;
+    }
+
+    .secondary-button:hover {
+      background: #eff6ff;
+      border-color: #1d4ed8;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+    }
+
+    .tab-icon {
+      width: 18px;
+      height: 18px;
+    }
   </style>
 </head>
 <body>
@@ -964,6 +1120,34 @@
     </div>
 
     <div class="content">
+      <div class="tab-buttons">
+      <div class="tab-button" data-tab="apply">
+        <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m1-4a2 2 0 10-2.586-2.586l-1.414 1.414a2 2 0 01-2.828 0L6.75 7.072 2.75 11.072a2 2 0 000 2.828l6.414 6.414a2 2 0 002.828 0l1.414-1.414a2 2 0 012.828 0l1.414 1.414a2 2 0 002.828 0l6.414-6.414a2 2 0 000-2.828L12.75 9.25l-1.414 1.414a2 2 0 01-2.828 0z"></path>
+        </svg>
+        <span>Apply</span>
+      </div>
+      <div class="tab-button" data-tab="tasks">
+        <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5a1 1 0 011 1 1v12a1 1 0 01-2 0V6a1 1 0 011-1H6a1 1 0 01-1-1V3a1 1 0 011-1H4a1 1 0 011-1h3a1 1 0 011 1v1M7 19h10a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v11a2 2 0 002 2h1.5"></path>
+        </svg>
+        <span>Tasks</span>
+      </div>
+      <div class="tab-button" data-tab="ai-chat">
+        <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+        </svg>
+        <span>AI Chat</span>
+      </div>
+      <div class="tab-button" data-tab="settings">
+        <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        </svg>
+        <span>Settings</span>
+      </div>
+    </div>
+
       <div class="page-info" id="pageInfo">
         <div id="pageStatus">Analyzing current page...</div>
       </div>
@@ -973,54 +1157,17 @@
         <div class="job-company" id="jobCompany"></div>
       </div>
 
-      <div class="action-section">
-        <div class="section-title">
-          ⚡ Quick Actions
-        </div>
-        <div class="action-grid" id="actionGrid">
-          <button class="action-btn primary" id="autofillBtn">
-            <div class="btn-icon">✎</div>
-            Auto-fill
-          </button>
-
-          <button class="action-btn" id="analyzeBtn">
-            <div class="btn-icon">📊</div>
-            Analyze Match
-          </button>
-
-          <button class="action-btn" id="saveJobBtn">
-            <div class="btn-icon">💾</div>
-            Save Job
-          </button>
-
-          <button class="action-btn" id="coverLetterBtn">
-            <div class="btn-icon">📝</div>
-            Cover Letter
-          </button>
+      <!-- Apply Tab Content -->
+      <div id="apply" class="tab-content active">
+        <div class="section-header">
+          <h3>📄 Apply to Job</h3>
+          <p class="section-subtitle">Manage your job applications and get insights</p>
         </div>
 
-        <div class="action-row">
-          <button class="action-btn secondary" id="interviewPrepBtn">
-            <div class="btn-icon">🎯</div>
-            <span>Interview Prep</span>
-          </button>
-          <button class="action-btn secondary" id="salaryInsightsBtn">
-            <div class="btn-icon">💰</div>
-            <span>Salary Intel</span>
-          </button>
-          <button class="action-btn secondary" id="referralFinderBtn">
-            <div class="btn-icon">🤝</div>
-            <span>Find Referrals</span>
-          </button>
+        <div class="job-info" id="jobInfo" style="display: none;">
+          <div class="job-title" id="jobTitle"></div>
+          <div class="job-company" id="jobCompany"></div>
         </div>
-
-        <div class="action-row" style="margin-top: 12px;">
-          <button class="action-btn primary" id="linkedinAutoApplyBtn" style="grid-column: 1 / -1;">
-            <div class="btn-icon">🤖</div>
-            <span>LinkedIn Auto-Apply</span>
-          </button>
-        </div>
-      </div>
 
         <div class="quick-actions">
           <button id="resumeBtn" class="quick-action-btn" title="Manage Resumes">
@@ -1045,19 +1192,80 @@
           </button>
         </div>
 
-    <!-- Feature Status Indicator -->
-    <div id="featureStatus" style="display: none; margin-top: 12px; padding: 8px; background: rgba(34,197,94,0.1); border-radius: 8px; border-left: 3px solid #22c55e;">
-      <div style="font-size: 11px; color: #22c55e; font-weight: 600; margin-bottom: 4px;">✨ All Features Active</div>
-      <div style="font-size: 10px; color: #d1d5db; display: flex; flex-wrap: gap: 4px;">
-        <span id="autoFillStatus">✓ Auto-Fill</span>
-        <span id="analysisStatus">✓ Analysis</span>
-        <span id="resumeStatus">✓ Resume</span>
-        <span id="coverLetterStatus">✓ Cover Letter</span>
-      </div>
-    </div>
+        <!-- AI Resume Generator -->
+        <div class="section-header" style="margin-top: 20px;">
+          <h3>🤖 AI Resume Generator</h3>
+          <p class="section-subtitle">Generate tailored resume for this job</p>
+        </div>
 
-      <!-- Tasks Section -->
-      <div class="tasks-section" id="tasksSection">
+        <div id="resume-gen-access-check" class="info-card" style="display: none;">
+          <p>🔒 Resume generation requires Premium or your own API key</p>
+        </div>
+
+        <div id="resume-gen-container">
+          <button id="generate-tailored-resume" class="secondary-button" style="width: 100%; margin-bottom: 10px;">
+            ✨ Generate Resume for This Job
+          </button>
+          <div id="resume-gen-status" style="display: none; padding: 10px; background: #f0f0f0; border-radius: 6px; margin-top: 10px;">
+            <p id="resume-gen-message"></p>
+          </div>
+        </div>
+
+        <div class="quick-actions">
+          <button id="fill-application" class="primary-button">
+            🚀 Auto-Fill Application
+          </button>
+          <button id="analyze-job" class="secondary-button">
+            📊 Analyze Job Match
+          </button>
+        </div>
+      </div>
+
+      <!-- AI Chat Tab -->
+      <div id="ai-chat" class="tab-content">
+        <div class="section-header">
+          <h3>💬 AI Assistant</h3>
+          <p class="section-subtitle">Ask any career or job search questions</p>
+        </div>
+
+        <div id="ai-access-check" class="info-card" style="display: none;">
+          <p>🔒 AI Chat requires:</p>
+          <ul style="margin: 10px 0; padding-left: 20px;">
+            <li>Premium subscription, OR</li>
+            <li>Your own Groq API key (Settings → Integrations)</li>
+          </ul>
+          <button id="go-to-integrations" class="secondary-button">
+            Add API Key
+          </button>
+        </div>
+
+        <div id="ai-chat-container" style="display: none;">
+          <div id="chat-messages" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+            <div class="ai-message">
+              <strong>AI Assistant:</strong> Hello! I'm your career AI assistant. Ask me anything about job searching, resume tips, interview prep, or career advice.
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <textarea
+              id="ai-question"
+              placeholder="Ask me anything... (e.g., 'How do I prepare for a software engineer interview?')"
+              style="flex: 1; min-height: 60px; padding: 8px; border-radius: 6px; border: 1px solid #ddd; resize: vertical;"
+            ></textarea>
+            <button id="send-ai-question" class="primary-button" style="height: fit-content;">
+              Send
+            </button>
+          </div>
+
+          <div id="ai-loading" style="display: none; text-align: center; margin-top: 10px;">
+            <div class="spinner"></div>
+            <p>AI is thinking...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tasks Tab Content -->
+      <div id="tasks" class="tab-content">
         <div class="section-title">
           ✅ My Tasks
           <span class="tasks-count" id="tasksCount">0</span>
@@ -1068,61 +1276,124 @@
         <button class="add-task-btn" id="addTaskBtn">+ Add Task</button>
       </div>
 
-      <div class="score-section" id="scoreSection" style="display: none;">
-        <div class="score-header">
-          <span class="score-title">Job Match Score</span>
-          <span class="score-value" id="matchScore">--</span>
-        </div>
-        <div class="score-progress">
-          <div class="score-fill" id="scoreFill" style="width: 0%"></div>
-        </div>
-      </div>
+      <!-- Settings Tab -->
+      <div id="settings" class="tab-content">
+        <div class="action-section">
+          <div class="section-title">
+            ⚡ Quick Actions
+          </div>
+          <div class="action-grid" id="actionGrid">
+            <button class="action-btn primary" id="autofillBtn">
+              <div class="btn-icon">✎</div>
+              Auto-fill
+            </button>
 
-      <div class="settings-section">
-        <div class="section-title">
-          🤖 Premium Features (BYOK)
-        </div>
-        <div style="background: linear-gradient(135deg, #eff6ff, #dbeafe); padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #3b82f6;">
-          <div style="font-size: 12px; color: #1e40af; margin-bottom: 6px; font-weight: 600;">
-            ✨ Use Your Own API Key
-          </div>
-          <div style="font-size: 11px; color: #3b82f6; line-height: 1.4;">
-            Add your free Groq API key to unlock unlimited resume & cover letter generation!
-          </div>
-        </div>
-        <div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-          <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
-            <span class="setting-label">API Keys</span>
-            <button class="action-btn" id="manageKeysBtn" style="padding: 6px 12px; font-size: 11px; min-width: auto;">
-              <span>Manage</span>
+            <button class="action-btn" id="analyzeBtn">
+              <div class="btn-icon">📊</div>
+              Analyze Match
+            </button>
+
+            <button class="action-btn" id="saveJobBtn">
+              <div class="btn-icon">💾</div>
+              Save Job
+            </button>
+
+            <button class="action-btn" id="coverLetterBtn">
+              <div class="btn-icon">📝</div>
+              Cover Letter
             </button>
           </div>
-          <div id="apiKeyStatus" style="font-size: 11px; color: #6b7280; width: 100%;">
-            No API keys configured
-          </div>
-        </div>
-      </div>
 
-      <div class="settings-section">
-        <div class="section-title">
-          ⚙️ Settings
-        </div>
-        <div class="setting-item">
-          <span class="setting-label">Auto-fill enabled</span>
-          <div class="toggle active" id="autofillToggle">
-            <div class="toggle-handle"></div>
+          <div class="action-row">
+            <button class="action-btn secondary" id="interviewPrepBtn">
+              <div class="btn-icon">🎯</div>
+              <span>Interview Prep</span>
+            </button>
+            <button class="action-btn secondary" id="salaryInsightsBtn">
+              <div class="btn-icon">💰</div>
+              <span>Salary Intel</span>
+            </button>
+            <button class="action-btn secondary" id="referralFinderBtn">
+              <div class="btn-icon">🤝</div>
+              <span>Find Referrals</span>
+            </button>
+          </div>
+
+          <div class="action-row" style="margin-top: 12px;">
+            <button class="action-btn primary" id="linkedinAutoApplyBtn" style="grid-column: 1 / -1;">
+              <div class="btn-icon">🤖</div>
+              <span>LinkedIn Auto-Apply</span>
+            </button>
           </div>
         </div>
-        <div class="setting-item">
-          <span class="setting-label">Job tracking</span>
-          <div class="toggle active" id="trackingToggle">
-            <div class="toggle-handle"></div>
+
+        <!-- Feature Status Indicator -->
+        <div id="featureStatus" style="display: none; margin-top: 12px; padding: 8px; background: rgba(34,197,94,0.1); border-radius: 8px; border-left: 3px solid #22c55e;">
+          <div style="font-size: 11px; color: #22c55e; font-weight: 600; margin-bottom: 4px;">✨ All Features Active</div>
+          <div style="font-size: 10px; color: #d1d5db; display: flex; flex-wrap: wrap; gap: 4px;">
+            <span id="autoFillStatus">✓ Auto-Fill</span>
+            <span id="analysisStatus">✓ Analysis</span>
+            <span id="resumeStatus">✓ Resume</span>
+            <span id="coverLetterStatus">✓ Cover Letter</span>
           </div>
         </div>
-        <div class="setting-item">
-          <span class="setting-label">Smart notifications</span>
-          <div class="toggle active" id="notificationsToggle">
-            <div class="toggle-handle"></div>
+
+        <div class="score-section" id="scoreSection" style="display: none;">
+          <div class="score-header">
+            <span class="score-title">Job Match Score</span>
+            <span class="score-value" id="matchScore">--</span>
+          </div>
+          <div class="score-progress">
+            <div class="score-fill" id="scoreFill" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="section-title">
+            🤖 Premium Features (BYOK)
+          </div>
+          <div style="background: linear-gradient(135deg, #eff6ff, #dbeafe); padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #3b82f6;">
+            <div style="font-size: 12px; color: #1e40af; margin-bottom: 6px; font-weight: 600;">
+              ✨ Use Your Own API Key
+            </div>
+            <div style="font-size: 11px; color: #3b82f6; line-height: 1.4;">
+              Add your free Groq API key to unlock unlimited resume & cover letter generation!
+            </div>
+          </div>
+          <div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+            <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+              <span class="setting-label">API Keys</span>
+              <button id="manageKeysBtn" class="action-btn" style="padding: 6px 12px; font-size: 11px; min-width: auto;">
+                <span>Manage</span>
+              </button>
+            </div>
+            <div id="apiKeyStatus" style="font-size: 11px; color: #6b7280; width: 100%;">
+              No API keys configured
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="section-title">
+            ⚙️ Settings
+          </div>
+          <div class="setting-item">
+            <span class="setting-label">Auto-fill enabled</span>
+            <div class="toggle active" id="autofillToggle">
+              <div class="toggle-handle"></div>
+            </div>
+          </div>
+          <div class="setting-item">
+            <span class="setting-label">Job tracking</span>
+            <div class="toggle active" id="trackingToggle">
+              <div class="toggle-handle"></div>
+            </div>
+          </div>
+          <div class="setting-item">
+            <span class="setting-label">Smart notifications</span>
+            <div class="toggle active" id="notificationsToggle">
+              <div class="toggle-handle"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1150,7 +1421,7 @@
         <div style="background: linear-gradient(135deg, #fef3c7, #fde68a); padding: 12px; border-radius: 8px; border-left: 3px solid #f59e0b; margin-bottom: 16px;">
           <div style="font-size: 12px; color: #92400e; font-weight: 600; margin-bottom: 4px;">🎁 Get FREE API Access</div>
           <div style="font-size: 11px; color: #78350f; line-height: 1.4;">
-            Groq offers <strong>free API keys</strong> with generous limits! Sign up at 
+            Groq offers <strong>free API keys</strong> with generous limits! Sign up at
             <a href="https://console.groq.com" target="_blank" style="color: #b45309; text-decoration: underline;">console.groq.com</a>
           </div>
         </div>
@@ -1259,6 +1530,7 @@
     </div>
   </div>
 
+  <script src="profile-cache.js"></script>
+  <script src="ai-features.js"></script>
   <script src="popup.js"></script>
 </body>
-</html>

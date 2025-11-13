@@ -29,6 +29,10 @@ class AutoJobrContentScript {
     this.currentPage = 1;
     this.maxPages = 1; // Default to 1 page for non-premium
 
+    // New properties for AI features
+    this.groqApiKey = null;
+    this.groqApiUrl = 'https://api.groq.com/openai/v1';
+
     this.init();
   }
 
@@ -36,6 +40,15 @@ class AutoJobrContentScript {
     if (this.isInitialized) return;
 
     try {
+      // Load settings first
+      chrome.storage.sync.get(['userApiKey', 'premiumFeaturesEnabled'], (result) => {
+        this.groqApiKey = result.userApiKey || null;
+        // Update premium status if feature is explicitly enabled
+        if (result.premiumFeaturesEnabled === true) {
+           // Potentially set a flag if premium features are active
+        }
+      });
+
       this.injectEnhancedUI();
       this.setupMessageListener();
       this.observePageChanges();
@@ -568,19 +581,34 @@ class AutoJobrContentScript {
             </div>
           </div>
 
+          <div class="autojobr-ai-features">
+            <h4>🤖 AI Features</h4>
+            <div class="ai-feature-row">
+              <button class="autojobr-btn ai" id="autojobr-resume-gen">
+                <span class="btn-icon">📄</span>
+                <span>Generate Resume</span>
+              </button>
+              <button class="autojobr-btn ai" id="autojobr-ask-ai">
+                <span class="btn-icon">💬</span>
+                <span>Ask AI</span>
+              </button>
+            </div>
+            <div class="feature-toggle">
+              <input type="checkbox" id="auto-resume-upload" checked> <label for="auto-resume-upload">Auto Resume Upload</label>
+            </div>
+            <div class="feature-toggle">
+              <input type="checkbox" id="auto-fill-premium-ai"> <label for="auto-fill-premium-ai">Use Premium AI (Your Key)</label>
+            </div>
+          </div>
+
           <div class="autojobr-features">
             <div class="feature-toggle">
-              <input type="checkbox" id="smart-fill" checked>
-              <label for="smart-fill">Smart Fill Mode</label>
+              <input type="checkbox" id="smart-fill" checked> <label for="smart-fill">Smart Fill Mode</label>
             </div>
             <div class="feature-toggle">
-              <input type="checkbox" id="auto-submit">
-              <label for="auto-submit">Auto Submit</label>
+              <input type="checkbox" id="auto-submit"> <label for="auto-submit">Auto Submit</label>
             </div>
-            <div class="feature-toggle">
-              <input type="checkbox" id="auto-resume" checked>
-              <label for="auto-resume">Auto Resume Upload</label>
-            </div>
+            
           </div>
 
           <div class="autojobr-tasks" id="autojobr-tasks" style="display: none;">
@@ -636,6 +664,10 @@ class AutoJobrContentScript {
     document.getElementById('autojobr-salary-insights')?.addEventListener('click', () => this.handleSalaryInsights());
     document.getElementById('autojobr-referral-finder')?.addEventListener('click', () => this.handleReferralFinder());
 
+    // AI Feature Buttons
+    document.getElementById('autojobr-resume-gen')?.addEventListener('click', () => this.handleResumeGeneration());
+    document.getElementById('autojobr-ask-ai')?.addEventListener('click', () => this.handleAskAI());
+
     // Widget controls
     // Enhanced close button with better event handling
     const closeBtn = document.querySelector('.autojobr-close');
@@ -681,8 +713,18 @@ class AutoJobrContentScript {
       chrome.storage.sync.set({ autoSubmitMode: e.target.checked });
     });
 
-    document.getElementById('auto-resume')?.addEventListener('change', (e) => {
+    document.getElementById('auto-resume-upload')?.addEventListener('change', (e) => {
       chrome.storage.sync.set({ autoResumeMode: e.target.checked });
+    });
+
+    document.getElementById('auto-fill-premium-ai')?.addEventListener('change', async (e) => {
+      const apiKey = await this.getUserApiKey();
+      if (e.target.checked && !apiKey) {
+        this.showNotification('Please add your API key in extension settings to use premium AI features.', 'warning');
+        e.target.checked = false; // Revert checkbox
+        return;
+      }
+      chrome.storage.sync.set({ premiumFeaturesEnabled: e.target.checked });
     });
   }
 
@@ -814,7 +856,16 @@ class AutoJobrContentScript {
           this.stopLinkedInAutomation(); // No response needed, handled internally
           sendResponse({ success: true }); // Acknowledge stop command
           return true;
-
+        // AI Feature Actions
+        case 'getJobDescription': // Action to get job description for resume generation
+          this.getJobDescriptionForResume().then(sendResponse);
+          return true;
+        case 'generateResume': // Action to trigger resume generation
+          this.handleGenerateResume(message.data).then(sendResponse);
+          return true;
+        case 'askAI': // Action to trigger AI question answering
+          this.handleAskAI(message.data).then(sendResponse);
+          return true;
         default:
           sendResponse({ success: false, error: 'Unknown action' });
       }
@@ -1927,7 +1978,7 @@ class AutoJobrContentScript {
     const getDefaultSalary = () => {
       const yearsExp = profile.yearsExperience || 3;
       const jobTitle = (profile.professionalTitle || this.currentJobData?.title || '').toLowerCase();
-      
+
       // Base salaries by experience level
       const baseSalaries = {
         entry: 50000,
@@ -1935,7 +1986,7 @@ class AutoJobrContentScript {
         senior: 110000,
         lead: 140000
       };
-      
+
       // Multipliers by job category
       const categoryMultipliers = {
         'software': 1.3,
@@ -1950,13 +2001,13 @@ class AutoJobrContentScript {
         'analyst': 1.15,
         'manager': 1.2
       };
-      
+
       // Determine experience level
       let experienceLevel = 'entry';
       if (yearsExp >= 7) experienceLevel = 'lead';
       else if (yearsExp >= 4) experienceLevel = 'senior';
       else if (yearsExp >= 2) experienceLevel = 'mid';
-      
+
       // Find category multiplier
       let multiplier = 1.0;
       for (const [category, mult] of Object.entries(categoryMultipliers)) {
@@ -1965,10 +2016,10 @@ class AutoJobrContentScript {
           break;
         }
       }
-      
+
       const baseSalary = baseSalaries[experienceLevel];
       const estimatedSalary = Math.round(baseSalary * multiplier);
-      
+
       return {
         min: Math.round(estimatedSalary * 0.9),
         max: Math.round(estimatedSalary * 1.1)
@@ -2149,7 +2200,6 @@ class AutoJobrContentScript {
     }
 
     // Use general years of experience as default
-    // This assumes the user has been using their core skills throughout their career
     const generalExp = this.experienceCache ? parseInt(this.experienceCache) : 3;
 
     // Cache the result
@@ -2265,7 +2315,7 @@ class AutoJobrContentScript {
       // CRITICAL: Skip if field already has a value selected (especially for country codes)
       const currentValue = field.value;
       const fieldInfo = this.analyzeFieldAdvanced(field);
-      const isCountryCode = fieldInfo.combined.includes('country') || 
+      const isCountryCode = fieldInfo.combined.includes('country') ||
                            fieldInfo.combined.includes('code') ||
                            fieldInfo.combined.includes('dial') ||
                            fieldInfo.combined.includes('phone code');
@@ -2300,13 +2350,13 @@ class AutoJobrContentScript {
       // If no match found, use smart defaults to ensure form completion
       if (!option) {
         // Check if this is a Yes/No question - prefer "Yes"
-        const isYesNoQuestion = options.some(opt => 
-          opt.text.toLowerCase().trim() === 'yes' || 
+        const isYesNoQuestion = options.some(opt =>
+          opt.text.toLowerCase().trim() === 'yes' ||
           opt.text.toLowerCase().trim() === 'no'
         );
-        
+
         if (isYesNoQuestion) {
-          option = options.find(opt => 
+          option = options.find(opt =>
             opt.text.toLowerCase().trim() === 'yes' ||
             opt.value.toLowerCase().trim() === 'yes'
           );
@@ -2314,14 +2364,14 @@ class AutoJobrContentScript {
             console.log('✅ Auto-selecting "Yes" for yes/no question:', fieldInfo.label || fieldInfo.name);
           }
         }
-        
+
         // For ANY other dropdown, select the first REAL option (skip placeholders)
         if (!option && options.length > 1) {
           // Skip all placeholder/empty options and find first real option
           const firstRealOption = options.find(opt => {
             const text = opt.text.toLowerCase().trim();
             const value = opt.value.trim();
-            
+
             // List of common placeholder texts to skip
             const placeholders = [
               'select an option',
@@ -2338,21 +2388,21 @@ class AutoJobrContentScript {
               'none',
               ''
             ];
-            
+
             // Skip if text matches any placeholder
             if (placeholders.includes(text)) {
               return false;
             }
-            
+
             // Skip if value is empty or placeholder-like
             if (value === '' || value === '0' || value === '-1' || value === 'null') {
               return false;
             }
-            
+
             // This is a valid option!
             return true;
           });
-          
+
           if (firstRealOption) {
             option = firstRealOption;
             console.log('✅ Auto-selecting first REAL option (skipped placeholders):', firstRealOption.text, 'for field:', fieldInfo.label || fieldInfo.name);
@@ -2450,18 +2500,18 @@ class AutoJobrContentScript {
 
         // Simple strategy: Try to find "Yes", otherwise pick first option
         let selectedRadio = null;
-        
+
         // First pass: Look for explicit "yes" values
         for (const radio of radioGroup) {
           const val = (radio.value || '').toLowerCase().trim();
           const id = (radio.id || '').toLowerCase();
-          
+
           if (val === 'yes' || val === 'true' || val === '1' || id.includes('yes')) {
             selectedRadio = radio;
             break;
           }
         }
-        
+
         // Second pass: Check labels if no explicit yes found
         if (!selectedRadio) {
           for (const radio of radioGroup) {
@@ -2475,7 +2525,7 @@ class AutoJobrContentScript {
             }
           }
         }
-        
+
         // Fallback: Use first option if no "yes" found
         if (!selectedRadio) {
           selectedRadio = radioGroup[0];
@@ -2518,7 +2568,7 @@ class AutoJobrContentScript {
   isYesOption(radioInfo) {
     const radio = radioInfo.element;
     const radioValue = (radio.value || '').toLowerCase().trim();
-    const radioId = (radio.id || '').toLowerCase().trim();
+    const radioId = (radio.id || '').toLowerCase();
 
     // Get the option's specific label text
     let optionText = '';
@@ -2620,6 +2670,13 @@ class AutoJobrContentScript {
     try {
       // Attempt to inject resume from server
       console.log('File field detected, attempting resume upload:', field);
+
+      // Check settings for auto-resume upload
+      const settings = await chrome.storage.sync.get(['autoResumeMode']);
+      if (!settings.autoResumeMode) {
+        console.log('Auto resume upload is disabled.');
+        return false;
+      }
 
       // Get user's active resume from server
       const apiUrl = await this.getApiUrl();
@@ -2742,8 +2799,11 @@ class AutoJobrContentScript {
   }
 
   async handleFileUpload(input, userProfile) {
-    // This would need actual file handling implementation
-    // For now, we'll return false as we can't upload actual files
+    // Check if it's a resume upload field
+    const fieldInfo = this.analyzeFieldAdvanced(input);
+    if (fieldInfo.combined.includes('resume') || fieldInfo.combined.includes('cv')) {
+      return await this.fillFileFieldSmart(input, 'resume', userProfile); // 'resume' is a placeholder value
+    }
     return false;
   }
 
@@ -2805,7 +2865,7 @@ class AutoJobrContentScript {
       'input[type="submit"][value*="Next"]',
       'input[type="submit"][value*="Continue"]',
 
-      // Site-specific selectors
+      //      // Site-specific selectors
       ...this.smartSelectors.nextButtons || [],
 
       // Common classes and IDs
@@ -3322,7 +3382,7 @@ class AutoJobrContentScript {
     // ALWAYS attach submit listener - validate inside the handler
     document.addEventListener('submit', async (e) => {
       const form = e.target;
-      
+
       console.log('[SUBMIT EVENT] Form submitted:', {
         action: form.action,
         method: form.method,
@@ -3334,7 +3394,7 @@ class AutoJobrContentScript {
       if (this.isJobApplicationForm(form)) {
         console.log('[SUBMIT EVENT] ✅ Identified as job application form - will track');
         lastFormSubmissionTime = Date.now();
-        
+
         // Track with a delay to allow form submission to complete
         setTimeout(() => {
           console.log('[SUBMIT EVENT] Executing delayed tracking...');
@@ -3348,14 +3408,14 @@ class AutoJobrContentScript {
     // Also listen for button clicks on submit buttons (for SPAs that don't use form submit)
     document.addEventListener('click', async (e) => {
       const target = e.target;
-      
+
       // Check if this is a submit button
       if (this.isSubmissionButton(target) || this.isSubmissionButton(target.closest('button'))) {
         console.log('[CLICK EVENT] Submit button clicked:', {
           text: target.textContent,
           url: window.location.href
         });
-        
+
         // Wait for form submission to complete, then track
         setTimeout(() => {
           console.log('[CLICK EVENT] Executing delayed tracking after button click...');
@@ -3382,11 +3442,11 @@ class AutoJobrContentScript {
 
   isJobApplicationForm(form) {
     if (!form) return false;
-    
+
     // Handle both FORM elements and form-like containers (for SPAs)
     const isFormElement = form.tagName === 'FORM';
     const hasFormRole = form.getAttribute('role') === 'form';
-    
+
     if (!isFormElement && !hasFormRole) {
       // Check if parent is a form
       const parentForm = form.closest('form');
@@ -3402,7 +3462,7 @@ class AutoJobrContentScript {
     const formClass = form.className?.toLowerCase() || '';
 
     // Check for job application indicators
-    const hasApplyKeyword = formText.includes('apply') || 
+    const hasApplyKeyword = formText.includes('apply') ||
                            formText.includes('application') ||
                            formText.includes('submit application') ||
                            actionUrl.includes('apply') ||
@@ -3414,17 +3474,17 @@ class AutoJobrContentScript {
 
     // Check for resume/CV upload fields (strong indicator)
     const hasResumeField = form.querySelector('input[type="file"][accept*="pdf"], input[name*="resume"], input[name*="cv"], input[id*="resume"]');
-    
+
     // Check for cover letter field (strong indicator)
     const hasCoverLetterField = form.querySelector('textarea[name*="cover"], textarea[id*="cover"], textarea[placeholder*="cover"]');
-    
+
     // LinkedIn Easy Apply specific
-    const isLinkedInEasyApply = form.closest('[data-test-modal="jobs-easy-apply-modal"]') || 
+    const isLinkedInEasyApply = form.closest('[data-test-modal="jobs-easy-apply-modal"]') ||
                                 form.classList.contains('jobs-easy-apply-modal') ||
                                 formClass.includes('easy-apply');
-    
+
     // Workday specific
-    const isWorkdayApplication = form.hasAttribute('data-automation-id') || 
+    const isWorkdayApplication = form.hasAttribute('data-automation-id') ||
                                  formClass.includes('workday');
 
     return hasApplyKeyword || hasResumeField || hasCoverLetterField || isLinkedInEasyApply || isWorkdayApplication;
@@ -3440,7 +3500,7 @@ class AutoJobrContentScript {
 
     const submitKeywords = [
       'submit application', 'apply now', 'submit', 'apply', 'send application',
-      'continue to apply', 'review and submit', 'complete application'
+      'continue to apply', 'complete application', 'finish'
     ];
 
     return submitKeywords.some(keyword =>
@@ -3470,7 +3530,7 @@ class AutoJobrContentScript {
       // If extraction failed, try one more time after a short delay
       if (!jobData.success || !jobData.jobData) {
         console.log('[TRACK] First extraction failed, retrying in 1 second...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await this.delay(1000);
         jobData = await this.extractJobDetails();
         console.log('[TRACK] Retry result:', jobData);
       }
@@ -3534,7 +3594,7 @@ class AutoJobrContentScript {
     } catch (error) {
       console.error('[TRACK] ❌ Failed to track application:', error);
       console.error('[TRACK] Error stack:', error.stack);
-      
+
       // Show user-friendly error
       let errorMessage = 'Failed to track application';
       if (error.message?.includes('not authenticated')) {
@@ -3542,7 +3602,7 @@ class AutoJobrContentScript {
       } else if (error.message?.includes('Extension context')) {
         errorMessage = 'Extension needs reload. Refresh page.';
       }
-      
+
       this.showNotification(`❌ ${errorMessage}`, 'error');
       return { success: false, error: error.message };
     }
@@ -3672,14 +3732,14 @@ class AutoJobrContentScript {
 
     // RELAXED LinkedIn detection - focus on URL patterns, not DOM (DOM may load later)
     if (hostname.includes('linkedin.com')) {
-      const isJobsPage = url.includes('/jobs/view/') || 
-                         url.includes('/jobs/collections/') || 
+      const isJobsPage = url.includes('/jobs/view/') ||
+                         url.includes('/jobs/collections/') ||
                          url.includes('/jobs/apply/') ||
                          url.includes('currentjobid=');
-      const isFeedPage = url.includes('/feed/') || 
-                         url.includes('/mynetwork/') || 
+      const isFeedPage = url.includes('/feed/') ||
+                         url.includes('/mynetwork/') ||
                          url === 'https://www.linkedin.com/';
-      
+
       return isJobsPage && !isFeedPage;
     }
 
@@ -3709,11 +3769,11 @@ class AutoJobrContentScript {
     }
 
     // Generic detection for other sites - more relaxed
-    const hasJobKeywords = url.includes('/job') || 
-                          url.includes('/career') || 
+    const hasJobKeywords = url.includes('/job') ||
+                          url.includes('/career') ||
                           url.includes('/apply') ||
                           url.includes('/application');
-    
+
     if (hasJobKeywords) {
       return true; // Let the form handler decide if it's actually a job form
     }
@@ -4950,41 +5010,232 @@ class AutoJobrContentScript {
       console.error('Failed to track application:', error);
     }
   }
-}
 
-// Add message listener for getting current analysis data
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'getCurrentAnalysis') {
-    const extension = window.autojobrExtension;
-    if (extension && extension.currentAnalysis) {
-      sendResponse({
-        success: true,
-        analysis: extension.currentAnalysis,
-        jobData: extension.extractJobData()
+  // --- New AI Feature Methods ---
+
+  /**
+   * Handles the resume generation request.
+   */
+  async handleResumeGeneration() {
+    this.updateStatus('🔄 Fetching job details for resume generation...', 'loading');
+    try {
+      // Get job description, title, and company from the current page
+      const jobInfoResponse = await chrome.runtime.sendMessage({ action: 'getJobDescription' });
+
+      if (!jobInfoResponse || !jobInfoResponse.success) {
+        throw new Error(jobInfoResponse?.error || 'Could not get job details from the page.');
+      }
+
+      const { jobDescription, jobTitle, company } = jobInfoResponse;
+      if (!jobDescription || !jobTitle || !company) {
+        throw new Error('Could not extract all required job details. Please ensure you are on a job page.');
+      }
+
+      this.updateStatus('✍️ Generating resume with AI...', 'loading');
+
+      // Check if premium features or API key are enabled
+      const settingsResponse = await chrome.runtime.sendMessage({ action: 'getSettings' });
+      const premiumAiEnabled = settingsResponse.settings?.premiumFeaturesEnabled;
+      const userApiKey = settingsResponse.settings?.userApiKey;
+
+      if (!premiumAiEnabled || !userApiKey) {
+        this.showNotification('Please enable Premium AI features and add your API key in the extension settings to generate resumes.', 'warning');
+        this.updateStatus('AI features not configured.', 'info');
+        return;
+      }
+
+      // Call background script to generate resume using Groq API
+      const resumeResponse = await chrome.runtime.sendMessage({
+        action: 'generateResume',
+        data: { jobDescription, jobTitle, company }
       });
-    } else {
-      sendResponse({ success: false });
-    }
-  } else if (message.action === 'startLinkedInAutomation') {
-    // Handle starting LinkedIn automation directly from background/popup
-    const extension = window.autojobrExtension;
-    if (extension) {
-      extension.startLinkedInAutomation().then(response => {
-        sendResponse(response || { success: true }); // Ensure a response is sent
-      }).catch(error => {
-        console.error("Error starting LinkedIn automation:", error);
-        sendResponse({ success: false, error: error.message });
-      });
-      return true; // Indicate async response
-    } else {
-      sendResponse({ success: false, error: 'AutoJobr extension not initialized' });
+
+      if (resumeResponse.success) {
+        // Display the generated resume in a modal or new tab
+        this.showResumeModal(resumeResponse.resumeContent);
+        this.updateStatus('✅ Resume generated!', 'success');
+      } else {
+        throw new Error(resumeResponse.error || 'Resume generation failed.');
+      }
+
+    } catch (error) {
+      console.error('Resume generation failed:', error);
+      this.showNotification(`❌ Resume generation failed: ${error.message}`, 'error');
+      this.updateStatus('Resume generation failed.', 'error');
     }
   }
-  return true; // Keep message channel open for other listeners
-});
 
+  /**
+   * Displays the generated resume in a modal.
+   * @param {string} resumeContent - The HTML content of the resume.
+   */
+  showResumeModal(resumeContent) {
+    const modal = document.createElement('div');
+    modal.className = 'autojobr-modal-overlay';
+    modal.innerHTML = `
+      <div class="autojobr-modal">
+        <div class="autojobr-modal-header">
+          <h3>📄 Generated Resume</h3>
+          <button class="autojobr-modal-close">×</button>
+        </div>
+        <div class="autojobr-modal-content">
+          <div class="resume-preview">${resumeContent}</div>
+        </div>
+        <div class="autojobr-modal-footer">
+          <button id="autojobr-download-resume" class="autojobr-btn primary">Download</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
 
-// Initialize content script
+    // Close modal event
+    modal.querySelector('.autojobr-modal-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+
+    // Download button event
+    document.getElementById('autojobr-download-resume')?.addEventListener('click', () => {
+      this.downloadResume(resumeContent);
+    });
+  }
+
+  /**
+   * Downloads the generated resume as an HTML file.
+   * @param {string} htmlContent - The HTML content of the resume.
+   */
+  downloadResume(htmlContent) {
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'generated_resume.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Handles the 'Ask AI' feature, sending a question to the AI.
+   */
+  async handleAskAI() {
+    const question = prompt('Ask our AI anything:');
+    if (!question) return; // User cancelled
+
+    this.updateStatus('🤖 Asking AI...', 'loading');
+    try {
+      // Check if premium features or API key are enabled
+      const settingsResponse = await chrome.runtime.sendMessage({ action: 'getSettings' });
+      const premiumAiEnabled = settingsResponse.settings?.premiumFeaturesEnabled;
+      const userApiKey = settingsResponse.settings?.userApiKey;
+
+      if (!premiumAiEnabled || !userApiKey) {
+        this.showNotification('Please enable Premium AI features and add your API key in the extension settings to use this feature.', 'warning');
+        this.updateStatus('AI features not configured.', 'info');
+        return;
+      }
+
+      // Optionally, extract context from the current page (e.g., job description)
+      let context = '';
+      if (this.currentJobData?.description) {
+        context = `Context: Job Description - ${this.currentJobData.description.substring(0, 500)}...`; // Limit context length
+      }
+
+      // Call background script to ask AI
+      const aiResponse = await chrome.runtime.sendMessage({
+        action: 'askAI',
+        data: { question, context }
+      });
+
+      if (aiResponse.success) {
+        this.showAIResponseModal(question, aiResponse.answer);
+        this.updateStatus('AI response received!', 'success');
+      } else {
+        throw new Error(aiResponse.error || 'AI response failed.');
+      }
+
+    } catch (error) {
+      console.error('Ask AI failed:', error);
+      this.showNotification(`❌ Ask AI failed: ${error.message}`, 'error');
+      this.updateStatus('AI query failed.', 'error');
+    }
+  }
+
+  /**
+   * Displays the AI's answer in a modal.
+   * @param {string} question - The user's original question.
+   * @param {string} answer - The AI's response.
+   */
+  showAIResponseModal(question, answer) {
+    const modal = document.createElement('div');
+    modal.className = 'autojobr-modal-overlay';
+    modal.innerHTML = `
+      <div class="autojobr-modal">
+        <div class="autojobr-modal-header">
+          <h3>💬 AI Response</h3>
+          <button class="autojobr-modal-close">×</button>
+        </div>
+        <div class="autojobr-modal-content">
+          <div class="ai-question">
+            <strong>Your Question:</strong> ${question}
+          </div>
+          <div class="ai-answer">
+            <strong>AI Answer:</strong> ${answer}
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.querySelector('.autojobr-modal-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+  }
+
+  /**
+   * Gets the job description from the current page using the background script.
+   * @returns {Promise<{success: boolean, jobDescription?: string, jobTitle?: string, company?: string, error?: string}>}
+   */
+  async getJobDescriptionForResume() {
+    try {
+      const response = await chrome.runtime.sendMessage({ action: 'getJobDescription' });
+      if (response && response.success) {
+        return { success: true, jobDescription: response.jobDescription, jobTitle: response.jobTitle, company: response.company };
+      } else {
+        throw new Error(response?.error || 'Failed to get job description.');
+      }
+    } catch (error) {
+      console.error('Error getting job description:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Placeholder for getUserApiKey - will fetch from settings
+  async getUserApiKey() {
+    try {
+      const result = await chrome.storage.sync.get(['userApiKey']);
+      return result.userApiKey || null;
+    } catch (error) {
+      console.error('Error getting user API key:', error);
+      return null;
+    }
+  }
+
+  // Placeholder for isPremiumUser - will fetch from settings
+  async isPremiumUser() {
+     try {
+      const result = await chrome.storage.sync.get(['premiumFeaturesEnabled']);
+      return result.premiumFeaturesEnabled === true;
+    } catch (error) {
+      console.error('Error checking premium status:', error);
+      return false;
+    }
+  }
+}
+
+// Initialize the content script
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     const extension = new AutoJobrContentScript();
@@ -4997,4 +5248,80 @@ if (document.readyState === 'loading') {
   window.autojobrExtension = extension; // Store reference for message handling
   // Show floating button on job pages after a delay
   setTimeout(() => extension.createFloatingButton(), 1000);
+}
+
+// --- Helper functions for AI Features (must be available globally or passed correctly) ---
+
+// These functions are assumed to be defined elsewhere or globally accessible
+// if they are called directly within the content script's methods.
+// For example, extractJobDescription, extractJobTitle, extractCompany are
+// defined in the background script in the provided changes.
+// If they are intended for the content script, they should be moved here.
+
+// --- Moved helper functions from background.js to content.js ---
+// Note: These might conflict if background.js also defines them globally.
+
+function extractJobDescription() {
+  // Try multiple selectors for job description
+  const selectors = [
+    '.job-description', '.jobs-description__content', '.jobs-description-content__text',
+    '.description', '.job-desc', '.content', '[class*="description"]', '[id*="description"]',
+    'article', 'main'
+  ];
+
+  for (const selector of selectors) {
+    const element = document.querySelector(selector);
+    // Ensure element has substantial text content
+    if (element && element.textContent && element.textContent.trim().length > 100) {
+      return element.textContent.trim();
+    }
+  }
+
+  // Fallback: Use a large portion of body text if no specific element is found
+  return document.body.textContent ? document.body.textContent.trim().substring(0, 3000) : '';
+}
+
+function extractJobTitle() {
+  const selectors = [
+    'h1', '.job-title', '[class*="job-title"]', '[class*="jobtitle"]', 'h2',
+    '.jobs-unified-top-card__job-title', '.job-details-jobs-unified-top-card__job-title'
+  ];
+
+  for (const selector of selectors) {
+    const element = document.querySelector(selector);
+    if (element) {
+      return element.textContent.trim();
+    }
+  }
+
+  // Fallback: Use the page title
+  return document.title ? document.title.split('|')[0].trim() : '';
+}
+
+function extractCompany() {
+  const selectors = [
+    '.company', '[class*="company"]', '.employer', '[class*="employer"]',
+    '.organization-name', '[class*="organization"]',
+    '.jobs-unified-top-card__company-name', '.job-details-jobs-unified-top-card__company-name'
+  ];
+
+  for (const selector of selectors) {
+    const element = document.querySelector(selector);
+    if (element) {
+      return element.textContent.trim();
+    }
+  }
+
+  return ''; // Return empty string if company not found
+}
+
+// Ensure extractJobInfo exists if it was expected elsewhere, though it seems redundant now.
+function extractJobInfo() {
+  console.warn('extractJobInfo called, but extractJobDescription, extractJobTitle, extractCompany are preferred.');
+  return {
+    description: extractJobDescription(),
+    title: extractJobTitle(),
+    company: extractCompany(),
+    url: window.location.href
+  };
 }
