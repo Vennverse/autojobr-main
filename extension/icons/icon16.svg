@@ -1,4 +1,24 @@
+
 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="16" height="16" rx="3" fill="#00d4ff"/>
-  <text x="8" y="11" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10" font-weight="bold">A</text>
+  <g transform="scale(0.04)">
+    <path d="M240 50L240 100L200 140L200 180L240 220L280 180L280 140L240 50Z" fill="url(#gradient1)"/>
+    <path d="M180 140L240 140L240 180L200 180L160 220L140 200L180 140Z" fill="url(#gradient2)"/>
+    <path d="M300 140L260 180L260 220L300 260L320 240L280 180L300 140Z" fill="url(#gradient2)"/>
+    <path d="M240 220L200 260L240 300L280 260L240 220Z" fill="url(#gradient3)"/>
+    <circle cx="240" cy="120" r="15" fill="#1a1a1a"/>
+  </g>
+  <defs>
+    <linearGradient id="gradient1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff6b35"/>
+      <stop offset="100%" style="stop-color:#ff4500"/>
+    </linearGradient>
+    <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ff8c42"/>
+      <stop offset="100%" style="stop-color:#ffa500"/>
+    </linearGradient>
+    <linearGradient id="gradient3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff1744"/>
+      <stop offset="100%" style="stop-color:#d81b60"/>
+    </linearGradient>
+  </defs>
 </svg>
