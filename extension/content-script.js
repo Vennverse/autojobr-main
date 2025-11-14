@@ -17,7 +17,6 @@ class AutoJobrContentScript {
     this.cachedProfile = null; // Cache profile to prevent excessive requests
     this.lastAuthCheck = 0; // Track last authentication check
     this.currentAnalysis = null; // Store the latest job analysis result
-    this.lastTrackedTime = 0; // Track last application submission time for de-duplication
 
     // Experience calculation cache
     this.experienceCache = null; // Cache for general years of experience
@@ -513,11 +512,11 @@ class AutoJobrContentScript {
     const overlay = document.createElement('div');
     overlay.id = 'autojobr-overlay';
     overlay.innerHTML = `
-      <div class="autojobr-widget">
+      <div class="autojobr-widget" style="display: none;">
         <div class="autojobr-header">
           <div class="autojobr-logo">
             <div class="autojobr-icon">A</div>
-            <span>AutoJobr</span>
+            <span>AutoJobr v2.0</span>
           </div>
           <div class="autojobr-controls">
             <button class="autojobr-minimize" title="Minimize">−</button>
@@ -609,7 +608,7 @@ class AutoJobrContentScript {
             <div class="feature-toggle">
               <input type="checkbox" id="auto-submit"> <label for="auto-submit">Auto Submit</label>
             </div>
-
+            
           </div>
 
           <div class="autojobr-tasks" id="autojobr-tasks" style="display: none;">
@@ -655,31 +654,19 @@ class AutoJobrContentScript {
   }
 
   attachEnhancedUIEventListeners() {
-    console.log('🔧 Attaching event listeners to extension buttons...');
-
     // Main action buttons
-    const attachListener = (id, handler, label) => {
-      const element = document.getElementById(id);
-      if (element) {
-        element.addEventListener('click', handler);
-        console.log(`✅ Attached listener for ${label}`);
-      } else {
-        console.warn(`⚠️ Element not found: ${id}`);
-      }
-    };
+    document.getElementById('autojobr-autofill')?.addEventListener('click', () => this.handleSmartAutofill());
+    document.getElementById('autojobr-analyze')?.addEventListener('click', () => this.handleAnalyze());
+    document.getElementById('autojobr-save-job')?.addEventListener('click', () => this.handleSaveJob());
+    document.getElementById('autojobr-cover-letter')?.addEventListener('click', () => this.handleCoverLetter());
+    document.getElementById('autojobr-upload-resume')?.addEventListener('click', () => this.handleResumeUpload());
+    document.getElementById('autojobr-interview-prep')?.addEventListener('click', () => this.handleInterviewPrep());
+    document.getElementById('autojobr-salary-insights')?.addEventListener('click', () => this.handleSalaryInsights());
+    document.getElementById('autojobr-referral-finder')?.addEventListener('click', () => this.handleReferralFinder());
 
-    attachListener('autojobr-autofill', () => this.handleSmartAutofill(), 'Auto-fill');
-    attachListener('autojobr-analyze', () => this.handleAnalyze(), 'Analyze');
-    attachListener('autojobr-save-job', () => this.handleSaveJob(), 'Save Job');
-    attachListener('autojobr-cover-letter', () => this.handleGenerateCoverLetter(), 'Cover Letter');
-    attachListener('autojobr-interview-prep', () => this.handleInterviewPrep(), 'Interview Prep');
-    attachListener('autojobr-salary-insights', () => this.handleSalaryInsights(), 'Salary Insights');
-    attachListener('autojobr-referral-finder', () => this.handleReferralFinder(), 'Referral Finder');
-    attachListener('autojobr-upload-resume', () => this.handleResumeUpload(), 'Upload Resume');
-
-    // AI Features buttons
-    attachListener('autojobr-ask-ai', () => this.openAIChat(), 'AI Chat');
-    attachListener('autojobr-resume-gen', () => this.generateAIResume(), 'AI Resume Generator');
+    // AI Feature Buttons
+    document.getElementById('autojobr-resume-gen')?.addEventListener('click', () => this.handleResumeGeneration());
+    document.getElementById('autojobr-ask-ai')?.addEventListener('click', () => this.handleAskAI());
 
     // Widget controls
     // Enhanced close button with better event handling
@@ -760,19 +747,12 @@ class AutoJobrContentScript {
     document.addEventListener('mouseup', dragEnd);
 
     function dragStart(e) {
-      // Don't start dragging if clicking on buttons or controls
-      if (e.target.classList.contains('autojobr-close') || 
-          e.target.classList.contains('autojobr-minimize') ||
-          e.target.closest('.autojobr-controls')) {
-        return;
-      }
-
       initialX = e.clientX - xOffset;
       initialY = e.clientY - yOffset;
 
-      if (e.target === header || (header.contains(e.target) && !e.target.closest('.autojobr-controls'))) {
+      if (e.target === header || header.contains(e.target)) {
         isDragging = true;
-        header.style.cursor = 'grabbing';
+        widget.style.cursor = 'grabbing';
       }
     }
 
@@ -1557,7 +1537,7 @@ class AutoJobrContentScript {
       return { success: false, error: 'Max auto-fill attempts reached' };
     }
 
-    // Reset filledFields tracking for new session
+    // Reset filled fields tracking for new session
     this.filledFields.clear();
 
     this.fillInProgress = true;
@@ -3532,58 +3512,88 @@ class AutoJobrContentScript {
   }
 
   async trackApplicationSubmission() {
-    // Prevent duplicate tracking within 30 seconds
-    const now = Date.now();
-    const lastTracked = this.lastTrackedTime || 0;
-    if (now - lastTracked < 30000) {
-      console.log('[TRACKING] ⏱️ Skipping - already tracked within last 30 seconds');
-      return;
-    }
-
-    console.log('[TRACKING] 🎯 Application submission detected! Starting tracking...');
-
     try {
-      // Extract job details from the current page
-      const jobData = await this.extractJobDetails();
-      console.log('[TRACKING] 📊 Extracted job data:', jobData);
+      console.log('[TRACK] Starting application tracking...');
+      console.log('[TRACK] Current URL:', window.location.href);
+      console.log('[TRACK] Platform:', this.detectPlatform(window.location.hostname));
 
       // Double-check this is actually a job application submission
-      if (!jobData.success || !jobData.jobData || !jobData.jobData.title) {
-        console.log('[TRACKING] ❌ Invalid job data - cannot track:', jobData);
-        return { success: false, reason: 'Invalid job data' };
+      if (!this.isJobApplicationPage()) {
+        console.log('[TRACK] Not a job application page - skipping');
+        return { success: false, reason: 'Not a job application page' };
       }
 
-      // Track with background script
-      const response = await chrome.runtime.sendMessage({
-        action: 'trackApplication',
-        data: {
+      // Extract job details with retry logic
+      let jobData = await this.extractJobDetails();
+      console.log('[TRACK] Extracted job data:', jobData);
+
+      // If extraction failed, try one more time after a short delay
+      if (!jobData.success || !jobData.jobData) {
+        console.log('[TRACK] First extraction failed, retrying in 1 second...');
+        await this.delay(1000);
+        jobData = await this.extractJobDetails();
+        console.log('[TRACK] Retry result:', jobData);
+      }
+
+      if (jobData.success && jobData.jobData && jobData.jobData.title) {
+        const trackingData = {
           jobTitle: jobData.jobData.title,
-          company: jobData.jobData.company,
+          company: jobData.jobData.company || 'Unknown Company',
           location: jobData.jobData.location || '',
-          jobUrl: jobData.jobData.url || window.location.href,
+          jobUrl: window.location.href,
           status: 'applied',
           source: 'extension',
-          platform: this.currentSite,
+          platform: this.detectPlatform(window.location.hostname),
+          appliedDate: new Date().toISOString(),
           jobType: jobData.jobData.jobType || null,
           workMode: jobData.jobData.workMode || null
+        };
+
+        console.log('[TRACK] Sending to background script:', trackingData);
+
+        try {
+          const response = await chrome.runtime.sendMessage({
+            action: 'trackApplication',
+            data: trackingData
+          });
+
+          console.log('[TRACK] Background response:', response);
+
+          if (response && response.success) {
+            this.showNotification('✅ Application tracked successfully!', 'success');
+            console.log('[TRACK] ✅ Application saved to database');
+            console.log('[TRACK] Application ID:', response.applicationId || response.application?.id);
+            return { success: true, application: response.application };
+          } else {
+            const errorMsg = response?.error || 'Unknown error';
+            console.error('[TRACK] ❌ Tracking failed:', errorMsg);
+            this.showNotification(`⚠️ Tracking failed: ${errorMsg}`, 'error');
+            return { success: false, error: errorMsg };
+          }
+        } catch (runtimeError) {
+          // Handle extension context errors
+          if (runtimeError.message?.includes('Extension context invalidated') ||
+              runtimeError.message?.includes('Could not establish connection')) {
+            console.error('[TRACK] ❌ Extension needs reload. Please refresh the page.');
+            this.showNotification('⚠️ Extension needs reload. Refresh page to continue.', 'error');
+            return { success: false, error: 'Extension context invalidated' };
+          }
+          throw runtimeError;
         }
-      });
-
-      console.log('[TRACKING] 📊 Background response:', response);
-
-      if (response && response.success) {
-        console.log('[TRACKING] ✅ Application tracked successfully!');
-        // Update last tracked time
-        this.lastTrackedTime = Date.now();
-        // Show single notification
-        this.showNotification('✅ Application tracked successfully!', 'success');
       } else {
-        console.error('[TRACKING] ❌ Tracking failed:', response);
-        this.showNotification('❌ Failed to track application', 'error');
+        const reason = 'Could not extract job title or company';
+        console.log('[TRACK] Invalid job data - cannot track:', reason);
+        console.log('[TRACK] Job data details:', {
+          success: jobData.success,
+          hasJobData: !!jobData.jobData,
+          title: jobData.jobData?.title,
+          company: jobData.jobData?.company
+        });
+        return { success: false, reason };
       }
     } catch (error) {
-      console.error('[TRACKING] ❌ Failed to track application:', error);
-      console.error('[TRACKING] Error stack:', error.stack);
+      console.error('[TRACK] ❌ Failed to track application:', error);
+      console.error('[TRACK] Error stack:', error.stack);
 
       // Show user-friendly error
       let errorMessage = 'Failed to track application';
@@ -4832,7 +4842,7 @@ class AutoJobrContentScript {
           }
 
           // Submit the application
-          console.log(' D:' Submitting application...');
+          console.log('📤 Submitting application...');
           submitButton.click();
           await this.delay(2000);
           return true;

@@ -27,9 +27,10 @@
     }
 
     .header {
-      background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(20px);
       padding: 20px;
-      border-bottom: none;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
@@ -1157,10 +1158,15 @@
       </div>
 
       <!-- Apply Tab Content -->
-      <div id="apply" class="tab-content">
+      <div id="apply" class="tab-content active">
         <div class="section-header">
           <h3>📄 Apply to Job</h3>
           <p class="section-subtitle">Manage your job applications and get insights</p>
+        </div>
+
+        <div class="job-info" id="jobInfo" style="display: none;">
+          <div class="job-title" id="jobTitle"></div>
+          <div class="job-company" id="jobCompany"></div>
         </div>
 
         <div class="quick-actions">
@@ -1240,13 +1246,13 @@
             </div>
           </div>
 
-          <div style="display: flex; gap: 8px; align-items: flex-start;">
+          <div style="display: flex; gap: 8px;">
             <textarea
               id="ai-question"
               placeholder="Ask me anything... (e.g., 'How do I prepare for a software engineer interview?')"
-              style="flex: 1; min-height: 60px; padding: 10px; border-radius: 8px; border: 2px solid #e5e7eb; resize: vertical; font-size: 13px;"
+              style="flex: 1; min-height: 60px; padding: 8px; border-radius: 6px; border: 1px solid #ddd; resize: vertical;"
             ></textarea>
-            <button id="send-ai-question" class="primary-button" style="align-self: stretch; min-width: 80px;">
+            <button id="send-ai-question" class="primary-button" style="height: fit-content;">
               Send
             </button>
           </div>
@@ -1527,31 +1533,4 @@
   <script src="profile-cache.js"></script>
   <script src="ai-features.js"></script>
   <script src="popup.js"></script>
-  <script>
-    // Initialize tab switching
-    document.addEventListener('DOMContentLoaded', () => {
-      const tabButtons = document.querySelectorAll('.tab-button');
-      const tabContents = document.querySelectorAll('.tab-content');
-      
-      tabButtons.forEach(button => {
-        button.addEventListener('click', () => {
-          const targetTab = button.getAttribute('data-tab');
-          
-          // Remove active class from all buttons and contents
-          tabButtons.forEach(btn => btn.classList.remove('active'));
-          tabContents.forEach(content => content.classList.remove('active'));
-          
-          // Add active class to clicked button and corresponding content
-          button.classList.add('active');
-          document.getElementById(targetTab)?.classList.add('active');
-        });
-      });
-      
-      // Set first tab as active by default
-      if (tabButtons.length > 0 && tabContents.length > 0) {
-        tabButtons[0].classList.add('active');
-        tabContents[0].classList.add('active');
-      }
-    });
-  </script>
 </body>

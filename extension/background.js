@@ -14,7 +14,6 @@ class AutoJobrBackground {
     this.referralFinder = null;
     this.profileCache = null;
     this.matchEngine = null;
-    this.lastNotifications = {}; // For debouncing notifications
     this.init();
   }
 
@@ -417,7 +416,7 @@ class AutoJobrBackground {
           break;
 
         case 'getAutopilotStatus':
-          if (this.autopopilot) {
+          if (this.autopilot) {
             sendResponse({ success: true, status: this.autopilot.getStatus() });
           }
           break;
@@ -779,7 +778,7 @@ class AutoJobrBackground {
             data: profile,
             timestamp: Date.now()
           });
-
+          
           // Also save to ProfileCache for future use
           await this.profileCache.setProfile(profile);
         }
@@ -858,8 +857,7 @@ class AutoJobrBackground {
       });
 
       if (result.success) {
-        // Use debounced notification
-        await this.showNotification(
+        await this.showAdvancedNotification(
           result.duplicate ? 'Already Tracked! 📋' : 'Application Tracked! 📊',
           `${data.jobTitle} at ${data.company}`,
           'success'
@@ -874,14 +872,14 @@ class AutoJobrBackground {
         message: error.message,
         stack: error.stack
       });
-
+      
       // Show error notification
-      await this.showNotification(
+      await this.showAdvancedNotification(
         'Tracking Failed ❌',
         error.message || 'Failed to track application',
         'error'
       );
-
+      
       throw error;
     }
   }
@@ -924,7 +922,7 @@ class AutoJobrBackground {
 
       const savedJob = await response.json();
 
-      await this.showNotification(
+      await this.showAdvancedNotification(
         'Job Saved! 💾',
         `Saved "${data.jobTitle}" at ${data.company}`,
         'success'
@@ -972,7 +970,7 @@ class AutoJobrBackground {
 
       const result_data = await response.json();
 
-      await this.showNotification(
+      await this.showAdvancedNotification(
         'Cover Letter Generated! 📝',
         'Cover letter has been generated and copied to clipboard',
         'success'
@@ -1011,7 +1009,7 @@ class AutoJobrBackground {
 
       const prep = await response.json();
 
-      await this.showNotification(
+      await this.showAdvancedNotification(
         'Interview Prep Ready! 🎯',
         `Generated ${prep.questions?.length || 0} practice questions`,
         'success'
@@ -1059,7 +1057,7 @@ class AutoJobrBackground {
       // Use API only when necessary
       if (shouldUseAPI) {
         console.log('⚡ Using API for deep analysis (low confidence or explicit request)');
-
+        
         try {
           const response = await fetch(`${this.apiUrl}/api/analyze-job-match`, {
             method: 'POST',
@@ -1109,7 +1107,7 @@ class AutoJobrBackground {
         if (!lastNotificationTime || (now - lastNotificationTime) > 30000) { // 30 seconds throttle
           this.lastNotifications[jobKey] = now;
           const sourceLabel = analysis.source === 'local' ? '⚡ Fast' : '🔍 Deep';
-          await this.showNotification(
+          await this.showAdvancedNotification(
             `${sourceLabel} Analysis Complete! 🎯`,
             `Match Score: ${analysis.matchScore}% (${matchLevel} match)`,
             analysis.matchScore >= 60 ? 'success' : 'warning'
@@ -1186,21 +1184,13 @@ class AutoJobrBackground {
     }
   }
 
-  async showNotification(title, message, type = 'basic') {
+  async showAdvancedNotification(title, message, type = 'basic') {
     const iconMap = {
       success: 'icons/icon48.png',
       warning: 'icons/icon48.png',
       error: 'icons/icon48.png',
       info: 'icons/icon48.png'
     };
-
-    // Debounce notifications to prevent spam
-    const notificationKey = `${title}-${message}`;
-    if (this.lastNotifications[notificationKey] && Date.now() - this.lastNotifications[notificationKey] < 5000) { // 5 seconds debounce
-      console.log('Notification debounced:', title);
-      return;
-    }
-    this.lastNotifications[notificationKey] = Date.now();
 
     chrome.notifications.create({
       type: 'basic',
@@ -1211,23 +1201,11 @@ class AutoJobrBackground {
     });
   }
 
-  async showAdvancedNotification(title, message, type = 'basic') {
-    const iconMap = {
-      success: 'icons/icon48.png',
-      warning: 'icons/icon48.png',
-      error: 'icons/icon48.png',
-      info: 'icons/icon48.png'
-    };
-
-    // Use the debounced showNotification method
-    await this.showNotification(title, message, type);
-  }
-
   async triggerAutofill(tabId) {
     try {
       const profile = await this.getUserProfile();
       if (!profile) {
-        await this.showNotification(
+        await this.showAdvancedNotification(
           'Authentication Required',
           'Please sign in to use auto-fill',
           'warning'
