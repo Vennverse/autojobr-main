@@ -1202,7 +1202,7 @@ body {
   }
 
 .score-section {
-    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    background: linear-gradient(135deg, #f8fafc, #f1f9f9);
     border: 2px solid #e2e8f0;
     border-radius: 18px;
     padding: 24px;
@@ -1247,3 +1247,12 @@ body {
     overflow: hidden;
     min-height: 100px;
   }
+
+.footer {
+  text-align: center;
+  padding: 16px 20px;
+  font-size: 12px;
+  color: #6b7280;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+}
