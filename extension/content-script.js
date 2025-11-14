@@ -512,11 +512,11 @@ class AutoJobrContentScript {
     const overlay = document.createElement('div');
     overlay.id = 'autojobr-overlay';
     overlay.innerHTML = `
-      <div class="autojobr-widget" style="display: none;">
+      <div class="autojobr-widget">
         <div class="autojobr-header">
           <div class="autojobr-logo">
             <div class="autojobr-icon">A</div>
-            <span>AutoJobr v2.0</span>
+            <span>AutoJobr</span>
           </div>
           <div class="autojobr-controls">
             <button class="autojobr-minimize" title="Minimize">−</button>
