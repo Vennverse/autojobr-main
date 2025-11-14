@@ -597,7 +597,7 @@ class AutoJobrBackground {
     const isJobBoard = supportedDomains.some(domain => tab.url.includes(domain));
 
     if (isJobBoard) {
-      // Update badge
+      // Update badge with enhanced styling
       chrome.action.setBadgeText({
         tabId: tabId,
         text: '✓'
@@ -616,10 +616,6 @@ class AutoJobrBackground {
         this.detectJobPosting(tabId);
       }, 2000);
 
-      // AUTO-OPEN EXTENSION POPUP on job pages
-      // Note: Can only open popup if user has interacted with page recently
-      // Chrome restricts this for security - user must click extension icon first time
-      
     } else {
       chrome.action.setBadgeText({
         tabId: tabId,

@@ -49,21 +49,21 @@ class AutoJobrContentScript {
         }
       });
 
-      // NO WIDGET INJECTION - extension popup handles everything
+      this.injectEnhancedUI();
       this.setupMessageListener();
       this.observePageChanges();
       this.setupKeyboardShortcuts();
       this.initializeSmartSelectors();
-      this.setupApplicationTracking();
+      this.setupApplicationTracking(); // Setup tracking once during initialization
 
-      // Setup automatic job analysis
+      // Setup automatic job analysis with debouncing
       this.setupAutoAnalysis();
       this.isInitialized = true;
 
       // Mark as loaded for background script
       window.autojobrContentScriptLoaded = true;
 
-      console.log('🚀 AutoJobr extension v2.0 initialized (no widget mode)');
+      console.log('🚀 AutoJobr extension v2.0 initialized on:', this.currentSite);
     } catch (error) {
       console.error('AutoJobr initialization error:', error);
     }
@@ -506,10 +506,11 @@ class AutoJobrContentScript {
     this.smartSelectors = siteSelectors[this.currentSite] || siteSelectors.generic || {};
   }
 
-  // Widget removed - extension popup handles all UI
   injectEnhancedUI() {
-    // No longer needed - extension popup auto-opens on job pages
-    return;
+    if (document.getElementById('autojobr-overlay')) return;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'autojobr-overlay';
     overlay.innerHTML = `
       <div class="autojobr-widget">
         <div class="autojobr-header">

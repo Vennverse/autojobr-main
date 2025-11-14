@@ -50,21 +50,6 @@ class AutoJobrPopup {
       this.initializeEventListeners();
       this.showLoading(true);
 
-      // Show first-time message
-      const hasSeenMessage = await chrome.storage.local.get(['hasSeenWelcome']);
-      if (!hasSeenMessage.hasSeenWelcome) {
-        document.getElementById('firstTimeMessage').style.display = 'block';
-        await chrome.storage.local.set({ hasSeenWelcome: true });
-        setTimeout(() => {
-          const msg = document.getElementById('firstTimeMessage');
-          if (msg) {
-            msg.style.transition = 'opacity 0.3s';
-            msg.style.opacity = '0';
-            setTimeout(() => msg.style.display = 'none', 300);
-          }
-        }, 5000);
-      }
-
       // Get API URL from background script BEFORE making any API calls
       await getApiUrl();
 
