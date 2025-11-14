@@ -760,12 +760,19 @@ class AutoJobrContentScript {
     document.addEventListener('mouseup', dragEnd);
 
     function dragStart(e) {
+      // Don't start dragging if clicking on buttons or controls
+      if (e.target.classList.contains('autojobr-close') || 
+          e.target.classList.contains('autojobr-minimize') ||
+          e.target.closest('.autojobr-controls')) {
+        return;
+      }
+
       initialX = e.clientX - xOffset;
       initialY = e.clientY - yOffset;
 
-      if (e.target === header || header.contains(e.target)) {
+      if (e.target === header || (header.contains(e.target) && !e.target.closest('.autojobr-controls'))) {
         isDragging = true;
-        widget.style.cursor = 'grabbing';
+        header.style.cursor = 'grabbing';
       }
     }
 
