@@ -1673,8 +1673,8 @@ class AutoJobrContentScript {
           // Add visual feedback
           this.addFieldFeedback(field, true);
 
-          // Human-like delay
-          await this.delay(150 + Math.random() * 200);
+          // Optimized delay - faster filling while maintaining human-like behavior
+          await this.delay(50 + Math.random() * 100); // Reduced from 150-350ms to 50-150ms
         }
       } catch (error) {
         console.warn('Field fill error:', error);
@@ -3805,7 +3805,7 @@ class AutoJobrContentScript {
             const analysis = await this.analyzeJobMatch(jobData.jobData, profile);
             if (analysis) {
               this.currentAnalysis = analysis;
-              console.log('✅ Auto-analysis complete:', analysis.matchScore + '%');
+              console.log('✅ Auto-analysis complete:', analysis.matchScore);
             }
           }
         } else {
@@ -3955,7 +3955,7 @@ class AutoJobrContentScript {
 
     // Generic extraction for other sites
     else {
-      jobData.title = document.querySelector('h1, .job-title, [class*="title"]')?.textContent?.trim() || '';
+      jobData.title = document.querySelector('h1, .job-title, [class*="job-title"]')?.textContent?.trim() || '';
       jobData.company = document.querySelector('.company, [class*="company"]')?.textContent?.trim() || '';
       jobData.description = document.querySelector('.description, .job-description, [class*="description"]')?.textContent?.trim() || '';
     }
@@ -4699,7 +4699,7 @@ class AutoJobrContentScript {
       .jobs-search-results__list-item,
       .job-card-container--clickable,
       .jobs-search-two-pane__results-list .scaffold-layout__list-item,
-      .jobs-search-results-list__list-item,
+      .jobs-search-results__list-item,
       .jobs-search-results__list .jobs-search-results__list-item,
       [data-job-id]
     `.trim().split(/\s*,\s*/));
@@ -4714,15 +4714,20 @@ class AutoJobrContentScript {
 
     this.showNotification(`📋 Page ${this.currentPage}: Found ${jobCards.length} jobs to process`, 'info');
 
-    for (let i = 0; i < jobCards.length && this.automationRunning; i++) {
-      const jobCard = jobCards[i];
+    for (let i = 0; i < jobCards.length; i++) {
+      if (!this.automationRunning) {
+        console.log('Automation stopped by user');
+        break;
+      }
 
       try {
-        // Click on job card to view details
+        const jobCard = jobCards[i];
+
+        // Click to view details - optimized delays
         jobCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        await this.delay(1000);
+        await this.delay(400); // Reduced from 1000ms
         jobCard.click();
-        await this.delay(2000);
+        await this.delay(800); // Reduced from 2000ms
 
         // Check if Easy Apply button exists
         const easyApplyButton = this.findEasyApplyButton();
@@ -4738,9 +4743,9 @@ class AutoJobrContentScript {
         const jobData = this.extractLinkedInJobDetails();
         console.log(`Job ${i + 1}: Processing ${jobData.title} at ${jobData.company}`);
 
-        // Click Easy Apply button
+        // Click Easy Apply button - optimized delay
         easyApplyButton.click();
-        await this.delay(2000);
+        await this.delay(800); // Reduced from 2000ms
 
         // Fill and submit the application
         const applied = await this.fillAndSubmitLinkedInApplication(userProfile, jobData);
@@ -4759,7 +4764,7 @@ class AutoJobrContentScript {
         }
 
         this.updateAutomationStats();
-        await this.delay(2000); // Delay between applications
+        await this.delay(1000); // Reduced from 2000ms - delay between applications
       } catch (error) {
         console.error(`Error processing job ${i + 1}:`, error);
         this.applicationsSkipped++;
@@ -4807,50 +4812,45 @@ class AutoJobrContentScript {
 
   async fillAndSubmitLinkedInApplication(userProfile, jobData) {
     try {
-      // Wait for modal to appear
-      await this.delay(1000);
+      console.log('🤖 Starting LinkedIn Easy Apply automation...');
 
-      // Fill application form
-      const result = await this.startSmartAutofill(userProfile);
-
-      if (!result || !result.success) {
-        console.log('Failed to fill application form');
-        this.closeLinkedInModal();
-        return false;
-      }
-
-      await this.delay(1000);
-
-      // Look for and click Next/Review/Submit buttons
       let currentStep = 1;
-      while (currentStep <= 5 && this.automationRunning) {
+      const maxSteps = 10; // Prevent infinite loops
+
+      while (currentStep <= maxSteps) {
+        console.log(`📝 Step ${currentStep}: Filling form fields...`);
+
+        // Fill all visible fields on current page
+        await this.startSmartAutofill(userProfile);
+
+        // Optimized wait - reduced from 1500ms to 500ms
+        await this.delay(500);
+
+        // Check for validation errors
+        if (this.checkLinkedInValidationErrors()) {
+          console.log('⚠️ Validation errors detected - skipping application');
+          this.closeLinkedInModal();
+          return false;
+        }
+
+        // Try to find next button (Continue, Review, or Submit)
         const nextButton = this.findLinkedInNextButton();
-        const submitButton = this.findLinkedInSubmitButton();
 
-        if (submitButton && !submitButton.disabled) {
-          console.log('✅ Found Submit button - preparing to submit application');
+        if (nextButton) {
+          const buttonText = nextButton.textContent?.trim() || nextButton.getAttribute('aria-label') || '';
+          console.log(`🔍 Found button: "${buttonText}"`);
 
-          // Check for validation errors before submitting
-          const hasErrors = this.checkLinkedInValidationErrors();
-          if (hasErrors) {
-            console.log('❌ Validation errors detected - skipping application');
-            this.closeLinkedInModal();
-            return false;
+          // If it's a Submit button, click it and we're done
+          if (buttonText.toLowerCase().includes('submit')) {
+            console.log('✅ Clicking Submit button...');
+            nextButton.click();
+            await this.delay(800); // Reduced from 2000ms
+            return true;
           }
 
-          // Submit the application
-          console.log('📤 Submitting application...');
-          submitButton.click();
-          await this.delay(2000);
-          return true;
-        } else if (nextButton && !nextButton.disabled) {
-          const buttonText = nextButton.textContent.trim();
-          console.log(`➡️ Found "${buttonText}" button on step ${currentStep}`);
-
-          // Check for validation errors before proceeding
-          const hasErrors = this.checkLinkedInValidationErrors();
-          if (hasErrors) {
-            console.log(`❌ Validation errors detected on step ${currentStep} - skipping application`);
+          // If we've gone through too many steps without submitting, stop
+          if (currentStep >= maxSteps - 1) {
+            console.log('⚠️ Max steps reached without submitting application');
             this.closeLinkedInModal();
             return false;
           }
@@ -4858,11 +4858,11 @@ class AutoJobrContentScript {
           // Move to next step (could be Next, Continue, or Review)
           console.log(`🔄 Clicking "${buttonText}" button...`);
           nextButton.click();
-          await this.delay(1500);
+          await this.delay(600); // Reduced from 1500ms
 
-          // Fill new fields on next page
+          // Fill new fields on next page - optimized delay
           await this.startSmartAutofill(userProfile);
-          await this.delay(1000);
+          await this.delay(400); // Reduced from 1000ms
           currentStep++;
         } else {
           console.log('⚠️ No more buttons found - stopping');
