@@ -83,6 +83,16 @@ class PopupManager {
   setupEventListeners() {
     console.log('Setting up event listeners...');
     
+    // Close button
+    this.safeAddListener('closePopup', () => this.closePopup());
+    
+    // ESC key to close
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.closePopup();
+      }
+    });
+    
     // Apply tab buttons - using safe click handlers
     this.safeAddListener('autofillBtn', () => this.handleAutofill());
     this.safeAddListener('analyzeBtn', () => this.handleAnalyze());
@@ -139,6 +149,17 @@ class PopupManager {
       console.log(`✓ Listener added for ${id}`);
     } else {
       console.warn(`⚠ Element not found: ${id}`);
+    }
+  }
+
+  closePopup() {
+    // Close the popup properly - this works in Chrome extension context
+    if (typeof chrome !== 'undefined' && chrome.action) {
+      // For MV3, just close by setting popup to empty
+      window.close();
+    } else {
+      // Fallback
+      window.close();
     }
   }
 

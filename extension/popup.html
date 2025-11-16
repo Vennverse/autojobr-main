@@ -50,6 +50,25 @@
       font-size: 14px;
     }
 
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: #6b7280;
+      padding: 0 5px;
+    }
+
+    .close-btn:hover {
+      color: #3b82f6;
+    }
+
     .status {
       display: flex;
       align-items: center;
@@ -277,15 +296,18 @@
 </head>
 <body>
   <div class="header">
-    <div class="logo">
-      <div class="logo-icon">A</div>
-      AutoJobr
+      <div>
+        <h1 style="margin: 0; font-size: 18px; font-weight: 600;">AutoJobr</h1>
+        <p style="margin: 4px 0 0; font-size: 12px; opacity: 0.8;">AI Job Assistant</p>
+      </div>
+      <div class="header-controls">
+        <button class="close-btn" id="closePopup" title="Close">×</button>
+        <div class="status">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">Connecting...</span>
+        </div>
+      </div>
     </div>
-    <div class="status">
-      <div class="status-dot" id="statusDot"></div>
-      <span id="statusText">Connecting...</span>
-    </div>
-  </div>
 
   <div class="tabs">
     <button class="tab active" data-tab="apply">📋 Apply</button>
