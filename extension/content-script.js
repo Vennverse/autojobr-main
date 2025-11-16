@@ -47,14 +47,64 @@ class AutoJobrContentScript {
         if (result.premiumFeaturesEnabled === true) {
            // Potentially set a flag if premium features are active
         }
+
+
+  async ensureStylesLoaded() {
+    // Check if CSS is already injected
+    const checkStyles = () => {
+      const testDiv = document.createElement('div');
+      testDiv.className = 'autojobr-widget';
+      testDiv.style.position = 'absolute';
+      testDiv.style.left = '-9999px';
+      document.body.appendChild(testDiv);
+      
+      const styles = window.getComputedStyle(testDiv);
+      const isLoaded = styles.position === 'fixed' || styles.zIndex === '10000';
+      
+      document.body.removeChild(testDiv);
+      return isLoaded;
+    };
+
+    // If styles not loaded, inject manually
+    if (!checkStyles()) {
+      console.log('⚠️ Widget styles not loaded, injecting manually...');
+      
+      try {
+        // Try to inject CSS
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = chrome.runtime.getURL('popup-styles.css');
+        document.head.appendChild(link);
+        
+        // Wait for CSS to load
+        await new Promise((resolve) => {
+          link.onload = resolve;
+          link.onerror = () => {
+            console.error('❌ Failed to load widget styles');
+            resolve(); // Continue anyway
+          };
+          setTimeout(resolve, 1000); // Timeout after 1 second
+        });
+        
+        console.log('✅ Widget styles loaded successfully');
+      } catch (error) {
+        console.error('CSS injection error:', error);
+      }
+    } else {
+      console.log('✅ Widget styles already loaded');
+    }
+  }
+
       });
 
-      this.injectEnhancedUI();
-      this.setupMessageListener();
-      this.observePageChanges();
-      this.setupKeyboardShortcuts();
-      this.initializeSmartSelectors();
-      this.setupApplicationTracking(); // Setup tracking once during initialization
+      // CRITICAL: Verify CSS is loaded before showing widget
+      this.ensureStylesLoaded().then(() => {
+        this.injectEnhancedUI();
+        this.setupMessageListener();
+        this.observePageChanges();
+        this.setupKeyboardShortcuts();
+        this.initializeSmartSelectors();
+        this.setupApplicationTracking(); // Setup tracking once during initialization
 
       // Setup automatic job analysis with debouncing
       // Moved setupAutoAnalysis call to after all other initializations
@@ -1044,7 +1094,7 @@ class AutoJobrContentScript {
     console.log('📱 showWidget() called');
 
     // Remove any existing widget first
-    const existing = document.getElementById('autojobr-floating-widget');
+    const existing = document.querySelector('.autojobr-widget');
     if (existing) {
       console.log('Removing existing widget');
       existing.remove();
@@ -1057,19 +1107,32 @@ class AutoJobrContentScript {
       return;
     }
 
-    const widget = this.createWidget();
-    document.body.appendChild(widget);
+    // Verify styles are loaded before showing
+    this.ensureStylesLoaded().then(() => {
+      // Inject widget UI if not already present
+      if (!document.getElementById('autojobr-overlay')) {
+        this.injectEnhancedUI();
+      }
 
-    // Make widget draggable
-    this.makeWidgetDraggable();
-
-    // Verify widget was added
-    const widgetCheck = document.getElementById('autojobr-floating-widget');
-    if (widgetCheck) {
-      console.log('✅ Widget shown successfully and verified in DOM');
-    } else {
-      console.error('❌ Widget failed to appear in DOM!');
-    }
+      const widget = document.querySelector('.autojobr-widget');
+      if (widget) {
+        // Force display with inline styles as backup
+        widget.style.display = 'block';
+        widget.style.opacity = '1';
+        widget.style.transform = 'translateX(0)';
+        widget.style.position = 'fixed';
+        widget.style.bottom = '20px';
+        widget.style.right = '20px';
+        widget.style.zIndex = '10000';
+        
+        console.log('✅ Widget shown successfully with verified styles');
+        
+        // Make widget draggable
+        this.makeWidgetDraggable();
+      } else {
+        console.error('❌ Widget element not found in DOM!');
+      }
+    });
   }
 
   hideWidget() {
@@ -1083,7 +1146,7 @@ class AutoJobrContentScript {
       jobIdentifier = jobIdMatch[1]; // Use just the job ID
     }
     
-    // Store job-specific close state
+    // Store job-specific close state (NOT persistent across refreshes)
     sessionStorage.setItem('autojobr_widget_closed_job', jobIdentifier);
     
     const widget = document.querySelector('.autojobr-widget');
@@ -1094,6 +1157,8 @@ class AutoJobrContentScript {
 
       setTimeout(() => {
         widget.style.display = 'none';
+        // CRITICAL: Clear close state after hiding to allow reopen on refresh
+        sessionStorage.removeItem('autojobr_widget_closed_job');
       }, 300);
     }
   }
