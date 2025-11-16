@@ -1065,7 +1065,7 @@ class AutoJobrContentScript {
     document.body.appendChild(widget);
 
     // Make widget draggable
-    this.makeDraggable(widget);
+    this.makeWidgetDraggable();
 
     // Verify widget was added
     const widgetCheck = document.getElementById('autojobr-floating-widget');
@@ -3760,33 +3760,101 @@ class AutoJobrContentScript {
 
   // Setup automatic job analysis when new pages load - prevent duplicates
   setupAutoAnalysis() {
-    console.log('🎯 Setting up auto-analysis for job pages...');
+    // Enhanced job page detection with debouncing
+    const checkJobPageAndAnalyze = async () => {
+      const currentUrl = window.location.href;
 
-    // Check if this is a job page
-    const isJob = this.isJobPage();
-    console.log('Job page check result:', isJob);
+      // Skip if URL hasn't changed
+      if (currentUrl === this.lastAnalysisUrl) {
+        return;
+      }
 
-    if (!isJob) {
-      console.log('Not a job page, skipping auto-analysis');
-      return;
-    }
+      console.log('🔍 Checking if current page is a job page:', currentUrl);
 
-    console.log('✅ Job page detected - showing widget');
+      // Check if this is a job page
+      if (!this.isJobPage()) {
+        console.log('❌ Not a job page - hiding widget');
+        this.hideWidget();
+        this.lastAnalysisUrl = currentUrl;
+        return;
+      }
 
-    // Show widget immediately on job pages
-    this.showWidget();
+      console.log('✅ Job page detected!');
+      this.lastAnalysisUrl = currentUrl;
 
-    // Wait for page to be fully loaded
-    await this.delay(3000);
+      // Clear any existing session flag when navigating to a new job page
+      sessionStorage.removeItem('autojobr_widget_closed');
 
-    // Auto-detect job details
-    console.log('🔍 Starting auto job detection...');
-    try {
-      await this.detectJobPosting();
-    } catch (error) {
-      console.error('Auto-detection error:', error);
-      // Keep widget visible even if detection fails
-    }
+      // CRITICAL FIX: Show widget IMMEDIATELY when job page is detected
+      console.log('📱 Displaying widget automatically...');
+      this.showWidget();
+
+      // Extract job details
+      try {
+        const jobData = await this.extractJobDetails();
+
+        if (jobData.success && jobData.jobData) {
+          console.log('📊 Job data extracted:', jobData.jobData.title, 'at', jobData.jobData.company);
+          this.currentJobData = jobData.jobData;
+          this.updateJobInfo(jobData.jobData);
+
+          // Auto-analyze if user is authenticated
+          const profile = await this.getUserProfile();
+          if (profile && profile.authenticated) {
+            console.log('🎯 Auto-analyzing job match...');
+            const analysis = await this.analyzeJobMatch(jobData.jobData, profile);
+            if (analysis) {
+              this.currentAnalysis = analysis;
+              console.log('✅ Auto-analysis complete:', analysis.matchScore + '%');
+            }
+          }
+        } else {
+          // Even if job extraction fails, keep widget visible
+          console.log('⚠️ Job extraction failed but widget stays visible');
+        }
+      } catch (error) {
+        console.error('Auto-analysis error:', error);
+        // Keep widget visible even on error
+      }
+    };
+
+    // Debounced version to prevent excessive calls
+    const debouncedCheck = () => {
+      clearTimeout(this.analysisDebounceTimer);
+      this.analysisDebounceTimer = setTimeout(checkJobPageAndAnalyze, 1000);
+    };
+
+    // Run initial check after SHORT delay to ensure DOM is ready
+    setTimeout(() => {
+      console.log('⏰ Running initial job page check...');
+      checkJobPageAndAnalyze();
+    }, 500); // Reduced from 1500ms to 500ms for faster response
+
+    // Listen for URL changes (for SPAs)
+    let lastUrl = location.href;
+    const urlObserver = new MutationObserver(() => {
+      const url = location.href;
+      if (url !== lastUrl) {
+        lastUrl = url;
+        console.log('🔄 URL changed, rechecking job page status');
+        debouncedCheck();
+      }
+    });
+
+    urlObserver.observe(document, { subtree: true, childList: true });
+    this.observers.push(urlObserver);
+
+    // Also check on popstate (browser back/forward)
+    window.addEventListener('popstate', () => {
+      console.log('⬅️ Browser navigation detected');
+      debouncedCheck();
+    });
+
+    // Check on hash change
+    window.addEventListener('hashchange', () => {
+      console.log('#️⃣ Hash change detected');
+      debouncedCheck();
+    });
   }
 
   // Debounce utility function
@@ -5174,7 +5242,7 @@ if (document.readyState === 'loading') {
   });
 } else {
   const extension = new AutoJobrContentScript();
-  window.autojobrExtension = extension; // Store reference formessage handling
+  window.autojobrExtension = extension; // Store reference for message handling
   // Show floating button on job pages after a delay
   setTimeout(() => extension.createFloatingButton(), 1000);
 }
