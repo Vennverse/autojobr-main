@@ -900,11 +900,7 @@ class AutoJobrContentScript {
         return { success: false, reason: 'Not a job page' };
       }
 
-      // Check if widget was manually closed in this session
-      if (sessionStorage.getItem('autojobr_widget_closed') === 'true') {
-        console.log('Widget was manually closed - staying hidden');
-        return { success: false, reason: 'Widget manually closed' };
-      }
+      // Don't check session storage here - let setupAutoAnalysis handle it
 
       const jobData = await this.extractJobDetails();
 
@@ -1077,6 +1073,9 @@ class AutoJobrContentScript {
   }
 
   hideWidget() {
+    // Set session flag so it doesn't reappear on same page
+    sessionStorage.setItem('autojobr_widget_closed', 'true');
+    
     const widget = document.querySelector('.autojobr-widget');
     if (widget) {
       widget.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
@@ -1084,7 +1083,7 @@ class AutoJobrContentScript {
       widget.style.transform = 'translateX(100%)';
 
       setTimeout(() => {
-        widget.style.display = 'none'; // Hide instead of removing from DOM
+        widget.style.display = 'none';
       }, 300);
     }
   }
@@ -3782,12 +3781,30 @@ class AutoJobrContentScript {
       console.log('✅ Job page detected!');
       this.lastAnalysisUrl = currentUrl;
 
-      // Clear any existing session flag when navigating to a new job page
+      // CRITICAL: Clear session storage BEFORE showing widget
       sessionStorage.removeItem('autojobr_widget_closed');
-
+      
       // CRITICAL FIX: Show widget IMMEDIATELY when job page is detected
       console.log('📱 Displaying widget automatically...');
-      this.showWidget();
+      
+      // Force create and show widget
+      const existingWidget = document.querySelector('.autojobr-widget');
+      if (existingWidget) {
+        existingWidget.remove();
+      }
+      
+      this.injectEnhancedUI();
+      
+      // Force display immediately
+      setTimeout(() => {
+        const widget = document.querySelector('.autojobr-widget');
+        if (widget) {
+          widget.style.display = 'block';
+          widget.style.opacity = '1';
+          widget.style.transform = 'translateX(0)';
+          console.log('✅ Widget forced to display');
+        }
+      }, 100);
 
       // Extract job details
       try {
