@@ -1073,9 +1073,18 @@ class AutoJobrContentScript {
   }
 
   hideWidget() {
-    // Set URL-specific session flag so it only stays hidden on THIS specific page
+    // Extract job ID from URL (LinkedIn-specific) or use full URL as fallback
     const currentUrl = window.location.href;
-    sessionStorage.setItem('autojobr_widget_closed_url', currentUrl);
+    let jobIdentifier = currentUrl;
+    
+    // LinkedIn job ID extraction from URL parameter
+    const jobIdMatch = currentUrl.match(/currentJobId=(\d+)/);
+    if (jobIdMatch) {
+      jobIdentifier = jobIdMatch[1]; // Use just the job ID
+    }
+    
+    // Store job-specific close state
+    sessionStorage.setItem('autojobr_widget_closed_job', jobIdentifier);
     
     const widget = document.querySelector('.autojobr-widget');
     if (widget) {
@@ -3782,19 +3791,25 @@ class AutoJobrContentScript {
       console.log('✅ Job page detected!');
       this.lastAnalysisUrl = currentUrl;
 
-      // Check if widget was closed on THIS specific URL
-      const closedUrl = sessionStorage.getItem('autojobr_widget_closed_url');
-      const wasClosedOnThisUrl = closedUrl === currentUrl;
+      // Extract job ID from URL (LinkedIn-specific) or use full URL as fallback
+      let jobIdentifier = currentUrl;
+      const jobIdMatch = currentUrl.match(/currentJobId=(\d+)/);
+      if (jobIdMatch) {
+        jobIdentifier = jobIdMatch[1]; // Use just the job ID
+      }
       
-      // Only skip if it was closed on this EXACT URL (not on refresh or different page)
-      if (wasClosedOnThisUrl) {
-        console.log('Widget was closed on this specific URL - staying hidden');
-        // But widget will reappear on page refresh or new job page!
+      // Check if widget was closed on THIS specific job ID
+      const closedJobId = sessionStorage.getItem('autojobr_widget_closed_job');
+      const wasClosedOnThisJob = closedJobId === jobIdentifier;
+      
+      // Only skip if it was closed on this EXACT job (different job = reopen widget)
+      if (wasClosedOnThisJob) {
+        console.log('Widget was closed on this specific job - staying hidden for this job only');
         return;
       }
       
-      // CRITICAL FIX: Show widget IMMEDIATELY when job page is detected
-      console.log('📱 Displaying widget automatically...');
+      // CRITICAL FIX: Show widget IMMEDIATELY when new job is detected
+      console.log('📱 Displaying widget automatically for new job...');
       
       // Force create and show widget
       const existingWidget = document.querySelector('.autojobr-widget');
