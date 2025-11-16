@@ -540,7 +540,7 @@ class AutoJobrContentScript {
         <div class="autojobr-header">
           <div class="autojobr-logo">
             <div class="autojobr-icon">A</div>
-            <span>AutoJobr v2.0</span>
+            <span>AutoJobr</span>
           </div>
           <div class="autojobr-controls">
             <button class="autojobr-minimize" title="Minimize">−</button>
@@ -549,117 +549,80 @@ class AutoJobrContentScript {
         </div>
 
         <div class="autojobr-content">
-          <div class="autojobr-status" id="autojobr-status">
-            <div class="status-icon">🎯</div>
-            <div class="status-text">Job detected - Ready to auto-fill</div>
-            <div class="status-progress" id="autojobr-progress" style="display: none;">
-              <div class="progress-bar"></div>
-            </div>
-          </div>
-
           <div class="autojobr-job-info" id="autojobr-job-info" style="display: none;">
             <div class="job-title" id="autojobr-job-title"></div>
             <div class="job-company" id="autojobr-job-company"></div>
             <div class="job-match" id="autojobr-job-match"></div>
           </div>
 
+          <div class="autojobr-status" id="autojobr-status">
+            <div class="status-text">Ready to auto-fill</div>
+            <div class="status-progress" id="autojobr-progress" style="display: none;">
+              <div class="progress-bar"></div>
+            </div>
+          </div>
+
           <div class="autojobr-actions">
             <button class="autojobr-btn primary" id="autojobr-autofill">
               <span class="btn-icon">⚡</span>
-              <span class="btn-text">Smart Auto-fill</span>
-              <span class="btn-shortcut">Ctrl+A</span>
+              <span class="btn-text">Auto-fill Application</span>
             </button>
 
-            <div class="action-row">
+            <div class="action-grid">
               <button class="autojobr-btn secondary" id="autojobr-analyze">
                 <span class="btn-icon">📊</span>
-                <span>Analyze</span>
+                <span>Analyze Match</span>
               </button>
               <button class="autojobr-btn secondary" id="autojobr-save-job">
                 <span class="btn-icon">💾</span>
-                <span>Save</span>
+                <span>Save Job</span>
               </button>
+            </div>
+
+            <div class="action-grid">
               <button class="autojobr-btn secondary" id="autojobr-cover-letter">
                 <span class="btn-icon">📝</span>
                 <span>Cover Letter</span>
               </button>
               <button class="autojobr-btn secondary" id="autojobr-upload-resume">
                 <span class="btn-icon">📄</span>
-                <span>Upload Resume</span>
-              </button>
-            </div>
-
-            <div class="action-row" style="margin-top: 8px;">
-              <button class="autojobr-btn secondary" id="autojobr-interview-prep">
-                <span class="btn-icon">🎯</span>
-                <span>Interview Prep</span>
-              </button>
-              <button class="autojobr-btn secondary" id="autojobr-salary-insights">
-                <span class="btn-icon">💰</span>
-                <span>Salary Intel</span>
-              </button>
-              <button class="autojobr-btn secondary" id="autojobr-referral-finder">
-                <span class="btn-icon">🤝</span>
-                <span>Find Referrals</span>
+                <span>Resume</span>
               </button>
             </div>
           </div>
 
-          <div class="autojobr-ai-features">
-            <h4>🤖 AI Features</h4>
-            <div class="ai-feature-row">
-              <button class="autojobr-btn ai" id="autojobr-resume-gen">
-                <span class="btn-icon">📄</span>
-                <span>Generate Resume</span>
-              </button>
-              <button class="autojobr-btn ai" id="autojobr-ask-ai">
-                <span class="btn-icon">💬</span>
-                <span>Ask AI</span>
-              </button>
+          <div class="autojobr-settings">
+            <div class="settings-toggle">
+              <label class="toggle-switch">
+                <input type="checkbox" id="auto-resume-upload" checked>
+                <span class="toggle-slider"></span>
+              </label>
+              <label for="auto-resume-upload" class="toggle-label">Auto Upload Resume</label>
             </div>
-            <div class="feature-toggle">
-              <input type="checkbox" id="auto-resume-upload" checked> <label for="auto-resume-upload">Auto Resume Upload</label>
+            <div class="settings-toggle">
+              <label class="toggle-switch">
+                <input type="checkbox" id="smart-fill" checked>
+                <span class="toggle-slider"></span>
+              </label>
+              <label for="smart-fill" class="toggle-label">Smart Fill Mode</label>
             </div>
-            <div class="feature-toggle">
-              <input type="checkbox" id="auto-fill-premium-ai"> <label for="auto-fill-premium-ai">Use Premium AI (Your Key)</label>
-            </div>
-          </div>
-
-          <div class="autojobr-features">
-            <div class="feature-toggle">
-              <input type="checkbox" id="smart-fill" checked> <label for="smart-fill">Smart Fill Mode</label>
-            </div>
-            <div class="feature-toggle">
-              <input type="checkbox" id="auto-submit"> <label for="auto-submit">Auto Submit</label>
-            </div>
-
-          </div>
-
-          <div class="autojobr-tasks" id="autojobr-tasks" style="display: none;">
-            <div class="tasks-header">
-              <span class="tasks-title">📋 Pending Tasks</span>
-              <span class="tasks-count" id="tasks-count">0</span>
-            </div>
-            <div class="tasks-list" id="tasks-list"></div>
           </div>
 
           <div class="autojobr-stats" id="autojobr-stats" style="display: none;">
-            <div class="stat-item">
-              <span class="stat-label">Fields Found:</span>
-              <span class="stat-value" id="fields-found">0</span>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <span class="stat-value" id="fields-filled">0</span>
+                <span class="stat-label">Filled</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="fields-found">0</span>
+                <span class="stat-label">Found</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="success-rate">0%</span>
+                <span class="stat-label">Success</span>
+              </div>
             </div>
-            <div class="stat-item">
-              <span class="stat-label">Fields Filled:</span>
-              <span class="stat-value" id="fields-filled">0</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Success Rate:</span>
-              <span class="stat-value" id="success-rate">0%</span>
-            </div>
-          </div>
-
-          <div class="autojobr-automation-status" id="autojobr-automation-status" style="display: none;">
-            <!-- Automation status will be injected here -->
           </div>
 
           <div class="autojobr-navigation" id="autojobr-navigation" style="display: none;">
@@ -672,9 +635,6 @@ class AutoJobrContentScript {
     document.body.appendChild(overlay);
     this.attachEnhancedUIEventListeners();
     this.makeWidgetDraggable();
-
-    // Load user tasks when widget is displayed
-    this.loadUserTasks();
   }
 
   attachEnhancedUIEventListeners() {
