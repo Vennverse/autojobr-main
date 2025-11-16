@@ -57,8 +57,32 @@ class AutoJobrContentScript {
       this.setupApplicationTracking(); // Setup tracking once during initialization
 
       // Setup automatic job analysis with debouncing
-      this.setupAutoAnalysis();
+      // Moved setupAutoAnalysis call to after all other initializations
+      // this.setupAutoAnalysis(); // Moved to after other initializations
       this.isInitialized = true;
+
+      console.log('✅ AutoJobr content script initialized successfully');
+
+      // Check if job page immediately
+      const isJob = this.isJobPage();
+      console.log('Initial job page check:', isJob);
+
+      // Setup auto-analysis after a short delay
+      setTimeout(() => {
+        console.log('Running delayed auto-analysis setup...');
+        this.setupAutoAnalysis();
+      }, 1500);
+
+      // Also try showing widget immediately if we detect it's a job page
+      if (isJob) {
+        console.log('⚡ Fast-track widget display for detected job page');
+        setTimeout(() => {
+          if (!document.getElementById('autojobr-floating-widget')) {
+            console.log('Widget not found, forcing display...');
+            this.showWidget();
+          }
+        }, 2000);
+      }
 
       // Mark as loaded for background script
       window.autojobrContentScriptLoaded = true;
@@ -608,7 +632,7 @@ class AutoJobrContentScript {
             <div class="feature-toggle">
               <input type="checkbox" id="auto-submit"> <label for="auto-submit">Auto Submit</label>
             </div>
-            
+
           </div>
 
           <div class="autojobr-tasks" id="autojobr-tasks" style="display: none;">
@@ -1061,43 +1085,34 @@ class AutoJobrContentScript {
   }
 
   showWidget() {
-    let widget = document.querySelector('.autojobr-widget');
+    console.log('📱 showWidget() called');
 
-    // If widget doesn't exist, create it
-    if (!widget) {
-      console.log('🔧 AutoJobr widget not found - creating fresh UI');
-      this.injectEnhancedUI();
-      widget = document.querySelector('.autojobr-widget');
+    // Remove any existing widget first
+    const existing = document.getElementById('autojobr-floating-widget');
+    if (existing) {
+      console.log('Removing existing widget');
+      existing.remove();
     }
 
-    if (widget) {
-      // Ensure widget is visible and properly positioned
-      widget.style.display = 'block';
-      widget.style.position = 'fixed';
-      widget.style.top = '20px';
-      widget.style.right = '20px';
-      widget.style.zIndex = '10000';
-      widget.style.boxShadow = '0 10px 25px rgba(0,0,0,0.1)';
+    // Ensure body is ready
+    if (!document.body) {
+      console.log('⚠️ Document body not ready, retrying...');
+      setTimeout(() => this.showWidget(), 500);
+      return;
+    }
 
-      // Reset any previous transforms
-      widget.style.opacity = '0';
-      widget.style.transform = 'translateX(100%)';
-      widget.style.transition = 'none';
+    const widget = this.createWidget();
+    document.body.appendChild(widget);
 
-      // Trigger reflow and animate in
-      widget.offsetHeight;
-      setTimeout(() => {
-        widget.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-        widget.style.opacity = '1';
-        widget.style.transform = 'translateX(0)';
-      }, 100);
+    // Make widget draggable
+    this.makeDraggable(widget);
 
-      console.log('✅ AutoJobr popup widget displayed automatically');
-
-      // Force re-attach event listeners in case they were lost
-      this.attachEnhancedUIEventListeners();
+    // Verify widget was added
+    const widgetCheck = document.getElementById('autojobr-floating-widget');
+    if (widgetCheck) {
+      console.log('✅ Widget shown successfully and verified in DOM');
     } else {
-      console.error('❌ Failed to create AutoJobr widget');
+      console.error('❌ Widget failed to appear in DOM!');
     }
   }
 
@@ -1537,7 +1552,7 @@ class AutoJobrContentScript {
       return { success: false, error: 'Max auto-fill attempts reached' };
     }
 
-    // Reset filled fields tracking for new session
+    // Reset filledFields tracking for new session
     this.filledFields.clear();
 
     this.fillInProgress = true;
@@ -3785,79 +3800,33 @@ class AutoJobrContentScript {
 
   // Setup automatic job analysis when new pages load - prevent duplicates
   setupAutoAnalysis() {
-    console.log('🎯 Setting up automatic job analysis with debouncing');
+    console.log('🎯 Setting up auto-analysis for job pages...');
 
-    // Debounced analysis function to prevent multiple calls
-    this.debouncedAnalysis = this.debounce(() => {
-      const currentUrl = window.location.href;
+    // Check if this is a job page
+    const isJob = this.isJobPage();
+    console.log('Job page check result:', isJob);
 
-      // Skip if already analyzing this URL
-      if (this.analysisInProgress || this.lastAnalysisUrl === currentUrl) {
-        console.log('🔄 Skipping duplicate analysis for:', currentUrl);
-        return;
-      }
+    if (!isJob) {
+      console.log('Not a job page, skipping auto-analysis');
+      return;
+    }
 
-      this.lastAnalysisUrl = currentUrl;
-      this.analysisInProgress = true;
+    console.log('✅ Job page detected - showing widget');
 
-      // Clear any cached job data first
-      this.currentJobData = null;
+    // Show widget immediately on job pages
+    this.showWidget();
 
-      // Check if this is a job page
-      if (this.isJobPage()) {
-        console.log('📍 Job page detected:', currentUrl);
+    // Wait for page to be fully loaded
+    await this.delay(3000);
 
-        // Inject LinkedIn buttons immediately (Auto Apply button shows up right away)
-        if (window.location.hostname.includes('linkedin.com')) {
-          setTimeout(() => {
-            this.injectLinkedInButtons(null); // Inject Auto Apply button without score first
-          }, 500);
-        }
-
-        // Don't auto-show widget - let user click the floating button instead
-
-        // Start job detection and analysis silently
-        this.detectJobPosting().then((result) => {
-          if (result && result.success) {
-            console.log('✅ Job detected successfully, updating match score silently');
-            this.updateJobInfo(result.jobData);
-            // Perform auto-analysis after successful detection
-            setTimeout(() => {
-              this.performAutoAnalysis().finally(() => {
-                this.analysisInProgress = false;
-              });
-            }, 1000);
-          } else {
-            console.log('⚠️ Job detection failed but Auto Apply button still available');
-            this.analysisInProgress = false;
-          }
-        }).catch((error) => {
-          console.log('❌ Job detection error:', error);
-          this.analysisInProgress = false;
-        });
-      } else {
-        this.hideWidget();
-        this.analysisInProgress = false;
-      }
-    }, 2000); // 2 second debounce
-
-    // Initial analysis
-    setTimeout(() => {
-      this.debouncedAnalysis();
-    }, 1500);
-
-    // Watch for URL changes (SPA navigation)
-    let currentUrl = window.location.href;
-    const urlObserver = new MutationObserver(() => {
-      if (window.location.href !== currentUrl) {
-        currentUrl = window.location.href;
-        console.log('🔄 URL changed to:', currentUrl);
-        this.debouncedAnalysis();
-      }
-    });
-
-    urlObserver.observe(document.body, { childList: true, subtree: true });
-    this.observers.push(urlObserver);
+    // Auto-detect job details
+    console.log('🔍 Starting auto job detection...');
+    try {
+      await this.detectJobPosting();
+    } catch (error) {
+      console.error('Auto-detection error:', error);
+      // Keep widget visible even if detection fails
+    }
   }
 
   // Debounce utility function
@@ -5245,7 +5214,7 @@ if (document.readyState === 'loading') {
   });
 } else {
   const extension = new AutoJobrContentScript();
-  window.autojobrExtension = extension; // Store reference for message handling
+  window.autojobrExtension = extension; // Store reference formessage handling
   // Show floating button on job pages after a delay
   setTimeout(() => extension.createFloatingButton(), 1000);
 }
