@@ -866,6 +866,10 @@ class AutoJobrContentScript {
         case 'askAI': // Action to trigger AI question answering
           this.handleAskAI(message.data).then(sendResponse);
           return true;
+        case 'toggleWidget': // Toggle widget visibility
+          this.toggleWidget();
+          sendResponse({ success: true });
+          return true;
         default:
           sendResponse({ success: false, error: 'Unknown action' });
       }
@@ -1111,6 +1115,29 @@ class AutoJobrContentScript {
       setTimeout(() => {
         widget.style.display = 'none'; // Hide instead of removing from DOM
       }, 300);
+    }
+  }
+
+  toggleWidget() {
+    const widget = document.querySelector('.autojobr-widget');
+    
+    if (!widget) {
+      // Widget doesn't exist, create and show it
+      this.showWidget();
+      return;
+    }
+    
+    // Check if widget is currently visible
+    const isVisible = widget.style.display !== 'none' && 
+                      widget.style.opacity !== '0' &&
+                      widget.style.transform !== 'translateX(100%)';
+    
+    if (isVisible) {
+      this.hideWidget();
+      sessionStorage.setItem('autojobr_widget_closed', 'true');
+    } else {
+      this.showWidget();
+      sessionStorage.removeItem('autojobr_widget_closed');
     }
   }
 

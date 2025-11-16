@@ -120,6 +120,11 @@ class AutoJobrBackground {
       }
     });
 
+    // Handle extension icon click to toggle widget
+    chrome.action.onClicked.addListener((tab) => {
+      this.handleExtensionIconClick(tab);
+    });
+
     // Handle messages from content scripts and popup
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       this.handleMessage(message, sender, sendResponse);
@@ -660,6 +665,32 @@ class AutoJobrBackground {
       case 'save-job':
         await this.triggerSaveJob(activeTab.id);
         break;
+    }
+  }
+
+  async handleExtensionIconClick(tab) {
+    try {
+      // Ensure content script is loaded
+      await this.ensureContentScriptInjected(tab.id);
+      
+      // Send message to content script to toggle widget
+      await chrome.tabs.sendMessage(tab.id, {
+        action: 'toggleWidget'
+      });
+      
+      console.log('✅ Toggled widget on tab:', tab.id);
+    } catch (error) {
+      console.error('Failed to toggle widget:', error);
+      
+      // If tab URL is a chrome:// or edge:// page, show a notification
+      if (tab.url && (tab.url.startsWith('chrome://') || tab.url.startsWith('edge://'))) {
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'icons/icon48.png',
+          title: 'AutoJobr Extension',
+          message: 'Cannot run on browser pages. Please navigate to a job site.'
+        });
+      }
     }
   }
 
