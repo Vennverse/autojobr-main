@@ -1073,8 +1073,9 @@ class AutoJobrContentScript {
   }
 
   hideWidget() {
-    // Set session flag so it doesn't reappear on same page
-    sessionStorage.setItem('autojobr_widget_closed', 'true');
+    // Set URL-specific session flag so it only stays hidden on THIS specific page
+    const currentUrl = window.location.href;
+    sessionStorage.setItem('autojobr_widget_closed_url', currentUrl);
     
     const widget = document.querySelector('.autojobr-widget');
     if (widget) {
@@ -3781,8 +3782,16 @@ class AutoJobrContentScript {
       console.log('✅ Job page detected!');
       this.lastAnalysisUrl = currentUrl;
 
-      // CRITICAL: Clear session storage BEFORE showing widget
-      sessionStorage.removeItem('autojobr_widget_closed');
+      // Check if widget was closed on THIS specific URL
+      const closedUrl = sessionStorage.getItem('autojobr_widget_closed_url');
+      const wasClosedOnThisUrl = closedUrl === currentUrl;
+      
+      // Only skip if it was closed on this EXACT URL (not on refresh or different page)
+      if (wasClosedOnThisUrl) {
+        console.log('Widget was closed on this specific URL - staying hidden');
+        // But widget will reappear on page refresh or new job page!
+        return;
+      }
       
       // CRITICAL FIX: Show widget IMMEDIATELY when job page is detected
       console.log('📱 Displaying widget automatically...');
