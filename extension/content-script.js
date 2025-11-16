@@ -712,16 +712,12 @@ class AutoJobrContentScript {
         e.preventDefault();
         e.stopPropagation();
         this.hideWidget();
-        // Set session storage to remember widget is closed
-        sessionStorage.setItem('autojobr_widget_closed', 'true');
       });
       // Add touch event for mobile
       closeBtn.addEventListener('touchend', (e) => {
         e.preventDefault();
         e.stopPropagation();
         this.hideWidget();
-        // Set session storage to remember widget is closed
-        sessionStorage.setItem('autojobr_widget_closed', 'true');
       });
     }
 
@@ -1136,19 +1132,6 @@ class AutoJobrContentScript {
   }
 
   hideWidget() {
-    // Extract job ID from URL (LinkedIn-specific) or use full URL as fallback
-    const currentUrl = window.location.href;
-    let jobIdentifier = currentUrl;
-    
-    // LinkedIn job ID extraction from URL parameter
-    const jobIdMatch = currentUrl.match(/currentJobId=(\d+)/);
-    if (jobIdMatch) {
-      jobIdentifier = jobIdMatch[1]; // Use just the job ID
-    }
-    
-    // Store job-specific close state (NOT persistent across refreshes)
-    sessionStorage.setItem('autojobr_widget_closed_job', jobIdentifier);
-    
     const widget = document.querySelector('.autojobr-widget');
     if (widget) {
       widget.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
@@ -1157,8 +1140,6 @@ class AutoJobrContentScript {
 
       setTimeout(() => {
         widget.style.display = 'none';
-        // CRITICAL: Clear close state after hiding to allow reopen on refresh
-        sessionStorage.removeItem('autojobr_widget_closed_job');
       }, 300);
     }
   }
@@ -3856,41 +3837,29 @@ class AutoJobrContentScript {
       console.log('✅ Job page detected!');
       this.lastAnalysisUrl = currentUrl;
 
-      // Extract job ID from URL (LinkedIn-specific) or use full URL as fallback
-      let jobIdentifier = currentUrl;
-      const jobIdMatch = currentUrl.match(/currentJobId=(\d+)/);
-      if (jobIdMatch) {
-        jobIdentifier = jobIdMatch[1]; // Use just the job ID
-      }
+      // ALWAYS show widget on job pages - no session storage checks
+      console.log('📱 Displaying widget automatically for job page...');
       
-      // Check if widget was closed on THIS specific job ID
-      const closedJobId = sessionStorage.getItem('autojobr_widget_closed_job');
-      const wasClosedOnThisJob = closedJobId === jobIdentifier;
-      
-      // Only skip if it was closed on this EXACT job (different job = reopen widget)
-      if (wasClosedOnThisJob) {
-        console.log('Widget was closed on this specific job - staying hidden for this job only');
-        return;
-      }
-      
-      // CRITICAL FIX: Show widget IMMEDIATELY when new job is detected
-      console.log('📱 Displaying widget automatically for new job...');
-      
-      // Force create and show widget
+      // Remove any existing widget first
       const existingWidget = document.querySelector('.autojobr-widget');
       if (existingWidget) {
         existingWidget.remove();
       }
       
+      // Inject fresh widget UI
       this.injectEnhancedUI();
       
-      // Force display immediately
+      // Force display immediately with guaranteed styles
       setTimeout(() => {
         const widget = document.querySelector('.autojobr-widget');
         if (widget) {
           widget.style.display = 'block';
           widget.style.opacity = '1';
           widget.style.transform = 'translateX(0)';
+          widget.style.position = 'fixed';
+          widget.style.bottom = '20px';
+          widget.style.right = '20px';
+          widget.style.zIndex = '10000';
           console.log('✅ Widget forced to display');
         }
       }, 100);
