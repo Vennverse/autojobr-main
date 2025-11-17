@@ -1538,6 +1538,26 @@ class AutoJobrContentScript {
       'gm.com': ['/careers/', '/job/']
     };
 
+    // Form platforms - always allow auto-fill
+    const formPlatforms = [
+      'docs.google.com/forms',
+      'forms.google.com',
+      'airtable.com',
+      'typeform.com',
+      'jotform.com',
+      'surveymonkey.com',
+      'formstack.com',
+      'wufoo.com',
+      'cognito.com',
+      'formsite.com',
+      '123formbuilder.com'
+    ];
+
+    if (formPlatforms.some(platform => hostname.includes(platform) || url.includes(platform))) {
+      console.log(`📍 Form platform detected: ${hostname}`);
+      return true;
+    }
+
     // Check if hostname matches and URL contains job pattern
     for (const [domain, patterns] of Object.entries(jobPagePatterns)) {
       if (hostname.includes(domain)) {
@@ -1549,16 +1569,17 @@ class AutoJobrContentScript {
       }
     }
 
-    // Enhanced fallback: check for generic job indicators in URL and DOM
-    const genericJobIndicators = ['/job/', '/jobs/', '/career/', '/careers/', '/position/', '/apply/', '/posting/', '/job_', '/job-'];
-    const hasJobPattern = genericJobIndicators.some(indicator => url.includes(indicator) || pathname.includes(indicator));
+    // Generic detection for other sites - more relaxed
+    const hasJobKeywords = url.includes('/job') ||
+                          url.includes('/career') ||
+                          url.includes('/apply') ||
+                          url.includes('/application');
 
-    if (hasJobPattern) {
-      console.log(`📍 Generic job page detected with pattern: ${pathname}`);
-      return true;
+    if (hasJobKeywords) {
+      return true; // Let the form handler decide if it's actually a job form
     }
 
-    // DOM-based detection for dynamic job pages
+    // Fallback: check DOM for job application indicators
     const jobIndicatorSelectors = [
       '[data-automation-id*="job"]',
       '[class*="job-details"]',
@@ -1673,7 +1694,7 @@ class AutoJobrContentScript {
     }
 
     // Check if widget is currently visible
-    const isVisible = widget.style.display !== 'none' && 
+    const isVisible = widget.style.display !== 'none' &&
                       widget.style.opacity !== '0' &&
                       widget.style.transform !== 'translateX(100%)';
 
