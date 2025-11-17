@@ -747,11 +747,12 @@ class AutoJobrContentScript {
             </div>
 
             <div class="add-task-form" id="add-task-form" style="display: none;">
-              <input type="text" id="task-title-input" placeholder="Task title..." class="task-input">
+              <input type="text" id="task-title-input" placeholder="Task title..." class="task-input" required>
               <textarea id="task-desc-input" placeholder="Description (optional)" class="task-textarea"></textarea>
-              <input type="datetime-local" id="task-reminder-input" class="task-input">
+              <label style="font-size: 12px; color: #6b7280; margin: 8px 0 4px 0; display: block;">Due Date & Time *</label>
+              <input type="datetime-local" id="task-reminder-input" class="task-input" required>
               <div class="form-actions">
-                <button class="autojobr-btn primary small" id="save-task-btn">Save</button>
+                <button class="autojobr-btn primary small" id="save-task-btn">Save Task</button>
                 <button class="autojobr-btn secondary small" id="cancel-task-btn">Cancel</button>
               </div>
             </div>
@@ -948,9 +949,14 @@ class AutoJobrContentScript {
   hideAddTaskForm() {
     const form = document.getElementById('add-task-form');
     if (form) form.style.display = 'none';
-    document.getElementById('task-title-input').value = '';
-    document.getElementById('task-desc-input').value = '';
-    document.getElementById('task-reminder-input').value = '';
+    
+    const titleInput = document.getElementById('task-title-input');
+    const descInput = document.getElementById('task-desc-input');
+    const reminderInput = document.getElementById('task-reminder-input');
+    
+    if (titleInput) titleInput.value = '';
+    if (descInput) descInput.value = '';
+    if (reminderInput) reminderInput.value = '';
   }
 
   async saveTask() {
@@ -963,26 +969,40 @@ class AutoJobrContentScript {
       return;
     }
 
+    if (!reminderAt) {
+      this.showNotification('Please select a due date and time', 'warning');
+      return;
+    }
+
     try {
+      console.log('[TASK CREATE] Sending task:', { title, description, reminderAt });
+      
       const response = await this.makeAPIRequest('/api/tasks', {
         method: 'POST',
         body: JSON.stringify({
           title,
-          description,
-          reminderAt: reminderAt || null
+          description: description || '',
+          dueDateTime: reminderAt,
+          reminderAt: reminderAt,
+          reminderEnabled: true,
+          priority: 'medium',
+          category: 'general',
+          taskType: 'reminder'
         })
       });
 
-      if (response.success) {
-        this.showNotification('Task added successfully!', 'success');
+      console.log('[TASK CREATE] Response:', response);
+
+      if (response.success || response.task) {
+        this.showNotification('✅ Task added successfully!', 'success');
         this.hideAddTaskForm();
-        this.loadUserTasks();
+        await this.loadUserTasks();
       } else {
-        this.showNotification('Failed to add task', 'error');
+        this.showNotification(response.error || 'Failed to add task', 'error');
       }
     } catch (error) {
-      console.error('Error saving task:', error);
-      this.showNotification('Error saving task', 'error');
+      console.error('[TASK CREATE] Error:', error);
+      this.showNotification(error.message || 'Error saving task - please try again', 'error');
     }
   }
 
@@ -1109,6 +1129,11 @@ class AutoJobrContentScript {
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
+  // Handle resume generation (alias for generateResume)
+  async handleResumeGeneration() {
+    return this.generateResume();
+  }
+
   // Settings functionality
   async saveApiKey() {
     const apiKey = document.getElementById('groq-api-key-input').value.trim();
@@ -1118,22 +1143,44 @@ class AutoJobrContentScript {
       return;
     }
 
+    if (apiKey.length < 20) {
+      this.showNotification('API key appears to be invalid (too short)', 'warning');
+      return;
+    }
+
     try {
+      console.log('[API KEY] Saving API key...');
+      
       const response = await this.makeAPIRequest('/api/user/settings', {
         method: 'POST',
         body: JSON.stringify({ groqApiKey: apiKey })
       });
 
+      console.log('[API KEY] Response:', response);
+
       if (response.success) {
-        this.showNotification('API key saved successfully!', 'success');
+        this.showNotification('🔑 API key saved successfully!', 'success');
         this.groqApiKey = apiKey;
-        chrome.storage.sync.set({ userApiKey: apiKey });
+        await chrome.storage.sync.set({ userApiKey: apiKey, premiumFeaturesEnabled: true });
+        
+        // Update UI to show key is saved
+        const keyInput = document.getElementById('groq-api-key-input');
+        if (keyInput) {
+          keyInput.value = '••••••••••••••••';
+          keyInput.placeholder = 'API key saved';
+        }
       } else {
-        this.showNotification('Failed to save API key', 'error');
+        this.showNotification(response.error || 'Failed to save API key', 'error');
       }
     } catch (error) {
-      console.error('Error saving API key:', error);
-      this.showNotification('Error saving API key', 'error');
+      console.error('[API KEY] Error:', error);
+      if (error.message.includes('ENCRYPTION_KEY')) {
+        this.showNotification('⚠️ Server encryption not configured. Contact support.', 'error');
+      } else if (error.status === 401) {
+        this.showNotification('Please log in to AutoJobr to save your API key', 'warning');
+      } else {
+        this.showNotification(error.message || 'Error saving API key', 'error');
+      }
     }
   }
 
@@ -1180,33 +1227,35 @@ class AutoJobrContentScript {
 
   // Resume Generation functionality
   async generateResume() {
-    const jobDescInput = document.getElementById('autojobr-job-desc-input'); // Updated ID
-    const additionalReqInput = document.getElementById('autojobr-additional-requirements'); // Updated ID
-    const statusDiv = document.getElementById('resume-status');
-    const statusMessage = statusDiv.querySelector('.status-message');
-    const generateBtn = document.getElementById('autojobr-generate-resume-btn'); // Updated ID
-    const previewDiv = document.getElementById('resume-preview');
-    const contentDiv = document.getElementById('resume-content');
-    const downloadBtn = document.getElementById('download-resume-btn');
+    const jobDescInput = document.getElementById('autojobr-job-desc-input');
+    const additionalReqInput = document.getElementById('autojobr-additional-requirements');
+    const generateBtn = document.getElementById('autojobr-generate-resume-btn');
+
+    if (!jobDescInput || !generateBtn) {
+      console.error('[RESUME] Required elements not found');
+      this.showNotification('Resume generation UI not ready', 'error');
+      return;
+    }
 
     const jobDescription = jobDescInput.value.trim();
-    const additionalRequirements = additionalReqInput.value.trim();
+    const additionalRequirements = additionalReqInput ? additionalReqInput.value.trim() : '';
 
     if (!jobDescription) {
       this.showNotification('Please enter a job description', 'warning');
       return;
     }
 
-    // Show status
-    statusDiv.style.display = 'block';
-    statusMessage.textContent = 'Generating your tailored resume...';
-    statusMessage.className = 'status-message loading';
-    generateBtn.disabled = true;
-    generateBtn.innerHTML = '<span class="btn-icon">⏳</span><span>Generating...</span>';
+    if (jobDescription.length < 50) {
+      this.showNotification('Job description is too short (min 50 characters)', 'warning');
+      return;
+    }
 
-    // Hide previous results
-    previewDiv.style.display = 'none';
-    downloadBtn.style.display = 'none';
+    console.log('[RESUME] Starting generation...');
+    
+    // Update button state
+    generateBtn.disabled = true;
+    const originalHTML = generateBtn.innerHTML;
+    generateBtn.innerHTML = '<span style="font-size: 18px;">⏳</span> <span>Generating...</span>';
 
     try {
       const response = await this.makeAPIRequest('/api/resume/generate', {
@@ -1214,38 +1263,107 @@ class AutoJobrContentScript {
         body: JSON.stringify({
           jobDescription,
           additionalRequirements
-        })
+        }),
+        timeout: 30000 // 30 second timeout for resume generation
       });
 
+      console.log('[RESUME] Response:', response);
+
       generateBtn.disabled = false;
-      generateBtn.innerHTML = '<span class="btn-icon">✨</span><span>Generate Resume</span>';
+      generateBtn.innerHTML = originalHTML;
 
       if (response.success && response.resume) {
-        statusMessage.textContent = 'Resume generated successfully!';
-        statusMessage.className = 'status-message success';
-
-        // Display the resume
-        contentDiv.innerHTML = this.formatResumeContent(response.resume);
-        previewDiv.style.display = 'block';
-        downloadBtn.style.display = 'inline-block';
-
-        // Store resume data for download
+        // Store resume data
         this.generatedResume = response.resume;
-
-        this.showNotification('Resume generated successfully!', 'success');
+        
+        // Create modal to show resume
+        this.showResumeModal(response.resume);
+        
+        this.showNotification('✅ Resume generated successfully!', 'success');
       } else {
-        statusMessage.textContent = response.error || 'Failed to generate resume';
-        statusMessage.className = 'status-message error';
-        this.showNotification(response.error || 'Failed to generate resume', 'error');
+        const errorMsg = response.error || 'Failed to generate resume';
+        console.error('[RESUME] Error:', errorMsg);
+        
+        if (errorMsg.includes('premium') || errorMsg.includes('API key')) {
+          this.showNotification('⚠️ ' + errorMsg, 'warning');
+        } else {
+          this.showNotification('❌ ' + errorMsg, 'error');
+        }
       }
     } catch (error) {
       generateBtn.disabled = false;
-      generateBtn.innerHTML = '<span class="btn-icon">✨</span><span>Generate Resume</span>';
-      statusMessage.textContent = 'Error generating resume. Please try again.';
-      statusMessage.className = 'status-message error';
-      console.error('Resume generation error:', error);
-      this.showNotification('Error generating resume', 'error');
+      generateBtn.innerHTML = originalHTML;
+      console.error('[RESUME] Exception:', error);
+      
+      if (error.message.includes('timeout')) {
+        this.showNotification('Generation timed out - please try again', 'error');
+      } else if (error.status === 401) {
+        this.showNotification('Please log in to generate resumes', 'warning');
+      } else {
+        this.showNotification('Error: ' + (error.message || 'Unknown error'), 'error');
+      }
     }
+  }
+
+  showResumeModal(resumeText) {
+    // Remove existing modal if any
+    const existingModal = document.getElementById('autojobr-resume-modal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'autojobr-resume-modal';
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      z-index: 999999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    `;
+
+    modal.innerHTML = `
+      <div style="background: white; border-radius: 12px; max-width: 800px; max-height: 90vh; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+        <div style="padding: 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="margin: 0; font-size: 18px; font-weight: 600;">Generated Resume</h3>
+          <button id="close-resume-modal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280;">&times;</button>
+        </div>
+        <div style="padding: 20px; max-height: 60vh; overflow-y: auto;">
+          <pre style="white-space: pre-wrap; font-family: inherit; line-height: 1.6;">${this.escapeHtml(resumeText)}</pre>
+        </div>
+        <div style="padding: 20px; border-top: 1px solid #e5e7eb; display: flex; gap: 10px; justify-content: flex-end;">
+          <button id="download-resume-btn" style="padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+            📥 Download
+          </button>
+          <button id="copy-resume-btn" style="padding: 10px 20px; background: #f3f4f6; color: #374151; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+            📋 Copy
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Event listeners
+    document.getElementById('close-resume-modal').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+
+    document.getElementById('download-resume-btn').addEventListener('click', () => {
+      this.downloadResume(resumeText);
+    });
+
+    document.getElementById('copy-resume-btn').addEventListener('click', () => {
+      navigator.clipboard.writeText(resumeText).then(() => {
+        this.showNotification('📋 Resume copied to clipboard!', 'success');
+      });
+    });
   }
 
   formatResumeContent(resume) {
