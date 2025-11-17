@@ -1,5 +1,5 @@
 // Enhanced AutoJobr Content Script v2.0 - Advanced Job Board Auto-Fill System
-const API_BASE_URL = 'https://autojobr.com';
+let API_BASE_URL = 'https://autojobr.com';
 
 class AutoJobrContentScript {
   constructor() {
@@ -11,32 +11,48 @@ class AutoJobrContentScript {
     this.observers = [];
     this.fillHistory = [];
     this.smartSelectors = new Map();
-    this.filledFields = new Set(); // Track filled fields to prevent loops
+    this.filledFields = new Set();
     this.formState = { currentPage: 1, hasNextPage: false, hasSubmit: false };
-    this.analysisInProgress = false; // Prevent duplicate analysis
-    this.lastAnalysisUrl = null; // Track last analyzed URL
-    this.analysisDebounceTimer = null; // Debounce analysis calls
-    this.cachedProfile = null; // Cache profile to prevent excessive requests
-    this.lastAuthCheck = 0; // Track last authentication check
-    this.currentAnalysis = null; // Store the latest job analysis result
-    this.cache = new Map(); // Cache for API responses
+    this.analysisInProgress = false;
+    this.lastAnalysisUrl = null;
+    this.analysisDebounceTimer = null;
+    this.cachedProfile = null;
+    this.lastAuthCheck = 0;
+    this.currentAnalysis = null;
+    this.cache = new Map();
     this.isAuthenticated = false;
 
     // Experience calculation cache
-    this.experienceCache = null; // Cache for general years of experience
-    this.skillExpCache = {}; // Cache for skill-specific experience calculations
+    this.experienceCache = null;
+    this.skillExpCache = {};
 
     // LinkedIn Automation specific states
     this.automationRunning = false;
     this.applicationsSubmitted = 0;
     this.applicationsSkipped = 0;
     this.currentPage = 1;
-    this.maxPages = 1; // Default to 1 page for non-premium
+    this.maxPages = 1;
 
-    // New properties for AI features
+    // AI features
     this.groqApiKey = null;
     this.groqApiUrl = 'https://api.groq.com/openai/v1';
 
+    // Initialize API URL from background script
+    this.initializeApiUrl();
+  }
+
+  async initializeApiUrl() {
+    try {
+      const response = await chrome.runtime.sendMessage({ action: 'getApiUrl' });
+      if (response && response.apiUrl) {
+        API_BASE_URL = response.apiUrl;
+        console.log('✅ API URL set to:', API_BASE_URL);
+      }
+    } catch (error) {
+      console.log('Using default API URL:', API_BASE_URL);
+    }
+    
+    // Now initialize after API URL is set
     this.init();
   }
 
@@ -47,10 +63,7 @@ class AutoJobrContentScript {
       // Load settings first
       chrome.storage.sync.get(['userApiKey', 'premiumFeaturesEnabled'], (result) => {
         this.groqApiKey = result.userApiKey || null;
-        // Update premium status if feature is explicitly enabled
-        if (result.premiumFeaturesEnabled === true) {
-           // Potentially set a flag if premium features are active
-        }
+        console.log('🔑 API Key loaded:', this.groqApiKey ? 'Present' : 'Not set');
       });
 
       this.injectEnhancedUI();
@@ -58,18 +71,16 @@ class AutoJobrContentScript {
       this.observePageChanges();
       this.setupKeyboardShortcuts();
       this.initializeSmartSelectors();
-      this.setupApplicationTracking(); // Setup tracking once during initialization
-
-      // Setup automatic job analysis with debouncing
+      this.setupApplicationTracking();
       this.setupAutoAnalysis();
+      
       this.isInitialized = true;
-
-      // Mark as loaded for background script
       window.autojobrContentScriptLoaded = true;
 
-      console.log('🚀 AutoJobr extension v2.0 initialized on:', this.currentSite);
+      console.log('🚀 AutoJobr extension v2.1 initialized on:', this.currentSite);
     } catch (error) {
-      console.error('AutoJobr initialization error:', error);
+      console.error('❌ AutoJobr initialization error:', error);
+      this.showNotification('Extension initialization failed. Please refresh.', 'error');
     }
   }
 
@@ -1134,9 +1145,229 @@ class AutoJobrContentScript {
     return this.generateResume();
   }
 
+  async generateResume() {
+    const jobDescInput = document.getElementById('autojobr-job-desc-input');
+    const additionalReqInput = document.getElementById('autojobr-additional-requirements');
+    const generateBtn = document.getElementById('autojobr-generate-resume-btn');
+
+    let jobDescription = jobDescInput?.value?.trim();
+    const additionalRequirements = additionalReqInput?.value?.trim() || '';
+
+    // Auto-extract if empty
+    if (!jobDescription && this.currentJobData) {
+      jobDescription = this.currentJobData.description || '';
+      if (jobDescInput) jobDescInput.value = jobDescription;
+    }
+
+    if (!jobDescription) {
+      this.showError('Please enter a job description or navigate to a job posting');
+      return;
+    }
+
+    // Check for API key
+    const apiKey = this.groqApiKey || await this.getUserApiKey();
+    if (!apiKey) {
+      this.showError('Please add your Groq API key in Settings tab first');
+      return;
+    }
+
+    if (generateBtn) {
+      generateBtn.disabled = true;
+      generateBtn.innerHTML = '<span style="font-size: 18px;">⏳</span> <span>Generating Resume...</span>';
+    }
+
+    try {
+      const response = await fetch(`${this.groqApiUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'llama-3.1-70b-versatile',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert resume writer. Create ATS-optimized resumes tailored to job descriptions.'
+            },
+            {
+              role: 'user',
+              content: `Create a professional, ATS-optimized resume for this job:\n\nJob Description:\n${jobDescription}\n\nAdditional Requirements:\n${additionalRequirements || 'None'}\n\nProvide the resume in a clean, structured format with sections: Summary, Experience, Skills, Education.`
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const resumeContent = data.choices[0]?.message?.content;
+
+      if (!resumeContent) {
+        throw new Error('No resume content generated');
+      }
+
+      // Display the resume in a modal
+      this.displayGeneratedResume(resumeContent);
+      this.showSuccess('✅ Resume generated successfully!');
+
+    } catch (error) {
+      console.error('Resume generation error:', error);
+      this.showError('Failed to generate resume: ' + error.message);
+    } finally {
+      if (generateBtn) {
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = '<span style="font-size: 18px;">✨</span> <span>Generate Tailored Resume</span>';
+      }
+    }
+  }
+
+  displayGeneratedResume(resumeContent) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10004;
+      backdrop-filter: blur(5px);
+    `;
+
+    modal.innerHTML = `
+      <div style="
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 800px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      ">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 style="margin: 0; color: #1e293b; font-size: 20px;">✨ Generated Resume</h2>
+          <button id="close-resume-modal" style="
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #64748b;
+          ">×</button>
+        </div>
+        <pre style="
+          white-space: pre-wrap;
+          font-family: 'Georgia', serif;
+          font-size: 14px;
+          line-height: 1.6;
+          color: #1e293b;
+          background: #f8fafc;
+          padding: 20px;
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+        ">${this.escapeHtml(resumeContent)}</pre>
+        <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+          <button id="copy-resume-btn" style="
+            padding: 12px 24px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+          ">📋 Copy to Clipboard</button>
+          <button id="download-resume-txt-btn" style="
+            padding: 12px 24px;
+            background: #22c55e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+          ">💾 Download TXT</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Event listeners
+    modal.querySelector('#close-resume-modal').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+
+    modal.querySelector('#copy-resume-btn').addEventListener('click', () => {
+      navigator.clipboard.writeText(resumeContent);
+      this.showSuccess('✅ Resume copied to clipboard!');
+    });
+
+    modal.querySelector('#download-resume-txt-btn').addEventListener('click', () => {
+      const blob = new Blob([resumeContent], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `AutoJobr_Resume_${Date.now()}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+      this.showSuccess('✅ Resume downloaded!');
+    });
+  }
+
   // Settings functionality
+  async loadUserSettings() {
+    try {
+      const result = await chrome.storage.sync.get([
+        'userApiKey',
+        'premiumFeaturesEnabled',
+        'smartFillMode',
+        'autoSubmitMode',
+        'autoResumeMode'
+      ]);
+
+      // Load API key
+      if (result.userApiKey) {
+        this.groqApiKey = result.userApiKey;
+        const apiKeyInput = document.getElementById('groq-api-key-input');
+        if (apiKeyInput) {
+          apiKeyInput.value = '••••••••••••••••'; // Masked display
+        }
+      }
+
+      // Load toggles
+      const smartFillToggle = document.getElementById('smart-fill');
+      const autoSubmitToggle = document.getElementById('auto-submit');
+      const autoResumeToggle = document.getElementById('auto-resume-upload');
+      const premiumAIToggle = document.getElementById('auto-fill-premium-ai');
+
+      if (smartFillToggle) smartFillToggle.checked = result.smartFillMode !== false;
+      if (autoSubmitToggle) autoSubmitToggle.checked = result.autoSubmitMode === true;
+      if (autoResumeToggle) autoResumeToggle.checked = result.autoResumeMode !== false;
+      if (premiumAIToggle) premiumAIToggle.checked = result.premiumFeaturesEnabled === true;
+
+      console.log('✅ Settings loaded');
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    }
+  }
+
   async saveApiKey() {
-    const apiKey = document.getElementById('groq-api-key-input').value.trim();
+    const apiKeyInput = document.getElementById('groq-api-key-input');
+    const apiKey = apiKeyInput.value.trim();
+
+    // Skip if masked value
+    if (apiKey === '••••••••••••••••') {
+      this.showNotification('API key already saved', 'info');
+      return;
+    }
 
     if (!apiKey) {
       this.showNotification('Please enter an API key', 'warning');
@@ -1150,6 +1381,58 @@ class AutoJobrContentScript {
 
     try {
       console.log('[API KEY] Saving API key...');
+      
+      await chrome.storage.sync.set({ userApiKey: apiKey });
+      this.groqApiKey = apiKey;
+
+      // Mask the input
+      apiKeyInput.value = '••••••••••••••••';
+
+      this.showSuccess('✅ API key saved successfully!');
+      console.log('[API KEY] Saved to chrome.storage');
+    } catch (error) {
+      console.error('[API KEY] Save error:', error);
+      this.showError('Failed to save API key: ' + error.message);
+    }
+  }
+
+  async clearCache() {
+    try {
+      this.cache.clear();
+      this.cachedProfile = null;
+      this.currentAnalysis = null;
+      
+      // Clear chrome storage cache
+      await chrome.storage.local.remove(['profileCache', 'analysisCache']);
+      
+      this.showSuccess('✅ Cache cleared successfully!');
+    } catch (error) {
+      console.error('Clear cache error:', error);
+      this.showError('Failed to clear cache');
+    }
+  }
+
+  async logout() {
+    try {
+      // Clear all stored data
+      await chrome.storage.local.clear();
+      await chrome.storage.sync.remove(['userApiKey', 'premiumFeaturesEnabled']);
+      
+      this.isAuthenticated = false;
+      this.cachedProfile = null;
+      this.groqApiKey = null;
+      
+      this.showSuccess('✅ Logged out successfully!');
+      
+      // Redirect to login after 1 second
+      setTimeout(() => {
+        window.location.href = `${API_BASE_URL}/auth/login`;
+      }, 1000);
+    } catch (error) {
+      console.error('Logout error:', error);
+      this.showError('Failed to logout');
+    }
+  }
       
       const response = await this.makeAPIRequest('/api/user/settings', {
         method: 'POST',
@@ -1407,6 +1690,41 @@ class AutoJobrContentScript {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `autojobr-notification ${type}`;
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 16px 24px;
+      background: ${type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : type === 'warning' ? '#f59e0b' : '#3b82f6'};
+      color: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+      z-index: 10003;
+      font-size: 14px;
+      font-weight: 500;
+      max-width: 350px;
+      animation: slideInRight 0.3s ease-out;
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      notification.style.animation = 'slideOutRight 0.3s ease-out';
+      setTimeout(() => notification.remove(), 300);
+    }, 4000);
+  }
+
+  showError(message) {
+    this.showNotification(message, 'error');
+  }
+
+  showSuccess(message) {
+    this.showNotification(message, 'success');
   }
 
   makeWidgetDraggable() {
