@@ -595,9 +595,9 @@ class AutoJobrContentScript {
           <!-- RESUME GENERATION TAB -->
           <div class="tab-content" id="tab-resume">
             <div style="padding: 20px; max-height: 500px; overflow-y: auto;">
-              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
                 <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-                  <span>📄</span> Generate Tailored Resume
+                  <span style="font-size: 20px;">📄</span> Generate Tailored Resume
                 </h3>
                 <p style="margin: 0; font-size: 12px; opacity: 0.9; line-height: 1.4;">Generate a resume tailored to the job description using AI</p>
               </div>
@@ -609,7 +609,9 @@ class AutoJobrContentScript {
                 <textarea 
                   id="autojobr-job-desc-input" 
                   placeholder="Paste the job description here..."
-                  style="width: 100%; min-height: 100px; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; font-family: inherit; resize: vertical; box-sizing: border-box;"
+                  style="width: 100%; min-height: 100px; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; font-family: inherit; resize: vertical; box-sizing: border-box; transition: border-color 0.2s;"
+                  onfocus="this.style.borderColor='#667eea'"
+                  onblur="this.style.borderColor='#e5e7eb'"
                 ></textarea>
               </div>
 
@@ -620,26 +622,33 @@ class AutoJobrContentScript {
                 <textarea 
                   id="autojobr-additional-requirements" 
                   placeholder="Any specific skills or experience to emphasize..."
-                  style="width: 100%; min-height: 70px; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; font-family: inherit; resize: vertical; box-sizing: border-box;"
+                  style="width: 100%; min-height: 70px; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; font-family: inherit; resize: vertical; box-sizing: border-box; transition: border-color 0.2s;"
+                  onfocus="this.style.borderColor='#667eea'"
+                  onblur="this.style.borderColor='#e5e7eb'"
                 ></textarea>
               </div>
 
-              <button id="autojobr-generate-resume-btn" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; box-sizing: border-box;">
-                <span>✨</span> Generate Resume
+              <button id="autojobr-generate-resume-btn" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.3s; box-sizing: border-box; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);"
+                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(102, 126, 234, 0.5)'"
+                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.4)'">
+                <span style="font-size: 18px;">✨</span> 
+                <span>Generate Tailored Resume</span>
               </button>
 
-              <div style="margin-top: 15px; padding: 12px; background: #f3f4f6; border-radius: 8px; border-left: 4px solid #3b82f6;">
-                <div style="margin-bottom: 8px;">
-                  <strong style="color: #1e40af; display: flex; align-items: center; gap: 6px; font-size: 13px;">
-                    <span>💡</span> BYOK Users:
-                  </strong>
-                  <p style="margin: 4px 0 0 0; font-size: 12px; color: #4b5563; line-height: 1.3;">Uses your Groq API key from Settings</p>
+              <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div style="padding: 12px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-radius: 10px; border: 1px solid #3b82f6; text-align: center; transition: all 0.2s; cursor: pointer;"
+                  onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(59, 130, 246, 0.2)'"
+                  onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                  <div style="font-size: 24px; margin-bottom: 4px;">💡</div>
+                  <strong style="color: #1e40af; display: block; font-size: 12px; margin-bottom: 4px;">BYOK Users</strong>
+                  <p style="margin: 0; font-size: 11px; color: #4b5563; line-height: 1.3;">Uses your Groq API key</p>
                 </div>
-                <div>
-                  <strong style="color: #7c3aed; display: flex; align-items: center; gap: 6px; font-size: 13px;">
-                    <span>⭐</span> Premium Users:
-                  </strong>
-                  <p style="margin: 4px 0 0 0; font-size: 12px; color: #4b5563; line-height: 1.3;">Unlimited resume generations included</p>
+                <div style="padding: 12px; background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); border-radius: 10px; border: 1px solid #7c3aed; text-align: center; transition: all 0.2s; cursor: pointer;"
+                  onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(124, 58, 237, 0.2)'"
+                  onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                  <div style="font-size: 24px; margin-bottom: 4px;">⭐</div>
+                  <strong style="color: #7c3aed; display: block; font-size: 12px; margin-bottom: 4px;">Premium Users</strong>
+                  <p style="margin: 0; font-size: 11px; color: #4b5563; line-height: 1.3;">Unlimited generations</p>
                 </div>
               </div>
             </div>
