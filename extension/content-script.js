@@ -1021,7 +1021,7 @@ class AutoJobrContentScript {
       // Check if user has their own API key
       const storage = await chrome.storage.sync.get(['userApiKey']);
       const hasApiKey = !!storage.userApiKey;
-      
+
       let response;
       if (hasApiKey) {
         // Use extension storage API key
@@ -1093,14 +1093,14 @@ class AutoJobrContentScript {
       // Save to extension storage
       await chrome.storage.sync.set({ userApiKey: apiKey });
       this.groqApiKey = apiKey;
-      
+
       // Try to sync with server if authenticated
       try {
         const response = await this.makeAPIRequest('/api/user/settings', {
           method: 'POST',
           body: JSON.stringify({ groqApiKey: apiKey })
         });
-        
+
         if (response && response.success) {
           this.showNotification('✅ API key saved successfully!', 'success');
         } else {
@@ -1493,19 +1493,19 @@ class AutoJobrContentScript {
     // UNIVERSAL ACCESS - Widget works on ALL websites
     const hostname = window.location.hostname.toLowerCase();
     const url = window.location.href.toLowerCase();
-    
+
     // Always allow on AutoJobr/Replit domains
     if (hostname.includes('replit.dev') || hostname.includes('replit.app') || 
         hostname.includes('replit.com') || hostname.includes('autojobr.com')) {
       console.log(`📍 AutoJobr/Replit domain detected: ${hostname}`);
       return true;
     }
-    
+
     // ALLOW ON ALL WEBSITES - including Gmail, etc.
     // User can use AI chat, resume generation, and other features anywhere
     console.log(`📍 Universal access enabled on: ${hostname}`);
     return true; // Always return true for universal access
-    
+
     const url = window.location.href.toLowerCase();
     const pathname = window.location.pathname.toLowerCase();
 
@@ -4376,69 +4376,82 @@ class AutoJobrContentScript {
 
   // Setup automatic job analysis when new pages load - prevent duplicates
   setupAutoAnalysis() {
-    console.log('🎯 Setting up automatic job analysis with debouncing');
+    // Only set up auto-analysis on job pages
+    if (!this.isJobPage()) {
+      console.log('⏭️ Not a job page - auto-analysis disabled');
+      return;
+    }
 
-    // Debounced analysis function to prevent multiple calls
-    this.debouncedAnalysis = this.debounce(() => {
-      const currentUrl = window.location.href;
+    // Debounced analysis to prevent excessive calls
+    let analysisTimer = null;
+    const ANALYSIS_DEBOUNCE_MS = 2000; // 2 seconds
 
-      // Skip if already analyzing this URL
-      if (this.analysisInProgress || this.lastAnalysisUrl === currentUrl) {
-        console.log('🔄 Skipping duplicate analysis for:', currentUrl);
-        return;
+    const debouncedAnalysis = () => {
+      if (analysisTimer) {
+        clearTimeout(analysisTimer);
       }
 
-      this.lastAnalysisUrl = currentUrl;
-      this.analysisInProgress = true;
+      analysisTimer = setTimeout(async () => {
+        const currentUrl = window.location.href;
 
-      // Clear any cached job data first
-      this.currentJobData = null;
-
-      // UNIVERSAL ACCESS - Always show widget (works on Gmail, etc.)
-      console.log('📍 Universal access - showing widget on:', currentUrl);
-      this.showWidget(); // Show widget on ALL pages
-      
-      // Check if this is a job page for additional features
-      if (this.isJobPage()) {
-        console.log('📍 Job page detected - enabling job-specific features:', currentUrl);
-
-        // Inject LinkedIn buttons immediately (Auto Apply button shows up right away)
-        if (window.location.hostname.includes('linkedin.com')) {
-          setTimeout(() => {
-            this.injectLinkedInButtons(null); // Inject Auto Apply button without score first
-          }, 500);
+        // Skip if already analyzing this URL
+        if (this.analysisInProgress || this.lastAnalysisUrl === currentUrl) {
+          console.log('🔄 Skipping duplicate analysis for:', currentUrl);
+          return;
         }
 
-        // Don't auto-show widget - let user click the floating button instead
+        this.lastAnalysisUrl = currentUrl;
+        this.analysisInProgress = true;
 
-        // Start job detection and analysis silently
-        this.detectJobPosting().then((result) => {
-          if (result && result.success) {
-            console.log('✅ Job detected successfully, updating match score silently');
-            this.updateJobInfo(result.jobData);
-            // Perform auto-analysis after successful detection
+        // Clear any cached job data first
+        this.currentJobData = null;
+
+        // UNIVERSAL ACCESS - Always show widget (works on Gmail, etc.)
+        console.log('📍 Universal access - showing widget on:', currentUrl);
+        this.showWidget(); // Show widget on ALL pages
+
+        // Check if this is a job page for additional features
+        if (this.isJobPage()) {
+          console.log('📍 Job page detected - enabling job-specific features:', currentUrl);
+
+          // Inject LinkedIn buttons immediately (Auto Apply button shows up right away)
+          if (window.location.hostname.includes('linkedin.com')) {
             setTimeout(() => {
-              this.performAutoAnalysis().finally(() => {
-                this.analysisInProgress = false;
-              });
-            }, 1000);
-          } else {
-            console.log('⚠️ Job detection failed but Auto Apply button still available');
-            this.analysisInProgress = false;
+              this.injectLinkedInButtons(null); // Inject Auto Apply button without score first
+            }, 500);
           }
-        }).catch((error) => {
-          console.log('❌ Job detection error:', error);
+
+          // Don't auto-show widget - let user click the floating button instead
+
+          // Start job detection and analysis silently
+          this.detectJobPosting().then((result) => {
+            if (result && result.success) {
+              console.log('✅ Job detected successfully, updating match score silently');
+              this.updateJobInfo(result.jobData);
+              // Perform auto-analysis after successful detection
+              setTimeout(() => {
+                this.performAutoAnalysis().finally(() => {
+                  this.analysisInProgress = false;
+                });
+              }, 1000);
+            } else {
+              console.log('⚠️ Job detection failed but Auto Apply button still available');
+              this.analysisInProgress = false;
+            }
+          }).catch((error) => {
+            console.log('❌ Job detection error:', error);
+            this.analysisInProgress = false;
+          });
+        } else {
+          this.hideWidget();
           this.analysisInProgress = false;
-        });
-      } else {
-        this.hideWidget();
-        this.analysisInProgress = false;
-      }
-    }, 2000); // 2 second debounce
+        }
+      }, ANALYSIS_DEBOUNCE_MS); // 2 second debounce
+    };
 
     // Initial analysis
     setTimeout(() => {
-      this.debouncedAnalysis();
+      debouncedAnalysis();
     }, 1500);
 
     // Watch for URL changes (SPA navigation)
@@ -4447,7 +4460,7 @@ class AutoJobrContentScript {
       if (window.location.href !== currentUrl) {
         currentUrl = window.location.href;
         console.log('🔄 URL changed to:', currentUrl);
-        this.debouncedAnalysis();
+        debouncedAnalysis();
       }
     });
 
