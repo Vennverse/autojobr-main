@@ -51,7 +51,7 @@ class AutoJobrContentScript {
     } catch (error) {
       console.log('Using default API URL:', API_BASE_URL);
     }
-    
+
     // Now initialize after API URL is set
     this.init();
   }
@@ -73,7 +73,7 @@ class AutoJobrContentScript {
       this.initializeSmartSelectors();
       this.setupApplicationTracking();
       this.setupAutoAnalysis();
-      
+
       this.isInitialized = true;
       window.autojobrContentScriptLoaded = true;
 
@@ -960,11 +960,11 @@ class AutoJobrContentScript {
   hideAddTaskForm() {
     const form = document.getElementById('add-task-form');
     if (form) form.style.display = 'none';
-    
+
     const titleInput = document.getElementById('task-title-input');
     const descInput = document.getElementById('task-desc-input');
     const reminderInput = document.getElementById('task-reminder-input');
-    
+
     if (titleInput) titleInput.value = '';
     if (descInput) descInput.value = '';
     if (reminderInput) reminderInput.value = '';
@@ -987,7 +987,7 @@ class AutoJobrContentScript {
 
     try {
       console.log('[TASK CREATE] Sending task:', { title, description, reminderAt });
-      
+
       const response = await this.makeAPIRequest('/api/tasks', {
         method: 'POST',
         body: JSON.stringify({
@@ -1381,7 +1381,7 @@ class AutoJobrContentScript {
 
     try {
       console.log('[API KEY] Saving API key...');
-      
+
       await chrome.storage.sync.set({ userApiKey: apiKey });
       this.groqApiKey = apiKey;
 
@@ -1401,10 +1401,10 @@ class AutoJobrContentScript {
       this.cache.clear();
       this.cachedProfile = null;
       this.currentAnalysis = null;
-      
+
       // Clear chrome storage cache
       await chrome.storage.local.remove(['profileCache', 'analysisCache']);
-      
+
       this.showSuccess('✅ Cache cleared successfully!');
     } catch (error) {
       console.error('Clear cache error:', error);
@@ -1417,13 +1417,13 @@ class AutoJobrContentScript {
       // Clear all stored data
       await chrome.storage.local.clear();
       await chrome.storage.sync.remove(['userApiKey', 'premiumFeaturesEnabled']);
-      
+
       this.isAuthenticated = false;
       this.cachedProfile = null;
       this.groqApiKey = null;
-      
+
       this.showSuccess('✅ Logged out successfully!');
-      
+
       // Redirect to login after 1 second
       setTimeout(() => {
         window.location.href = `${API_BASE_URL}/auth/login`;
@@ -1433,7 +1433,7 @@ class AutoJobrContentScript {
       this.showError('Failed to logout');
     }
   }
-      
+
       const response = await this.makeAPIRequest('/api/user/settings', {
         method: 'POST',
         body: JSON.stringify({ groqApiKey: apiKey })
@@ -1445,11 +1445,11 @@ class AutoJobrContentScript {
         this.showNotification('🔑 API key saved successfully!', 'success');
         this.groqApiKey = apiKey;
         await chrome.storage.sync.set({ userApiKey: apiKey, premiumFeaturesEnabled: true });
-        
+
         // Update UI to show key is saved
         const keyInput = document.getElementById('groq-api-key-input');
         if (keyInput) {
-          keyInput.value = '••••••••••••••••';
+          keyInput.value = '••••••••••••';
           keyInput.placeholder = 'API key saved';
         }
       } else {
@@ -1534,7 +1534,7 @@ class AutoJobrContentScript {
     }
 
     console.log('[RESUME] Starting generation...');
-    
+
     // Update button state
     generateBtn.disabled = true;
     const originalHTML = generateBtn.innerHTML;
@@ -1558,15 +1558,15 @@ class AutoJobrContentScript {
       if (response.success && response.resume) {
         // Store resume data
         this.generatedResume = response.resume;
-        
+
         // Create modal to show resume
         this.showResumeModal(response.resume);
-        
+
         this.showNotification('✅ Resume generated successfully!', 'success');
       } else {
         const errorMsg = response.error || 'Failed to generate resume';
         console.error('[RESUME] Error:', errorMsg);
-        
+
         if (errorMsg.includes('premium') || errorMsg.includes('API key')) {
           this.showNotification('⚠️ ' + errorMsg, 'warning');
         } else {
@@ -1577,7 +1577,7 @@ class AutoJobrContentScript {
       generateBtn.disabled = false;
       generateBtn.innerHTML = originalHTML;
       console.error('[RESUME] Exception:', error);
-      
+
       if (error.message.includes('timeout')) {
         this.showNotification('Generation timed out - please try again', 'error');
       } else if (error.status === 401) {
@@ -2107,10 +2107,7 @@ class AutoJobrContentScript {
   hideWidget() {
     const widget = document.querySelector('.autojobr-widget');
     if (widget) {
-      widget.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-      widget.style.opacity = '0';
-      widget.style.transform = 'translateX(100%)';
-
+      widget.style.animation = 'slideOutRight 0.3s ease-out';
       setTimeout(() => {
         widget.style.display = 'none'; // Hide instead of removing from DOM
       }, 300);
@@ -2127,7 +2124,7 @@ class AutoJobrContentScript {
     }
 
     // Check if widget is currently visible
-    const isVisible = widget.style.display !== 'none' && 
+    const isVisible = widget.style.display !== 'none' &&
                       widget.style.opacity !== '0' &&
                       widget.style.transform !== 'translateX(100%)';
 
@@ -4313,7 +4310,7 @@ class AutoJobrContentScript {
       position: fixed;
       top: 20px;
       right: 20px;
-      background: ${type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#3b82f6'};
+      background: ${type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : type === 'warning' ? '#f59e0b' : '#3b82f6'};
       color: white;
       padding: 12px 20px;
       border-radius: 8px;
