@@ -64,7 +64,12 @@ function decryptApiKey(encryptedData: string): string {
 
 const createTaskSchema = z.object({
   title: z.string().min(1).max(500),
-  description: z.string().max(2000).optional(),
+  description: z.string().max(2000).optional().nullable(),
+  priority: z.enum(['low', 'medium', 'high']).optional(),
+  category: z.string().optional(),
+  taskType: z.string().optional(),
+  dueDateTime: z.string().datetime().optional().nullable(),
+  reminderEnabled: z.boolean().optional(),
   reminderAt: z.string().datetime().optional()
 });
 
@@ -74,11 +79,18 @@ router.get('/tasks', isAuthenticated, async (req: any, res) => {
     const userId = req.user.id;
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
     const offset = parseInt(req.query.offset as string) || 0;
+    const status = req.query.status as string;
     
-    const userTasks = await db
+    let query = db
       .select()
       .from(tasks)
-      .where(eq(tasks.userId, userId))
+      .where(eq(tasks.userId, userId));
+    
+    if (status) {
+      query = query.where(and(eq(tasks.userId, userId), eq(tasks.status, status))) as any;
+    }
+    
+    const userTasks = await query
       .orderBy(desc(tasks.createdAt))
       .limit(limit)
       .offset(offset);
@@ -101,11 +113,13 @@ router.post('/tasks', isAuthenticated, async (req: any, res) => {
       userId,
       title: validatedData.title,
       description: validatedData.description || null,
-      reminderDateTime: validatedData.reminderAt ? new Date(validatedData.reminderAt) : null,
-      status: 'pending',
-      taskType: 'reminder',
-      priority: 'medium',
-      category: 'general'
+      priority: validatedData.priority || 'medium',
+      category: validatedData.category || 'general',
+      taskType: validatedData.taskType || 'reminder',
+      dueDate: validatedData.dueDateTime ? new Date(validatedData.dueDateTime) : null,
+      reminderDateTime: (validatedData.dueDateTime || validatedData.reminderAt) ? new Date(validatedData.dueDateTime || validatedData.reminderAt!) : null,
+      reminderEnabled: validatedData.reminderEnabled ?? (!!validatedData.dueDateTime || !!validatedData.reminderAt),
+      status: 'pending'
     }).returning();
     
     res.json({ success: true, task: newTask });
@@ -118,7 +132,39 @@ router.post('/tasks', isAuthenticated, async (req: any, res) => {
   }
 });
 
-// Update task
+// Update task status
+router.patch('/tasks/:id/status', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const taskId = parseInt(req.params.id);
+    const { status } = req.body;
+    
+    if (!status || !['pending', 'in_progress', 'completed', 'cancelled'].includes(status)) {
+      return res.status(400).json({ success: false, error: 'Invalid status' });
+    }
+    
+    const [updatedTask] = await db
+      .update(tasks)
+      .set({
+        status,
+        completedAt: status === 'completed' ? new Date() : null,
+        updatedAt: new Date()
+      })
+      .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
+      .returning();
+    
+    if (!updatedTask) {
+      return res.status(404).json({ success: false, error: 'Task not found' });
+    }
+    
+    res.json({ success: true, task: updatedTask });
+  } catch (error) {
+    console.error('Error updating task status:', error);
+    res.status(500).json({ success: false, error: 'Failed to update task' });
+  }
+});
+
+// Update task (general)
 router.patch('/tasks/:id', isAuthenticated, async (req: any, res) => {
   try {
     const userId = req.user.id;
@@ -129,7 +175,8 @@ router.patch('/tasks/:id', isAuthenticated, async (req: any, res) => {
       .update(tasks)
       .set({
         status: completed ? 'completed' : 'pending',
-        completedAt: completed ? new Date() : null
+        completedAt: completed ? new Date() : null,
+        updatedAt: new Date()
       })
       .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
       .returning();

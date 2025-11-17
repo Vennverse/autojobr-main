@@ -5858,104 +5858,25 @@ Generate ONLY the connection note text, nothing else.`
     }
   });
 
-  // Tasks API for extension
+  // NOTE: Tasks API routes moved to extensionRoutes.ts to avoid duplication
+  // The extension routes are mounted at /api and handle all task operations
+  // Extension routes provide better schema validation and consistent error handling
+  // If you need to modify task routes, edit server/extensionRoutes.ts instead
+  
+  // Keeping these commented for reference:
+  /*
   app.get('/api/tasks', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const limit = parseInt(req.query.limit as string) || 10;
-      const status = req.query.status as string;
-
-      console.log('[TASKS API] GET /api/tasks - Request received', {
-        userId,
-        limit,
-        status,
-        hasUser: !!req.user,
-        sessionId: req.sessionID?.substring(0, 8),
-        timestamp: new Date().toISOString()
-      });
-
-      let query = db.select()
-        .from(schema.tasks)
-        .where(eq(schema.tasks.userId, userId))
-        .orderBy(desc(schema.tasks.createdAt))
-        .limit(limit);
-
-      if (status) {
-        console.log('[TASKS API] Filtering by status:', status);
-        query = db.select()
-          .from(schema.tasks)
-          .where(and(
-            eq(schema.tasks.userId, userId),
-            eq(schema.tasks.status, status)
-          ))
-          .orderBy(desc(schema.tasks.createdAt))
-          .limit(limit);
-      }
-
-      const tasks = await query;
-      console.log('[TASKS API] Tasks fetched successfully', {
-        count: tasks.length,
-        userId,
-        timestamp: new Date().toISOString()
-      });
-      res.json(tasks);
-    } catch (error) {
-      console.error('[TASKS API] Get tasks error:', {
-        error,
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        userId: req.user?.id,
-        timestamp: new Date().toISOString()
-      });
-      res.status(500).json({ message: 'Failed to fetch tasks' });
-    }
+    // This route is now handled by extensionRoutes.ts
   });
 
   app.post('/api/tasks', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const { title, description, dueDate, priority, taskType } = req.body;
-
-      const [task] = await db.insert(schema.tasks)
-        .values({
-          userId,
-          title,
-          description,
-          dueDate: dueDate ? new Date(dueDate) : null,
-          priority: priority || 'medium',
-          status: 'pending',
-          taskType: taskType || 'general', // Required field
-          category: 'general'
-        })
-        .returning();
-
-      res.json({ success: true, task });
-    } catch (error) {
-      console.error('Create task error:', error);
-      res.status(500).json({ message: 'Failed to create task' });
-    }
+    // This route is now handled by extensionRoutes.ts
   });
 
   app.patch('/api/tasks/:taskId/status', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const taskId = parseInt(req.params.taskId);
-      const { status } = req.body;
-
-      const [task] = await db.update(schema.tasks)
-        .set({ status, updatedAt: new Date() })
-        .where(and(
-          eq(schema.tasks.id, taskId),
-          eq(schema.tasks.userId, userId)
-        ))
-        .returning();
-
-      res.json({ success: true, task });
-    } catch (error) {
-      console.error('Update task status error:', error);
-      res.status(500).json({ message: 'Failed to update task status' });
-    }
+    // This route is now handled by extensionRoutes.ts
   });
+  */
 
   // Active Resume API for extension
   app.get('/api/resumes/active', isAuthenticated, async (req: any, res) => {
