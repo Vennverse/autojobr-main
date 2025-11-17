@@ -1,4 +1,6 @@
 // Enhanced AutoJobr Content Script v2.0 - Advanced Job Board Auto-Fill System
+const API_BASE_URL = 'https://autojobr.com';
+
 class AutoJobrContentScript {
   constructor() {
     this.isInitialized = false;
@@ -17,6 +19,8 @@ class AutoJobrContentScript {
     this.cachedProfile = null; // Cache profile to prevent excessive requests
     this.lastAuthCheck = 0; // Track last authentication check
     this.currentAnalysis = null; // Store the latest job analysis result
+    this.cache = new Map(); // Cache for API responses
+    this.isAuthenticated = false;
 
     // Experience calculation cache
     this.experienceCache = null; // Cache for general years of experience
@@ -66,6 +70,87 @@ class AutoJobrContentScript {
       console.log('🚀 AutoJobr extension v2.0 initialized on:', this.currentSite);
     } catch (error) {
       console.error('AutoJobr initialization error:', error);
+    }
+  }
+
+  async makeAPIRequest(endpoint, options = {}) {
+    try {
+      // Check cache first for GET requests
+      const cacheKey = `${endpoint}_${JSON.stringify(options)}`;
+      if (options.method === 'GET' && this.cache.has(cacheKey)) {
+        const cached = this.cache.get(cacheKey);
+        if (Date.now() - cached.timestamp < 30000) { // 30 second cache
+          return cached.data;
+        }
+      }
+
+      // Get stored session token
+      const result = await chrome.storage.local.get(['sessionToken', 'userId']);
+      const sessionToken = result.sessionToken;
+
+      const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
+      };
+
+      if (sessionToken) {
+        headers['Authorization'] = `Bearer ${sessionToken}`;
+      }
+
+      // Add timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), options.timeout || 10000);
+
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...options,
+        headers,
+        credentials: 'include',
+        mode: 'cors',
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.status === 401) {
+        await chrome.storage.local.remove(['sessionToken', 'userId']);
+        this.isAuthenticated = false;
+        return { error: 'Authentication required' };
+      }
+
+      // Extract session token from response headers
+      const newToken = response.headers.get('X-Session-Token');
+      if (newToken) {
+        await chrome.storage.local.set({ sessionToken: newToken });
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Throw error with server's message and status if available
+        const errorMessage = data?.error || data?.message || `HTTP ${response.status}: ${response.statusText}`;
+        const error = new Error(errorMessage);
+        error.status = response.status;
+        error.data = data;
+        throw error;
+      }
+
+      // Cache GET responses
+      if (options.method === 'GET') {
+        this.cache.set(cacheKey, {
+          data,
+          timestamp: Date.now()
+        });
+      }
+
+      return data;
+
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.error(`Request timeout for ${endpoint}`);
+        throw new Error('Request timed out');
+      }
+      console.error(`API request error for ${endpoint}:`, error);
+      throw error;
     }
   }
 
