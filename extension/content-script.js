@@ -4363,7 +4363,6 @@ class AutoJobrContentScript {
         console.log('✅ Fresh analysis completed - match score:', analysis.matchScore);
 
         // Update widget and show it automatically on job pages
-        this.updateJobMatch(analysis);
         this.showWidget(); // Auto-show widget on job pages
         console.log('✅ Widget auto-opened with match score:', analysis.matchScore);
       }
@@ -5155,7 +5154,7 @@ class AutoJobrContentScript {
       .jobs-search-results__list-item,
       .job-card-container--clickable,
       .jobs-search-two-pane__results-list .scaffold-layout__list-item,
-      .jobs-search-results-list__list-item,
+      .jobs-search-results__list-item,
       .jobs-search-results__list .jobs-search-results__list-item,
       [data-job-id]
     `.trim().split(/\s*,\s*/));
