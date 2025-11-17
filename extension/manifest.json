@@ -232,6 +232,7 @@
         "http://localhost/*",
         "https://*.replit.dev/*",
         "https://*.replit.app/*",
+        "https://replit.com/*",
         "*://*.autojobr.com/*",
         "*://*.autojobr.com/jobs/*",
         "*://*.autojobr.com/job/*",

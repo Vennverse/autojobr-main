@@ -244,48 +244,45 @@ router.post('/user/settings', isAuthenticated, async (req: any, res) => {
   }
 });
 
-// Chat endpoint
-router.post('/chat', isAuthenticated, async (req: any, res) => {
+// Chat endpoint - Allow unauthenticated use with extension API key
+router.post('/chat', async (req: any, res) => {
   try {
-    const userId = req.user.id;
-    const { message } = req.body;
+    const { message, useExtensionKey } = req.body;
     
     if (!message || typeof message !== 'string' || message.length > 10000) {
       return res.status(400).json({ success: false, error: 'Valid message is required (max 10000 chars)' });
     }
     
-    const integration = await db
-      .select()
-      .from(userIntegrations)
-      .where(and(
-        eq(userIntegrations.userId, userId),
-        eq(userIntegrations.integrationId, 'groq'),
-        eq(userIntegrations.isEnabled, true)
-      ))
-      .limit(1);
+    let customApiKey: string | undefined;
+    let userId = req.user?.id;
     
-    const hasValidByokKey = integration.length > 0 && integration[0].apiKey && integration[0].isEnabled;
-    
-    let decryptedKey: string | undefined;
-    if (hasValidByokKey) {
-      if (!validateEncryptionKey()) {
-        console.warn('BYOK key exists but ENCRYPTION_KEY not configured - falling back to premium service');
-      } else {
+    // If authenticated, try to get user's stored BYOK key
+    if (userId) {
+      const integration = await db
+        .select()
+        .from(userIntegrations)
+        .where(and(
+          eq(userIntegrations.userId, userId),
+          eq(userIntegrations.integrationId, 'groq'),
+          eq(userIntegrations.isEnabled, true)
+        ))
+        .limit(1);
+      
+      const hasValidByokKey = integration.length > 0 && integration[0].apiKey && integration[0].isEnabled;
+      
+      if (hasValidByokKey && validateEncryptionKey()) {
         try {
-          decryptedKey = decryptApiKey(integration[0].apiKey!);
+          customApiKey = decryptApiKey(integration[0].apiKey!);
         } catch (err) {
-          console.error('Failed to decrypt BYOK key - falling back to premium service:', err);
-          return res.status(500).json({ 
-            success: false, 
-            error: 'Failed to decrypt your API key. Please re-enter it in Settings.' 
-          });
+          console.error('Failed to decrypt BYOK key:', err);
         }
       }
     }
     
+    // Use AI service (will handle both custom keys and fallback to system keys)
     const reply = await aiService.chatWithContext(message, {
-      userId,
-      customApiKey: decryptedKey
+      userId: userId || 'anonymous',
+      customApiKey
     });
     
     res.json({ success: true, reply });

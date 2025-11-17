@@ -1018,23 +1018,48 @@ class AutoJobrContentScript {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
     try {
-      const response = await this.makeAPIRequest('/api/chat', {
-        method: 'POST',
-        body: JSON.stringify({ message })
-      });
+      // Check if user has their own API key
+      const storage = await chrome.storage.sync.get(['userApiKey']);
+      const hasApiKey = !!storage.userApiKey;
+      
+      let response;
+      if (hasApiKey) {
+        // Use extension storage API key
+        response = await this.makeAPIRequest('/api/chat', {
+          method: 'POST',
+          body: JSON.stringify({ 
+            message,
+            useExtensionKey: true
+          })
+        });
+      } else {
+        // Try with server (premium/free tier)
+        response = await this.makeAPIRequest('/api/chat', {
+          method: 'POST',
+          body: JSON.stringify({ message })
+        });
+      }
 
       // Remove typing indicator
       typingDiv.remove();
 
-      if (response.success && response.reply) {
+      if (response && response.success && response.reply) {
         this.addChatMessage('ai', response.reply);
+      } else if (!hasApiKey && response && response.error) {
+        // Show helpful error message
+        this.addChatMessage('ai', '🔑 To use AI chat, please add your Groq API key in Settings → Groq API Key (BYOK), or sign in for premium features.');
       } else {
-        this.addChatMessage('ai', 'Sorry, I encountered an error. Please try again.');
+        this.addChatMessage('ai', 'Sorry, I encountered an error. Please add your API key in Settings or sign in.');
       }
     } catch (error) {
       typingDiv.remove();
       console.error('Chat error:', error);
-      this.addChatMessage('ai', 'Sorry, I encountered an error. Please try again.');
+      const storage = await chrome.storage.sync.get(['userApiKey']);
+      if (!storage.userApiKey) {
+        this.addChatMessage('ai', '🔑 To use AI chat, add your Groq API key in Settings or sign in for premium access.');
+      } else {
+        this.addChatMessage('ai', 'Sorry, I encountered an error. Please check your API key or try again.');
+      }
     }
   }
 
@@ -1065,21 +1090,31 @@ class AutoJobrContentScript {
     }
 
     try {
-      const response = await this.makeAPIRequest('/api/user/settings', {
-        method: 'POST',
-        body: JSON.stringify({ groqApiKey: apiKey })
-      });
-
-      if (response.success) {
-        this.showNotification('API key saved successfully!', 'success');
-        this.groqApiKey = apiKey;
-        chrome.storage.sync.set({ userApiKey: apiKey });
-      } else {
-        this.showNotification('Failed to save API key', 'error');
+      // Save to extension storage
+      await chrome.storage.sync.set({ userApiKey: apiKey });
+      this.groqApiKey = apiKey;
+      
+      // Try to sync with server if authenticated
+      try {
+        const response = await this.makeAPIRequest('/api/user/settings', {
+          method: 'POST',
+          body: JSON.stringify({ groqApiKey: apiKey })
+        });
+        
+        if (response && response.success) {
+          this.showNotification('✅ API key saved successfully!', 'success');
+        } else {
+          // Saved locally but not on server
+          this.showNotification('✅ API key saved locally. Sign in to sync across devices.', 'success');
+        }
+      } catch (serverError) {
+        // Still saved locally, just not synced
+        console.log('Server sync failed, but saved locally:', serverError);
+        this.showNotification('✅ API key saved locally. Sign in to sync across devices.', 'success');
       }
     } catch (error) {
       console.error('Error saving API key:', error);
-      this.showNotification('Error saving API key', 'error');
+      this.showNotification('❌ Error saving API key', 'error');
     }
   }
 
@@ -1455,8 +1490,15 @@ class AutoJobrContentScript {
   }
 
   isJobPage() {
-    const url = window.location.href.toLowerCase();
+    // Allow widget on Replit and AutoJobr domains always
     const hostname = window.location.hostname.toLowerCase();
+    if (hostname.includes('replit.dev') || hostname.includes('replit.app') || 
+        hostname.includes('replit.com') || hostname.includes('autojobr.com')) {
+      console.log(`📍 AutoJobr/Replit domain detected: ${hostname}`);
+      return true;
+    }
+    
+    const url = window.location.href.toLowerCase();
     const pathname = window.location.pathname.toLowerCase();
 
     // LinkedIn specific detection - avoid feeds, home, search pages
