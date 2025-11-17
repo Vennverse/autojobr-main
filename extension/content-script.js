@@ -526,6 +526,7 @@ class AutoJobrContentScript {
 
         <div class="autojobr-tabs">
           <button class="tab-btn active" data-tab="autofill">⚡ Auto-Fill</button>
+          <button class="tab-btn" data-tab="resume">📄 Resume</button>
           <button class="tab-btn" data-tab="tasks">📋 Tasks</button>
           <button class="tab-btn" data-tab="chat">💬 Chat</button>
           <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
@@ -587,6 +588,49 @@ class AutoJobrContentScript {
               </div>
               <div class="feature-toggle">
                 <input type="checkbox" id="auto-submit"> <label for="auto-submit">Auto Submit</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- RESUME GENERATION TAB -->
+          <div class="tab-content" id="tab-resume">
+            <div class="resume-gen-container">
+              <h3>📄 Generate Tailored Resume</h3>
+              <p class="resume-hint">Generate a resume tailored to the job description using AI</p>
+              
+              <div class="resume-gen-section">
+                <label>Job Description</label>
+                <textarea id="resume-job-desc" placeholder="Paste the job description here..." class="resume-textarea"></textarea>
+              </div>
+
+              <div class="resume-gen-section">
+                <label>Additional Requirements (Optional)</label>
+                <textarea id="resume-additional-req" placeholder="Any specific skills or experience to highlight..." class="resume-textarea-small"></textarea>
+              </div>
+
+              <div class="resume-gen-actions">
+                <button class="autojobr-btn primary" id="generate-resume-btn">
+                  <span class="btn-icon">✨</span>
+                  <span>Generate Resume</span>
+                </button>
+                <button class="autojobr-btn secondary" id="download-resume-btn" style="display: none;">
+                  <span class="btn-icon">⬇️</span>
+                  <span>Download</span>
+                </button>
+              </div>
+
+              <div class="resume-status" id="resume-status" style="display: none;">
+                <div class="status-message"></div>
+              </div>
+
+              <div class="resume-preview" id="resume-preview" style="display: none;">
+                <h4>Generated Resume</h4>
+                <div class="resume-content" id="resume-content"></div>
+              </div>
+
+              <div class="resume-notice">
+                <p>💡 <strong>BYOK Users:</strong> Uses your Groq API key from Settings</p>
+                <p>⭐ <strong>Premium Users:</strong> Unlimited resume generations included</p>
               </div>
             </div>
           </div>
@@ -747,6 +791,10 @@ class AutoJobrContentScript {
       }
       chrome.storage.sync.set({ premiumFeaturesEnabled: e.target.checked });
     });
+
+    // Resume Generation tab event listeners
+    document.getElementById('generate-resume-btn')?.addEventListener('click', () => this.generateResume());
+    document.getElementById('download-resume-btn')?.addEventListener('click', () => this.downloadResume());
 
     // Tasks tab event listeners
     document.getElementById('add-task-btn')?.addEventListener('click', () => this.showAddTaskForm());
@@ -1023,6 +1071,110 @@ class AutoJobrContentScript {
       window.location.reload();
     } catch (error) {
       console.error('Error logging out:', error);
+    }
+  }
+
+  // Resume Generation functionality
+  async generateResume() {
+    const jobDescInput = document.getElementById('resume-job-desc');
+    const additionalReqInput = document.getElementById('resume-additional-req');
+    const statusDiv = document.getElementById('resume-status');
+    const statusMessage = statusDiv.querySelector('.status-message');
+    const generateBtn = document.getElementById('generate-resume-btn');
+    const previewDiv = document.getElementById('resume-preview');
+    const contentDiv = document.getElementById('resume-content');
+    const downloadBtn = document.getElementById('download-resume-btn');
+    
+    const jobDescription = jobDescInput.value.trim();
+    const additionalRequirements = additionalReqInput.value.trim();
+    
+    if (!jobDescription) {
+      this.showNotification('Please enter a job description', 'warning');
+      return;
+    }
+
+    // Show status
+    statusDiv.style.display = 'block';
+    statusMessage.textContent = 'Generating your tailored resume...';
+    statusMessage.className = 'status-message loading';
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = '<span class="btn-icon">⏳</span><span>Generating...</span>';
+    
+    // Hide previous results
+    previewDiv.style.display = 'none';
+    downloadBtn.style.display = 'none';
+
+    try {
+      const response = await this.makeAPIRequest('/api/resume/generate', {
+        method: 'POST',
+        body: JSON.stringify({
+          jobDescription,
+          additionalRequirements
+        })
+      });
+
+      generateBtn.disabled = false;
+      generateBtn.innerHTML = '<span class="btn-icon">✨</span><span>Generate Resume</span>';
+
+      if (response.success && response.resume) {
+        statusMessage.textContent = 'Resume generated successfully!';
+        statusMessage.className = 'status-message success';
+        
+        // Display the resume
+        contentDiv.innerHTML = this.formatResumeContent(response.resume);
+        previewDiv.style.display = 'block';
+        downloadBtn.style.display = 'inline-block';
+        
+        // Store resume data for download
+        this.generatedResume = response.resume;
+        
+        this.showNotification('Resume generated successfully!', 'success');
+      } else {
+        statusMessage.textContent = response.error || 'Failed to generate resume';
+        statusMessage.className = 'status-message error';
+        this.showNotification(response.error || 'Failed to generate resume', 'error');
+      }
+    } catch (error) {
+      generateBtn.disabled = false;
+      generateBtn.innerHTML = '<span class="btn-icon">✨</span><span>Generate Resume</span>';
+      statusMessage.textContent = 'Error generating resume. Please try again.';
+      statusMessage.className = 'status-message error';
+      console.error('Resume generation error:', error);
+      this.showNotification('Error generating resume', 'error');
+    }
+  }
+
+  formatResumeContent(resume) {
+    // Format the resume content for display
+    return `
+      <div class="resume-formatted">
+        <pre style="white-space: pre-wrap; font-family: inherit;">${this.escapeHtml(resume)}</pre>
+      </div>
+    `;
+  }
+
+  async downloadResume() {
+    if (!this.generatedResume) {
+      this.showNotification('No resume to download', 'warning');
+      return;
+    }
+
+    try {
+      // Create a text file with the resume content
+      const blob = new Blob([this.generatedResume], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `resume_${Date.now()}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      this.showNotification('Resume downloaded!', 'success');
+    } catch (error) {
+      console.error('Download error:', error);
+      this.showNotification('Error downloading resume', 'error');
     }
   }
 
