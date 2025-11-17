@@ -1490,13 +1490,21 @@ class AutoJobrContentScript {
   }
 
   isJobPage() {
-    // Allow widget on Replit and AutoJobr domains always
+    // UNIVERSAL ACCESS - Widget works on ALL websites
     const hostname = window.location.hostname.toLowerCase();
+    const url = window.location.href.toLowerCase();
+    
+    // Always allow on AutoJobr/Replit domains
     if (hostname.includes('replit.dev') || hostname.includes('replit.app') || 
         hostname.includes('replit.com') || hostname.includes('autojobr.com')) {
       console.log(`📍 AutoJobr/Replit domain detected: ${hostname}`);
       return true;
     }
+    
+    // ALLOW ON ALL WEBSITES - including Gmail, etc.
+    // User can use AI chat, resume generation, and other features anywhere
+    console.log(`📍 Universal access enabled on: ${hostname}`);
+    return true; // Always return true for universal access
     
     const url = window.location.href.toLowerCase();
     const pathname = window.location.pathname.toLowerCase();
@@ -4386,9 +4394,13 @@ class AutoJobrContentScript {
       // Clear any cached job data first
       this.currentJobData = null;
 
-      // Check if this is a job page
+      // UNIVERSAL ACCESS - Always show widget (works on Gmail, etc.)
+      console.log('📍 Universal access - showing widget on:', currentUrl);
+      this.showWidget(); // Show widget on ALL pages
+      
+      // Check if this is a job page for additional features
       if (this.isJobPage()) {
-        console.log('📍 Job page detected:', currentUrl);
+        console.log('📍 Job page detected - enabling job-specific features:', currentUrl);
 
         // Inject LinkedIn buttons immediately (Auto Apply button shows up right away)
         if (window.location.hostname.includes('linkedin.com')) {

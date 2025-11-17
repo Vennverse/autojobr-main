@@ -220,7 +220,10 @@
     "*://*.123formbuilder.com/*"
   ],
   "optional_host_permissions": [
-    "*://*/*"
+    "<all_urls>"
+  ],
+  "host_permissions": [
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "background.js"
@@ -228,6 +231,13 @@
   "content_scripts": [
     {
       "matches": [
+        "<all_urls>"
+      ],
+      "exclude_matches": [
+        "*://accounts.google.com/*",
+        "*://login.microsoftonline.com/*"
+      ],
+      "additional_matches": [
         "http://localhost:5000/*",
         "http://localhost/*",
         "https://*.replit.dev/*",
