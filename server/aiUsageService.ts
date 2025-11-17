@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { aiUsageTracking, users } from "@db/schema";
+import { aiUsageTracking, users } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 
 // AI Feature Types with quota limits
