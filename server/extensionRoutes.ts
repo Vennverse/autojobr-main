@@ -1,6 +1,6 @@
 import express from "express";
 import { db } from "./db";
-import { tasks, userIntegrations} from "@shared/schema";
+import { tasks, userIntegrations, users } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { isAuthenticated } from "./auth";
 import { aiService } from "./aiService";
@@ -292,6 +292,113 @@ router.post('/chat', isAuthenticated, async (req: any, res) => {
   } catch (error) {
     console.error('Error in chat:', error);
     res.status(500).json({ success: false, error: 'Failed to process chat' });
+  }
+});
+
+// Resume Generation endpoint
+router.post('/resume/generate', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const { jobDescription, additionalRequirements } = req.body;
+    
+    if (!jobDescription || typeof jobDescription !== 'string' || jobDescription.length < 50) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Please provide a valid job description (minimum 50 characters)' 
+      });
+    }
+
+    if (jobDescription.length > 20000) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Job description is too long (maximum 20000 characters)' 
+      });
+    }
+    
+    // Check user's premium status
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+      columns: { planType: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const isPremium = user.planType === 'premium' || user.planType === 'enterprise' || user.planType === 'ultra_premium';
+    
+    // Check for BYOK key
+    const integration = await db
+      .select()
+      .from(userIntegrations)
+      .where(and(
+        eq(userIntegrations.userId, userId),
+        eq(userIntegrations.integrationId, 'groq'),
+        eq(userIntegrations.isEnabled, true)
+      ))
+      .limit(1);
+    
+    const hasValidByokKey = integration.length > 0 && integration[0].apiKey && integration[0].isEnabled;
+
+    // Enforce premium or BYOK requirement
+    if (!isPremium && !hasValidByokKey) {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Resume generation requires a premium subscription or your own Groq API key. Please upgrade to premium or add your API key in Settings.' 
+      });
+    }
+    
+    let decryptedKey: string | undefined;
+    if (hasValidByokKey) {
+      if (!validateEncryptionKey()) {
+        console.warn('BYOK key exists but ENCRYPTION_KEY not configured - falling back to premium service');
+      } else {
+        try {
+          decryptedKey = decryptApiKey(integration[0].apiKey!);
+        } catch (err) {
+          console.error('Failed to decrypt BYOK key - falling back to premium service:', err);
+          return res.status(500).json({ 
+            success: false, 
+            error: 'Failed to decrypt your API key. Please re-enter it in Settings.' 
+          });
+        }
+      }
+    }
+
+    // Build the prompt for resume generation
+    const prompt = `You are a professional resume writer. Generate a tailored resume based on the following job description.
+
+Job Description:
+${jobDescription}
+
+${additionalRequirements ? `Additional Requirements to Highlight:\n${additionalRequirements}\n` : ''}
+
+Please generate a professional resume that:
+1. Highlights relevant skills and experience for this specific role
+2. Uses action verbs and quantifiable achievements
+3. Follows ATS-friendly formatting
+4. Includes relevant sections: Summary, Skills, Experience, Education
+5. Tailors the content to match the job requirements
+
+Generate a complete, professional resume in plain text format.`;
+
+    // Use AI service to generate the resume
+    const resume = await aiService.chatWithContext(prompt, {
+      userId,
+      customApiKey: decryptedKey
+    });
+    
+    if (!resume) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Failed to generate resume. Please try again.' 
+      });
+    }
+
+    res.json({ success: true, resume });
+  } catch (error) {
+    console.error('Error generating resume:', error);
+    res.status(500).json({ success: false, error: 'Failed to generate resume' });
   }
 });
 
