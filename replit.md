@@ -55,7 +55,19 @@ The project employs a monolithic architecture, combining the frontend and backen
 - BYOK is EXTENSION-ONLY feature (not available in web app)
 - Extension should call Groq API directly with user-provided key or pass key to backend
 - Users with BYOK bypass all quota limits (unlimited usage with their own key)
-- Stored securely in extension's local storage, encrypted
+- **Security**: API keys stored in database with AES-256-GCM encryption (requires ENCRYPTION_KEY environment variable)
+- **Widget Features**: 
+  - Tasks tab: Create, view, complete, and delete tasks with reminders
+  - Settings tab: Manage BYOK Groq API key with encryption status indicator
+  - Chat tab: AI chat that prioritizes user's BYOK key, falls back to premium service
+- **Backend API Routes**: 
+  - `/api/tasks` - GET (paginated, max 100 items), POST, PATCH, DELETE
+  - `/api/user/settings` - GET, POST (with encryption validation)
+  - `/api/chat` - POST (with BYOK/premium routing)
+- **Encryption Requirements**:
+  - Set ENCRYPTION_KEY environment variable (64-char hex string)
+  - Generate with: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+  - BYOK features disabled if ENCRYPTION_KEY not configured
 
 ## External Dependencies
 -   **Databases**: PostgreSQL (via Neon/Replit Database)
