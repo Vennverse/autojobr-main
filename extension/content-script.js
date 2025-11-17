@@ -526,6 +526,7 @@ class AutoJobrContentScript {
 
         <div class="autojobr-tabs">
           <button class="tab-btn active" data-tab="autofill">⚡ Auto-Fill</button>
+          <button class="tab-btn" data-tab="resume">📄 Resume</button>
           <button class="tab-btn" data-tab="tasks">📋 Tasks</button>
           <button class="tab-btn" data-tab="chat">💬 Chat</button>
           <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
@@ -587,6 +588,49 @@ class AutoJobrContentScript {
               </div>
               <div class="feature-toggle">
                 <input type="checkbox" id="auto-submit"> <label for="auto-submit">Auto Submit</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- RESUME GENERATION TAB -->
+          <div class="tab-content" id="tab-resume">
+            <div class="resume-gen-container">
+              <h3>📄 Generate Tailored Resume</h3>
+              <p class="resume-hint">Generate a resume tailored to the job description using AI</p>
+              
+              <div class="resume-gen-section">
+                <label>Job Description</label>
+                <textarea id="resume-job-desc" placeholder="Paste the job description here..." class="resume-textarea"></textarea>
+              </div>
+
+              <div class="resume-gen-section">
+                <label>Additional Requirements (Optional)</label>
+                <textarea id="resume-additional-req" placeholder="Any specific skills or experience to highlight..." class="resume-textarea-small"></textarea>
+              </div>
+
+              <div class="resume-gen-actions">
+                <button class="autojobr-btn primary" id="generate-resume-btn">
+                  <span class="btn-icon">✨</span>
+                  <span>Generate Resume</span>
+                </button>
+                <button class="autojobr-btn secondary" id="download-resume-btn" style="display: none;">
+                  <span class="btn-icon">⬇️</span>
+                  <span>Download</span>
+                </button>
+              </div>
+
+              <div class="resume-status" id="resume-status" style="display: none;">
+                <div class="status-message"></div>
+              </div>
+
+              <div class="resume-preview" id="resume-preview" style="display: none;">
+                <h4>Generated Resume</h4>
+                <div class="resume-content" id="resume-content"></div>
+              </div>
+
+              <div class="resume-notice">
+                <p>💡 <strong>BYOK Users:</strong> Uses your Groq API key from Settings</p>
+                <p>⭐ <strong>Premium Users:</strong> Unlimited resume generations included</p>
               </div>
             </div>
           </div>
@@ -747,6 +791,10 @@ class AutoJobrContentScript {
       }
       chrome.storage.sync.set({ premiumFeaturesEnabled: e.target.checked });
     });
+
+    // Resume Generation tab event listeners
+    document.getElementById('generate-resume-btn')?.addEventListener('click', () => this.generateResume());
+    document.getElementById('download-resume-btn')?.addEventListener('click', () => this.downloadResume());
 
     // Tasks tab event listeners
     document.getElementById('add-task-btn')?.addEventListener('click', () => this.showAddTaskForm());
