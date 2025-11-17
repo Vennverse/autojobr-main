@@ -16,9 +16,20 @@ export type AIFeatureType = typeof AI_FEATURE_TYPES[keyof typeof AI_FEATURE_TYPE
 const QUOTA_LIMITS: Record<AIFeatureType, { free: number; premium: number }> = {
   [AI_FEATURE_TYPES.CONNECTION_NOTE]: { free: 5, premium: Infinity },
   [AI_FEATURE_TYPES.RESUME_OPTIMIZATION]: { free: 3, premium: Infinity },
-  [AI_FEATURE_TYPES.COVER_LETTER]: { free: 3, premium: Infinity },
+  [AI_FEATURE_TYPES.COVER_LETTER]: { free: 2, premium: Infinity }, // 2 per day for free users
   [AI_FEATURE_TYPES.INTERVIEW_PRACTICE]: { free: 2, premium: Infinity },
 };
+
+/**
+ * Get current day in YYYY-MM-DD format for daily quotas
+ */
+function getCurrentDayKey(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 /**
  * Get current month in YYYY-MM format (matches existing schema)
@@ -47,8 +58,12 @@ export async function checkQuota(
     throw new Error('User not found');
   }
 
-  const isPremium = user.planType === 'premium' || user.planType === 'enterprise';
-  const monthKey = getCurrentMonthKey();
+  const isPremium = user.planType === 'premium' || user.planType === 'enterprise' || user.planType === 'ultra_premium';
+  
+  // Use daily tracking for cover letters, monthly for others
+  const timeKey = featureType === AI_FEATURE_TYPES.COVER_LETTER 
+    ? getCurrentDayKey() 
+    : getCurrentMonthKey();
 
   // Get quota limits
   const limits = QUOTA_LIMITS[featureType];
@@ -69,7 +84,7 @@ export async function checkQuota(
     where: and(
       eq(aiUsageTracking.userId, userId),
       eq(aiUsageTracking.featureType, featureType),
-      eq(aiUsageTracking.monthYear, monthKey)
+      eq(aiUsageTracking.monthYear, timeKey)
     ),
   });
 
@@ -91,7 +106,10 @@ export async function incrementUsage(
   userId: string,
   featureType: AIFeatureType
 ): Promise<void> {
-  const monthKey = getCurrentMonthKey();
+  // Use daily tracking for cover letters, monthly for others
+  const timeKey = featureType === AI_FEATURE_TYPES.COVER_LETTER 
+    ? getCurrentDayKey() 
+    : getCurrentMonthKey();
   const limits = QUOTA_LIMITS[featureType];
 
   // Check if record exists
@@ -99,7 +117,7 @@ export async function incrementUsage(
     where: and(
       eq(aiUsageTracking.userId, userId),
       eq(aiUsageTracking.featureType, featureType),
-      eq(aiUsageTracking.monthYear, monthKey)
+      eq(aiUsageTracking.monthYear, timeKey)
     ),
   });
 
@@ -113,11 +131,11 @@ export async function incrementUsage(
       })
       .where(eq(aiUsageTracking.id, existing.id));
   } else {
-    // Create new record for this month
+    // Create new record for this time period
     await db.insert(aiUsageTracking).values({
       userId,
       featureType,
-      monthYear: monthKey,
+      monthYear: timeKey,
       usageCount: 1,
       limit: limits.free, // Store the free tier limit
     });

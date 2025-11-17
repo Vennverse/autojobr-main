@@ -5218,6 +5218,7 @@ Return only the improved job description text, no additional formatting or expla
   });
 
   // Cover Letter Generation API - Generate personalized cover letters
+  // Free users get 2 per day, premium users get unlimited
   app.post('/api/generate-cover-letter', isAuthenticated, async (req: any, res) => {
     try {
       const { jobDescription, jobTitle, companyName, resumeId } = req.body;
@@ -5229,6 +5230,19 @@ Return only the improved job description text, no additional formatting or expla
       }
 
       const userId = req.user.id;
+
+      // Check quota before generating (2 per day for free users, unlimited for premium)
+      const { checkQuota, incrementUsage, AI_FEATURE_TYPES } = await import('./aiUsageService');
+      const quotaCheck = await checkQuota(userId, AI_FEATURE_TYPES.COVER_LETTER);
+      
+      if (!quotaCheck.allowed) {
+        return res.status(429).json({
+          success: false,
+          message: `Daily limit reached. Free users can generate 2 cover letters per day. You have used ${quotaCheck.used}/${quotaCheck.limit}. Upgrade to premium for unlimited access or add your own API key.`,
+          quotaExceeded: true,
+          quota: quotaCheck
+        });
+      }
 
       // Get user's resume if resumeId provided
       let resumeText = '';
@@ -5287,13 +5301,21 @@ Return only the cover letter text, no additional formatting or explanations.`;
 
       const coverLetter = aiResponse.choices[0]?.message?.content || '';
 
+      // Increment usage count after successful generation
+      await incrementUsage(userId, AI_FEATURE_TYPES.COVER_LETTER);
+
       console.log('✅ Cover letter generated successfully');
 
       res.json({
         success: true,
         coverLetter: coverLetter.trim(),
         jobTitle,
-        companyName
+        companyName,
+        quota: {
+          used: quotaCheck.used + 1,
+          limit: quotaCheck.limit,
+          remaining: quotaCheck.remaining - 1
+        }
       });
     } catch (error: any) {
       console.error("❌ Error generating cover letter:", error);
