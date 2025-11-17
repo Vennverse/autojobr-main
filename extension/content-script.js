@@ -516,7 +516,7 @@ class AutoJobrContentScript {
         <div class="autojobr-header">
           <div class="autojobr-logo">
             <div class="autojobr-icon">A</div>
-            <span>AutoJobr v2.0</span>
+            <span>AutoJobr v2.1</span>
           </div>
           <div class="autojobr-controls">
             <button class="autojobr-minimize" title="Minimize">−</button>
@@ -524,122 +524,141 @@ class AutoJobrContentScript {
           </div>
         </div>
 
+        <div class="autojobr-tabs">
+          <button class="tab-btn active" data-tab="autofill">⚡ Auto-Fill</button>
+          <button class="tab-btn" data-tab="tasks">📋 Tasks</button>
+          <button class="tab-btn" data-tab="chat">💬 Chat</button>
+          <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
+        </div>
+
         <div class="autojobr-content">
-          <div class="autojobr-status" id="autojobr-status">
-            <div class="status-icon">🎯</div>
-            <div class="status-text">Job detected - Ready to auto-fill</div>
-            <div class="status-progress" id="autojobr-progress" style="display: none;">
-              <div class="progress-bar"></div>
+          <!-- AUTO-FILL TAB -->
+          <div class="tab-content active" id="tab-autofill">
+            <div class="autojobr-status" id="autojobr-status">
+              <div class="status-icon">🎯</div>
+              <div class="status-text">Job detected - Ready to auto-fill</div>
+              <div class="status-progress" id="autojobr-progress" style="display: none;">
+                <div class="progress-bar"></div>
+              </div>
+            </div>
+
+            <div class="autojobr-job-info" id="autojobr-job-info" style="display: none;">
+              <div class="job-title" id="autojobr-job-title"></div>
+              <div class="job-company" id="autojobr-job-company"></div>
+              <div class="job-match" id="autojobr-job-match"></div>
+            </div>
+
+            <div class="autojobr-actions">
+              <button class="autojobr-btn primary" id="autojobr-autofill">
+                <span class="btn-icon">⚡</span>
+                <span class="btn-text">Smart Auto-fill</span>
+              </button>
+
+              <div class="action-row">
+                <button class="autojobr-btn secondary" id="autojobr-analyze">
+                  <span class="btn-icon">📊</span>
+                  <span>Analyze</span>
+                </button>
+                <button class="autojobr-btn secondary" id="autojobr-save-job">
+                  <span class="btn-icon">💾</span>
+                  <span>Save</span>
+                </button>
+                <button class="autojobr-btn secondary" id="autojobr-cover-letter">
+                  <span class="btn-icon">📝</span>
+                  <span>Cover Letter</span>
+                </button>
+              </div>
+
+              <div class="action-row">
+                <button class="autojobr-btn secondary" id="autojobr-interview-prep">
+                  <span class="btn-icon">🎯</span>
+                  <span>Interview Prep</span>
+                </button>
+                <button class="autojobr-btn secondary" id="autojobr-referral-finder">
+                  <span class="btn-icon">🤝</span>
+                  <span>Referrals</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="autojobr-features">
+              <div class="feature-toggle">
+                <input type="checkbox" id="smart-fill" checked> <label for="smart-fill">Smart Fill Mode</label>
+              </div>
+              <div class="feature-toggle">
+                <input type="checkbox" id="auto-submit"> <label for="auto-submit">Auto Submit</label>
+              </div>
             </div>
           </div>
 
-          <div class="autojobr-job-info" id="autojobr-job-info" style="display: none;">
-            <div class="job-title" id="autojobr-job-title"></div>
-            <div class="job-company" id="autojobr-job-company"></div>
-            <div class="job-match" id="autojobr-job-match"></div>
-          </div>
-
-          <div class="autojobr-actions">
-            <button class="autojobr-btn primary" id="autojobr-autofill">
-              <span class="btn-icon">⚡</span>
-              <span class="btn-text">Smart Auto-fill</span>
-              <span class="btn-shortcut">Ctrl+A</span>
-            </button>
-
-            <div class="action-row">
-              <button class="autojobr-btn secondary" id="autojobr-analyze">
-                <span class="btn-icon">📊</span>
-                <span>Analyze</span>
-              </button>
-              <button class="autojobr-btn secondary" id="autojobr-save-job">
-                <span class="btn-icon">💾</span>
-                <span>Save</span>
-              </button>
-              <button class="autojobr-btn secondary" id="autojobr-cover-letter">
-                <span class="btn-icon">📝</span>
-                <span>Cover Letter</span>
-              </button>
-              <button class="autojobr-btn secondary" id="autojobr-upload-resume">
-                <span class="btn-icon">📄</span>
-                <span>Upload Resume</span>
-              </button>
-            </div>
-
-            <div class="action-row" style="margin-top: 8px;">
-              <button class="autojobr-btn secondary" id="autojobr-interview-prep">
-                <span class="btn-icon">🎯</span>
-                <span>Interview Prep</span>
-              </button>
-              <button class="autojobr-btn secondary" id="autojobr-salary-insights">
-                <span class="btn-icon">💰</span>
-                <span>Salary Intel</span>
-              </button>
-              <button class="autojobr-btn secondary" id="autojobr-referral-finder">
-                <span class="btn-icon">🤝</span>
-                <span>Find Referrals</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="autojobr-ai-features">
-            <h4>🤖 AI Features</h4>
-            <div class="ai-feature-row">
-              <button class="autojobr-btn ai" id="autojobr-resume-gen">
-                <span class="btn-icon">📄</span>
-                <span>Generate Resume</span>
-              </button>
-              <button class="autojobr-btn ai" id="autojobr-ask-ai">
-                <span class="btn-icon">💬</span>
-                <span>Ask AI</span>
-              </button>
-            </div>
-            <div class="feature-toggle">
-              <input type="checkbox" id="auto-resume-upload" checked> <label for="auto-resume-upload">Auto Resume Upload</label>
-            </div>
-            <div class="feature-toggle">
-              <input type="checkbox" id="auto-fill-premium-ai"> <label for="auto-fill-premium-ai">Use Premium AI (Your Key)</label>
-            </div>
-          </div>
-
-          <div class="autojobr-features">
-            <div class="feature-toggle">
-              <input type="checkbox" id="smart-fill" checked> <label for="smart-fill">Smart Fill Mode</label>
-            </div>
-            <div class="feature-toggle">
-              <input type="checkbox" id="auto-submit"> <label for="auto-submit">Auto Submit</label>
+          <!-- TASKS TAB -->
+          <div class="tab-content" id="tab-tasks">
+            <div class="tasks-header">
+              <h3>📋 My Tasks</h3>
+              <button class="autojobr-btn primary small" id="add-task-btn">+ Add Task</button>
             </div>
             
-          </div>
+            <div class="add-task-form" id="add-task-form" style="display: none;">
+              <input type="text" id="task-title-input" placeholder="Task title..." class="task-input">
+              <textarea id="task-desc-input" placeholder="Description (optional)" class="task-textarea"></textarea>
+              <input type="datetime-local" id="task-reminder-input" class="task-input">
+              <div class="form-actions">
+                <button class="autojobr-btn primary small" id="save-task-btn">Save</button>
+                <button class="autojobr-btn secondary small" id="cancel-task-btn">Cancel</button>
+              </div>
+            </div>
 
-          <div class="autojobr-tasks" id="autojobr-tasks" style="display: none;">
-            <div class="tasks-header">
-              <span class="tasks-title">📋 Pending Tasks</span>
-              <span class="tasks-count" id="tasks-count">0</span>
-            </div>
-            <div class="tasks-list" id="tasks-list"></div>
-          </div>
-
-          <div class="autojobr-stats" id="autojobr-stats" style="display: none;">
-            <div class="stat-item">
-              <span class="stat-label">Fields Found:</span>
-              <span class="stat-value" id="fields-found">0</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Fields Filled:</span>
-              <span class="stat-value" id="fields-filled">0</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Success Rate:</span>
-              <span class="stat-value" id="success-rate">0%</span>
+            <div class="tasks-list" id="tasks-list">
+              <div class="empty-state">No tasks yet. Add your first task!</div>
             </div>
           </div>
 
-          <div class="autojobr-automation-status" id="autojobr-automation-status" style="display: none;">
-            <!-- Automation status will be injected here -->
+          <!-- CHAT TAB -->
+          <div class="tab-content" id="tab-chat">
+            <div class="chat-container">
+              <div class="chat-messages" id="chat-messages">
+                <div class="chat-welcome">
+                  <div class="welcome-icon">🤖</div>
+                  <h3>AI Career Assistant</h3>
+                  <p>Ask me anything about your job search, resume, or career!</p>
+                </div>
+              </div>
+              <div class="chat-input-container">
+                <textarea id="chat-input" placeholder="Ask me anything..." class="chat-textarea"></textarea>
+                <button class="autojobr-btn primary" id="send-chat-btn">Send</button>
+              </div>
+            </div>
           </div>
 
-          <div class="autojobr-navigation" id="autojobr-navigation" style="display: none;">
-            <!-- Navigation buttons will be injected here -->
+          <!-- SETTINGS TAB -->
+          <div class="tab-content" id="tab-settings">
+            <div class="settings-section">
+              <h3>⚙️ Settings</h3>
+              
+              <div class="setting-group">
+                <label>🔑 Groq API Key (BYOK)</label>
+                <input type="password" id="groq-api-key-input" placeholder="Enter your Groq API key" class="settings-input">
+                <button class="autojobr-btn primary small" id="save-api-key-btn">Save Key</button>
+                <p class="setting-hint">Use your own Groq API key for AI features. Leave empty to use premium features.</p>
+              </div>
+
+              <div class="setting-group">
+                <label>Auto-Fill Settings</label>
+                <div class="feature-toggle">
+                  <input type="checkbox" id="auto-resume-upload" checked> 
+                  <label for="auto-resume-upload">Auto Resume Upload</label>
+                </div>
+                <div class="feature-toggle">
+                  <input type="checkbox" id="auto-fill-premium-ai"> 
+                  <label for="auto-fill-premium-ai">Use Premium AI</label>
+                </div>
+              </div>
+
+              <div class="setting-group">
+                <button class="autojobr-btn secondary" id="clear-cache-btn">Clear Cache</button>
+                <button class="autojobr-btn secondary" id="logout-btn">Logout</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -647,10 +666,12 @@ class AutoJobrContentScript {
 
     document.body.appendChild(overlay);
     this.attachEnhancedUIEventListeners();
+    this.setupTabSwitching();
     this.makeWidgetDraggable();
 
-    // Load user tasks when widget is displayed
+    // Load initial data
     this.loadUserTasks();
+    this.loadUserSettings();
   }
 
   attachEnhancedUIEventListeners() {
@@ -726,6 +747,289 @@ class AutoJobrContentScript {
       }
       chrome.storage.sync.set({ premiumFeaturesEnabled: e.target.checked });
     });
+
+    // Tasks tab event listeners
+    document.getElementById('add-task-btn')?.addEventListener('click', () => this.showAddTaskForm());
+    document.getElementById('save-task-btn')?.addEventListener('click', () => this.saveTask());
+    document.getElementById('cancel-task-btn')?.addEventListener('click', () => this.hideAddTaskForm());
+
+    // Chat tab event listeners
+    document.getElementById('send-chat-btn')?.addEventListener('click', () => this.sendChatMessage());
+    document.getElementById('chat-input')?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.sendChatMessage();
+      }
+    });
+
+    // Settings tab event listeners
+    document.getElementById('save-api-key-btn')?.addEventListener('click', () => this.saveApiKey());
+    document.getElementById('clear-cache-btn')?.addEventListener('click', () => this.clearCache());
+    document.getElementById('logout-btn')?.addEventListener('click', () => this.logout());
+  }
+
+  setupTabSwitching() {
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tabName = btn.dataset.tab;
+        
+        // Remove active class from all tabs and contents
+        tabBtns.forEach(b => b.classList.remove('active'));
+        tabContents.forEach(content => content.classList.remove('active'));
+        
+        // Add active class to clicked tab and corresponding content
+        btn.classList.add('active');
+        document.getElementById(`tab-${tabName}`)?.classList.add('active');
+      });
+    });
+  }
+
+  // Tasks functionality
+  showAddTaskForm() {
+    const form = document.getElementById('add-task-form');
+    if (form) form.style.display = 'block';
+  }
+
+  hideAddTaskForm() {
+    const form = document.getElementById('add-task-form');
+    if (form) form.style.display = 'none';
+    document.getElementById('task-title-input').value = '';
+    document.getElementById('task-desc-input').value = '';
+    document.getElementById('task-reminder-input').value = '';
+  }
+
+  async saveTask() {
+    const title = document.getElementById('task-title-input').value.trim();
+    const description = document.getElementById('task-desc-input').value.trim();
+    const reminderAt = document.getElementById('task-reminder-input').value;
+
+    if (!title) {
+      this.showNotification('Please enter a task title', 'warning');
+      return;
+    }
+
+    try {
+      const response = await this.makeAPIRequest('/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify({
+          title,
+          description,
+          reminderAt: reminderAt || null
+        })
+      });
+
+      if (response.success) {
+        this.showNotification('Task added successfully!', 'success');
+        this.hideAddTaskForm();
+        this.loadUserTasks();
+      } else {
+        this.showNotification('Failed to add task', 'error');
+      }
+    } catch (error) {
+      console.error('Error saving task:', error);
+      this.showNotification('Error saving task', 'error');
+    }
+  }
+
+  async loadUserTasks() {
+    try {
+      const response = await this.makeAPIRequest('/api/tasks');
+      if (response.success && response.tasks) {
+        this.renderTasks(response.tasks);
+      }
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+    }
+  }
+
+  renderTasks(tasks) {
+    const tasksList = document.getElementById('tasks-list');
+    if (!tasksList) return;
+
+    if (!tasks || tasks.length === 0) {
+      tasksList.innerHTML = '<div class="empty-state">No tasks yet. Add your first task!</div>';
+      return;
+    }
+
+    tasksList.innerHTML = tasks.map(task => `
+      <div class="task-item ${task.completed ? 'completed' : ''}" data-task-id="${task.id}">
+        <div class="task-content">
+          <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} 
+                 onchange="window.autojobrInstance.toggleTaskComplete(${task.id}, this.checked)">
+          <div class="task-details">
+            <div class="task-title">${this.escapeHtml(task.title)}</div>
+            ${task.description ? `<div class="task-description">${this.escapeHtml(task.description)}</div>` : ''}
+            ${task.reminderAt ? `<div class="task-reminder">⏰ ${new Date(task.reminderAt).toLocaleString()}</div>` : ''}
+          </div>
+        </div>
+        <button class="task-delete" onclick="window.autojobrInstance.deleteTask(${task.id})">×</button>
+      </div>
+    `).join('');
+
+    // Store instance globally for onclick handlers
+    window.autojobrInstance = this;
+  }
+
+  async toggleTaskComplete(taskId, completed) {
+    try {
+      await this.makeAPIRequest(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ completed })
+      });
+      this.loadUserTasks();
+    } catch (error) {
+      console.error('Error updating task:', error);
+    }
+  }
+
+  async deleteTask(taskId) {
+    if (!confirm('Delete this task?')) return;
+    
+    try {
+      await this.makeAPIRequest(`/api/tasks/${taskId}`, {
+        method: 'DELETE'
+      });
+      this.showNotification('Task deleted', 'success');
+      this.loadUserTasks();
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  }
+
+  // Chat functionality
+  async sendChatMessage() {
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+    
+    if (!message) return;
+
+    const chatMessages = document.getElementById('chat-messages');
+    
+    // Add user message
+    this.addChatMessage('user', message);
+    input.value = '';
+
+    // Show typing indicator
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'chat-message ai typing';
+    typingDiv.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+    chatMessages.appendChild(typingDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    try {
+      const response = await this.makeAPIRequest('/api/chat', {
+        method: 'POST',
+        body: JSON.stringify({ message })
+      });
+
+      // Remove typing indicator
+      typingDiv.remove();
+
+      if (response.success && response.reply) {
+        this.addChatMessage('ai', response.reply);
+      } else {
+        this.addChatMessage('ai', 'Sorry, I encountered an error. Please try again.');
+      }
+    } catch (error) {
+      typingDiv.remove();
+      console.error('Chat error:', error);
+      this.addChatMessage('ai', 'Sorry, I encountered an error. Please try again.');
+    }
+  }
+
+  addChatMessage(role, content) {
+    const chatMessages = document.getElementById('chat-messages');
+    
+    // Remove welcome message if exists
+    const welcome = chatMessages.querySelector('.chat-welcome');
+    if (welcome) welcome.remove();
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${role}`;
+    messageDiv.innerHTML = `
+      <div class="message-avatar">${role === 'user' ? '👤' : '🤖'}</div>
+      <div class="message-content">${this.escapeHtml(content)}</div>
+    `;
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  // Settings functionality
+  async saveApiKey() {
+    const apiKey = document.getElementById('groq-api-key-input').value.trim();
+    
+    if (!apiKey) {
+      this.showNotification('Please enter an API key', 'warning');
+      return;
+    }
+
+    try {
+      const response = await this.makeAPIRequest('/api/user/settings', {
+        method: 'POST',
+        body: JSON.stringify({ groqApiKey: apiKey })
+      });
+
+      if (response.success) {
+        this.showNotification('API key saved successfully!', 'success');
+        this.groqApiKey = apiKey;
+        chrome.storage.sync.set({ userApiKey: apiKey });
+      } else {
+        this.showNotification('Failed to save API key', 'error');
+      }
+    } catch (error) {
+      console.error('Error saving API key:', error);
+      this.showNotification('Error saving API key', 'error');
+    }
+  }
+
+  async loadUserSettings() {
+    try {
+      const response = await this.makeAPIRequest('/api/user/settings');
+      if (response.success && response.settings) {
+        const keyInput = document.getElementById('groq-api-key-input');
+        if (keyInput && response.settings.groqApiKey) {
+          keyInput.value = '••••••••••••'; // Show masked key
+          this.groqApiKey = response.settings.groqApiKey;
+        }
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+  }
+
+  async clearCache() {
+    if (!confirm('Clear all cached data?')) return;
+    
+    try {
+      chrome.storage.local.clear();
+      chrome.storage.sync.clear();
+      this.showNotification('Cache cleared!', 'success');
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+    }
+  }
+
+  async logout() {
+    if (!confirm('Logout from AutoJobr?')) return;
+    
+    try {
+      await this.makeAPIRequest('/api/auth/logout', { method: 'POST' });
+      chrome.storage.local.clear();
+      chrome.storage.sync.clear();
+      this.showNotification('Logged out successfully', 'success');
+      window.location.reload();
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
   makeWidgetDraggable() {

@@ -61,6 +61,7 @@ import { TaskService } from "./taskService.js";
 import referralMarketplaceRoutes from "./referralMarketplaceRoutes.js";
 console.log('🔍 [IMPORT CHECK] referralMarketplaceRoutes:', referralMarketplaceRoutes ? 'loaded ✅' : 'UNDEFINED ❌');
 import integrationRoutes from "./integrationRoutes.js";
+import extensionRoutes from "./extensionRoutes.js";
 import bidderSystemRoutes from "./bidderRoutes.js";
 import { AIResumeGeneratorService } from "./aiResumeGeneratorService.js";
 import { mockInterviewRoutes } from "./mockInterviewRoutes";
@@ -6717,6 +6718,15 @@ Generate ONLY the connection note text, nothing else.`
     console.log('✅ Integration routes registered at /api/integrations');
   } catch (error) {
     console.error('❌ FAILED to register integration routes:', error);
+  }
+
+  // ===== EXTENSION ROUTES (Tasks, Chat, Settings) =====
+  try {
+    console.log('🔧 Mounting extension routes...');
+    app.use('/api', extensionRoutes);
+    console.log('✅ Extension routes registered at /api');
+  } catch (error) {
+    console.error('❌ FAILED to register extension routes:', error);
   }
 
   // Initialize WebSocket service for real-time chat
