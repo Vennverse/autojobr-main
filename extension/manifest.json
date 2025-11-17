@@ -267,7 +267,10 @@
         "modules/ui-manager.js",
         "modules/api-client.js",
         "modules/notification-manager.js",
-        "modules/analytics-tracker.js"
+        "modules/analytics-tracker.js",
+        "modules/settings-manager.js",
+        "modules/task-manager.js",
+        "modules/resume-generator.js"
       ],
       "matches": ["<all_urls>"]
     }
