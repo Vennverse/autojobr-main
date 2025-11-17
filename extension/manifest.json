@@ -261,11 +261,13 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "popup-styles.css",
         "utils/message-handler.js",
         "modules/job-detector.js",
         "modules/form-filler.js",
-        "modules/ui-manager.js"
+        "modules/ui-manager.js",
+        "modules/api-client.js",
+        "modules/notification-manager.js",
+        "modules/analytics-tracker.js"
       ],
       "matches": ["<all_urls>"]
     }

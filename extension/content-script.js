@@ -1,236 +1,71 @@
-// Enhanced AutoJobr Content Script v2.0 - Advanced Job Board Auto-Fill System
-let API_BASE_URL = 'https://autojobr.com';
-
+// Enhanced AutoJobr Content Script v2.1 - Modular Architecture
 class AutoJobrContentScript {
   constructor() {
     this.isInitialized = false;
     this.currentJobData = null;
     this.fillInProgress = false;
-    this.currentSite = this.detectSite();
     this.fieldMappings = this.initializeFieldMappings();
     this.observers = [];
-    this.fillHistory = [];
-    this.smartSelectors = new Map();
     this.filledFields = new Set();
-    this.formState = { currentPage: 1, hasNextPage: false, hasSubmit: false };
     this.analysisInProgress = false;
     this.lastAnalysisUrl = null;
     this.analysisDebounceTimer = null;
-    this.cachedProfile = null;
-    this.lastAuthCheck = 0;
-    this.currentAnalysis = null;
-    this.cache = new Map();
-    this.isAuthenticated = false;
-
-    // Experience calculation cache
-    this.experienceCache = null;
-    this.skillExpCache = {};
-
-    // LinkedIn Automation specific states
-    this.automationRunning = false;
-    this.applicationsSubmitted = 0;
-    this.applicationsSkipped = 0;
-    this.currentPage = 1;
-    this.maxPages = 1;
-
-    // AI features
     this.groqApiKey = null;
-    this.groqApiUrl = 'https://api.groq.com/openai/v1';
 
-    // Initialize API URL from background script
-    this.initializeApiUrl();
+    this.initialize();
   }
 
-  async initializeApiUrl() {
+  async initialize() {
     try {
-      const response = await chrome.runtime.sendMessage({ action: 'getApiUrl' });
-      if (response && response.apiUrl) {
-        API_BASE_URL = response.apiUrl;
-        console.log('✅ API URL set to:', API_BASE_URL);
-      }
-    } catch (error) {
-      console.log('Using default API URL:', API_BASE_URL);
-    }
-
-    // Now initialize after API URL is set
-    this.init();
-  }
-
-  async init() {
-    if (this.isInitialized) return;
-
-    try {
-      // Load modules first
       await this.loadModules();
 
       // Initialize module instances
+      this.apiClient = new window.APIClient();
       this.jobDetector = new window.JobDetector();
       this.formFiller = new window.FormFiller(this.fieldMappings);
       this.uiManager = new window.UIManager();
+      this.notificationManager = new window.NotificationManager();
+      this.analyticsTracker = new window.AnalyticsTracker();
 
-      // Load settings
-      chrome.storage.sync.get(['userApiKey', 'premiumFeaturesEnabled'], (result) => {
+      await this.apiClient.initialize();
+
+      // Load user settings
+      chrome.storage.sync.get(['userApiKey'], (result) => {
         this.groqApiKey = result.userApiKey || null;
-        console.log('🔑 API Key loaded:', this.groqApiKey ? 'Present' : 'Not set');
       });
 
-      // Initialize UI using UIManager
       this.uiManager.injectWidget();
-
       this.setupMessageListener();
       this.observePageChanges();
-      this.setupKeyboardShortcuts();
-      this.setupApplicationTracking();
       this.setupAutoAnalysis();
 
       this.isInitialized = true;
       window.autojobrContentScriptLoaded = true;
 
-      console.log('🚀 AutoJobr extension v2.1 initialized (modular)');
+      console.log('🚀 AutoJobr v2.1 initialized');
     } catch (error) {
-      console.error('❌ AutoJobr initialization error:', error);
-      if (this.uiManager) {
-        this.uiManager.showNotification('Extension initialization failed. Please refresh.', 'error');
-      }
+      console.error('❌ Initialization error:', error);
     }
   }
 
   async loadModules() {
-    try {
-      await loadModule('modules/job-detector.js');
-      await loadModule('modules/form-filler.js');
-      await loadModule('modules/ui-manager.js');
-      console.log('✅ All modules loaded successfully');
-    } catch (error) {
-      console.error('❌ Failed to load modules:', error);
-      throw error;
+    const modules = [
+      'modules/job-detector.js',
+      'modules/form-filler.js',
+      'modules/ui-manager.js',
+      'modules/api-client.js',
+      'modules/notification-manager.js',
+      'modules/analytics-tracker.js'
+    ];
+
+    for (const module of modules) {
+      await loadModule(module);
     }
   }
 
+  // Use APIClient for all API requests
   async makeAPIRequest(endpoint, options = {}) {
-    try {
-      // Check cache first for GET requests
-      const cacheKey = `${endpoint}_${JSON.stringify(options)}`;
-      if (options.method === 'GET' && this.cache.has(cacheKey)) {
-        const cached = this.cache.get(cacheKey);
-        if (Date.now() - cached.timestamp < 30000) { // 30 second cache
-          return cached.data;
-        }
-      }
-
-      // Get stored session token
-      const result = await chrome.storage.local.get(['sessionToken', 'userId']);
-      const sessionToken = result.sessionToken;
-
-      const headers = {
-        'Content-Type': 'application/json',
-        ...options.headers
-      };
-
-      if (sessionToken) {
-        headers['Authorization'] = `Bearer ${sessionToken}`;
-      }
-
-      // Add timeout handling
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), options.timeout || 10000);
-
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        headers,
-        credentials: 'include',
-        mode: 'cors',
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (response.status === 401) {
-        await chrome.storage.local.remove(['sessionToken', 'userId']);
-        this.isAuthenticated = false;
-        return { error: 'Authentication required' };
-      }
-
-      // Extract session token from response headers
-      const newToken = response.headers.get('X-Session-Token');
-      if (newToken) {
-        await chrome.storage.local.set({ sessionToken: newToken });
-      }
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Throw error with server's message and status if available
-        const errorMessage = data?.error || data?.message || `HTTP ${response.status}: ${response.statusText}`;
-        const error = new Error(errorMessage);
-        error.status = response.status;
-        error.data = data;
-        throw error;
-      }
-
-      // Cache GET responses
-      if (options.method === 'GET') {
-        this.cache.set(cacheKey, {
-          data,
-          timestamp: Date.now()
-        });
-      }
-
-      return data;
-
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        console.error(`Request timeout for ${endpoint}`);
-        throw new Error('Request timed out');
-      }
-      console.error(`API request error for ${endpoint}:`, error);
-      throw error;
-    }
-  }
-
-  detectSite() {
-    const hostname = window.location.hostname.toLowerCase();
-    const pathname = window.location.pathname.toLowerCase();
-
-    const siteMap = {
-      'linkedin.com': 'linkedin',
-      'indeed.com': 'indeed',
-      'glassdoor.com': 'glassdoor',
-      'ziprecruiter.com': 'ziprecruiter',
-      'monster.com': 'monster',
-      'careerbuilder.com': 'careerbuilder',
-      'dice.com': 'dice',
-      'stackoverflow.com': 'stackoverflow',
-      'angel.co': 'angel',
-      'wellfound.com': 'wellfound',
-      'greenhouse.io': 'greenhouse',
-      'lever.co': 'lever',
-      'workday.com': 'workday',
-      'myworkdayjobs.com': 'workday',
-      'icims.com': 'icims',
-      'smartrecruiters.com': 'smartrecruiters',
-      'bamboohr.com': 'bamboohr',
-      'ashbyhq.com': 'ashby',
-      'careers.google.com': 'google',
-      'amazon.jobs': 'amazon',
-      'microsoft.com': 'microsoft',
-      'apple.com': 'apple',
-      'meta.com': 'meta',
-      'autojobr.com': 'autojobr',
-      'naukri.com': 'naukri',
-      'shine.com': 'shine',
-      'timesjobs.com': 'timesjobs',
-      'freshersjobs.com': 'freshersjobs',
-      'instahyre.com': 'instahyre'
-    };
-
-    for (const [domain, site] of Object.entries(siteMap)) {
-      if (hostname.includes(domain)) {
-        return site;
-      }
-    }
-
-    return 'generic';
+    return this.apiClient.makeRequest(endpoint, options);
   }
 
   initializeFieldMappings() {
@@ -1715,39 +1550,17 @@ class AutoJobrContentScript {
     return div.innerHTML;
   }
 
+  // Use NotificationManager for all notifications
   showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `autojobr-notification ${type}`;
-    notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      padding: 16px 24px;
-      background: ${type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : type === 'warning' ? '#f59e0b' : '#3b82f6'};
-      color: white;
-      border-radius: 12px;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-      z-index: 10003;
-      font-size: 14px;
-      font-weight: 500;
-      max-width: 350px;
-      animation: slideInRight 0.3s ease-out;
-    `;
-    notification.textContent = message;
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-      notification.style.animation = 'slideOutRight 0.3s ease-out';
-      setTimeout(() => notification.remove(), 300);
-    }, 4000);
+    this.notificationManager.showNotification(message, type);
   }
 
   showError(message) {
-    this.showNotification(message, 'error');
+    this.notificationManager.showError(message);
   }
 
   showSuccess(message) {
-    this.showNotification(message, 'success');
+    this.notificationManager.showSuccess(message);
   }
 
   makeWidgetDraggable() {
@@ -4288,40 +4101,7 @@ class AutoJobrContentScript {
   }
 
   async getUserProfile() {
-    try {
-      // Check cache first to prevent excessive requests
-      if (this.cachedProfile && Date.now() - this.cachedProfile.timestamp < 300000) { // 5 minutes
-        return this.cachedProfile.data;
-      }
-
-      const result = await chrome.runtime.sendMessage({
-        action: 'getUserProfile'
-      });
-
-      if (result.success && result.profile) {
-        console.log('Extension received user profile:', {
-          firstName: result.profile.firstName,
-          lastName: result.profile.lastName,
-          fullName: result.profile.fullName,
-          skillsCount: result.profile.skills?.length || 0
-        });
-
-        // Cache successful profile
-        this.cachedProfile = { data: result.profile, timestamp: Date.now() };
-        return result.profile;
-      }
-
-      // Handle authentication errors gracefully
-      if (result.error && result.error.includes('401')) {
-        console.log('User not authenticated - skipping profile fetch');
-        return null;
-      }
-
-      return null;
-    } catch (error) {
-      console.error('Failed to get user profile:', error);
-      return null;
-    }
+    return this.apiClient.getUserProfile();
   }
 
   showNotification(message, type = 'success') {
