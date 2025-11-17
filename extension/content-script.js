@@ -594,43 +594,53 @@ class AutoJobrContentScript {
 
           <!-- RESUME GENERATION TAB -->
           <div class="tab-content" id="tab-resume">
-            <div class="resume-gen-container">
-              <h3>📄 Generate Tailored Resume</h3>
-              <p class="resume-hint">Generate a resume tailored to the job description using AI</p>
-              
-              <div class="resume-gen-section">
-                <label>Job Description</label>
-                <textarea id="resume-job-desc" placeholder="Paste the job description here..." class="resume-textarea"></textarea>
+            <div style="padding: 20px; max-height: 500px; overflow-y: auto;">
+              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                  <span>📄</span> Generate Tailored Resume
+                </h3>
+                <p style="margin: 0; font-size: 12px; opacity: 0.9; line-height: 1.4;">Generate a resume tailored to the job description using AI</p>
               </div>
 
-              <div class="resume-gen-section">
-                <label>Additional Requirements (Optional)</label>
-                <textarea id="resume-additional-req" placeholder="Any specific skills or experience to highlight..." class="resume-textarea-small"></textarea>
+              <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 13px;">
+                  Job Description
+                </label>
+                <textarea 
+                  id="autojobr-job-desc-input" 
+                  placeholder="Paste the job description here..."
+                  style="width: 100%; min-height: 100px; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; font-family: inherit; resize: vertical; box-sizing: border-box;"
+                ></textarea>
               </div>
 
-              <div class="resume-gen-actions">
-                <button class="autojobr-btn primary" id="generate-resume-btn">
-                  <span class="btn-icon">✨</span>
-                  <span>Generate Resume</span>
-                </button>
-                <button class="autojobr-btn secondary" id="download-resume-btn" style="display: none;">
-                  <span class="btn-icon">⬇️</span>
-                  <span>Download</span>
-                </button>
+              <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 13px;">
+                  Additional Requirements <span style="color: #9ca3af; font-weight: normal;">(Optional)</span>
+                </label>
+                <textarea 
+                  id="autojobr-additional-requirements" 
+                  placeholder="Any specific skills or experience to emphasize..."
+                  style="width: 100%; min-height: 70px; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; font-family: inherit; resize: vertical; box-sizing: border-box;"
+                ></textarea>
               </div>
 
-              <div class="resume-status" id="resume-status" style="display: none;">
-                <div class="status-message"></div>
-              </div>
+              <button id="autojobr-generate-resume-btn" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; box-sizing: border-box;">
+                <span>✨</span> Generate Resume
+              </button>
 
-              <div class="resume-preview" id="resume-preview" style="display: none;">
-                <h4>Generated Resume</h4>
-                <div class="resume-content" id="resume-content"></div>
-              </div>
-
-              <div class="resume-notice">
-                <p>💡 <strong>BYOK Users:</strong> Uses your Groq API key from Settings</p>
-                <p>⭐ <strong>Premium Users:</strong> Unlimited resume generations included</p>
+              <div style="margin-top: 15px; padding: 12px; background: #f3f4f6; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                <div style="margin-bottom: 8px;">
+                  <strong style="color: #1e40af; display: flex; align-items: center; gap: 6px; font-size: 13px;">
+                    <span>💡</span> BYOK Users:
+                  </strong>
+                  <p style="margin: 4px 0 0 0; font-size: 12px; color: #4b5563; line-height: 1.3;">Uses your Groq API key from Settings</p>
+                </div>
+                <div>
+                  <strong style="color: #7c3aed; display: flex; align-items: center; gap: 6px; font-size: 13px;">
+                    <span>⭐</span> Premium Users:
+                  </strong>
+                  <p style="margin: 4px 0 0 0; font-size: 12px; color: #4b5563; line-height: 1.3;">Unlimited resume generations included</p>
+                </div>
               </div>
             </div>
           </div>
@@ -641,7 +651,7 @@ class AutoJobrContentScript {
               <h3>📋 My Tasks</h3>
               <button class="autojobr-btn primary small" id="add-task-btn">+ Add Task</button>
             </div>
-            
+
             <div class="add-task-form" id="add-task-form" style="display: none;">
               <input type="text" id="task-title-input" placeholder="Task title..." class="task-input">
               <textarea id="task-desc-input" placeholder="Description (optional)" class="task-textarea"></textarea>
@@ -678,7 +688,7 @@ class AutoJobrContentScript {
           <div class="tab-content" id="tab-settings">
             <div class="settings-section">
               <h3>⚙️ Settings</h3>
-              
+
               <div class="setting-group">
                 <label>🔑 Groq API Key (BYOK)</label>
                 <input type="password" id="groq-api-key-input" placeholder="Enter your Groq API key" class="settings-input">
@@ -730,7 +740,7 @@ class AutoJobrContentScript {
     document.getElementById('autojobr-referral-finder')?.addEventListener('click', () => this.handleReferralFinder());
 
     // AI Feature Buttons
-    document.getElementById('autojobr-resume-gen')?.addEventListener('click', () => this.handleResumeGeneration());
+    document.getElementById('autojobr-generate-resume-btn')?.addEventListener('click', () => this.handleResumeGeneration()); // Changed ID to match the button in the new HTML
     document.getElementById('autojobr-ask-ai')?.addEventListener('click', () => this.handleAskAI());
 
     // Widget controls
@@ -793,7 +803,7 @@ class AutoJobrContentScript {
     });
 
     // Resume Generation tab event listeners
-    document.getElementById('generate-resume-btn')?.addEventListener('click', () => this.generateResume());
+    document.getElementById('autojobr-generate-resume-btn')?.addEventListener('click', () => this.generateResume()); // Changed ID to match the button in the new HTML
     document.getElementById('download-resume-btn')?.addEventListener('click', () => this.downloadResume());
 
     // Tasks tab event listeners
@@ -823,11 +833,11 @@ class AutoJobrContentScript {
     tabBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         const tabName = btn.dataset.tab;
-        
+
         // Remove active class from all tabs and contents
         tabBtns.forEach(b => b.classList.remove('active'));
         tabContents.forEach(content => content.classList.remove('active'));
-        
+
         // Add active class to clicked tab and corresponding content
         btn.classList.add('active');
         document.getElementById(`tab-${tabName}`)?.classList.add('active');
@@ -935,7 +945,7 @@ class AutoJobrContentScript {
 
   async deleteTask(taskId) {
     if (!confirm('Delete this task?')) return;
-    
+
     try {
       await this.makeAPIRequest(`/api/tasks/${taskId}`, {
         method: 'DELETE'
@@ -951,11 +961,11 @@ class AutoJobrContentScript {
   async sendChatMessage() {
     const input = document.getElementById('chat-input');
     const message = input.value.trim();
-    
+
     if (!message) return;
 
     const chatMessages = document.getElementById('chat-messages');
-    
+
     // Add user message
     this.addChatMessage('user', message);
     input.value = '';
@@ -990,7 +1000,7 @@ class AutoJobrContentScript {
 
   addChatMessage(role, content) {
     const chatMessages = document.getElementById('chat-messages');
-    
+
     // Remove welcome message if exists
     const welcome = chatMessages.querySelector('.chat-welcome');
     if (welcome) welcome.remove();
@@ -1008,7 +1018,7 @@ class AutoJobrContentScript {
   // Settings functionality
   async saveApiKey() {
     const apiKey = document.getElementById('groq-api-key-input').value.trim();
-    
+
     if (!apiKey) {
       this.showNotification('Please enter an API key', 'warning');
       return;
@@ -1050,7 +1060,7 @@ class AutoJobrContentScript {
 
   async clearCache() {
     if (!confirm('Clear all cached data?')) return;
-    
+
     try {
       chrome.storage.local.clear();
       chrome.storage.sync.clear();
@@ -1062,7 +1072,7 @@ class AutoJobrContentScript {
 
   async logout() {
     if (!confirm('Logout from AutoJobr?')) return;
-    
+
     try {
       await this.makeAPIRequest('/api/auth/logout', { method: 'POST' });
       chrome.storage.local.clear();
@@ -1076,18 +1086,18 @@ class AutoJobrContentScript {
 
   // Resume Generation functionality
   async generateResume() {
-    const jobDescInput = document.getElementById('resume-job-desc');
-    const additionalReqInput = document.getElementById('resume-additional-req');
+    const jobDescInput = document.getElementById('autojobr-job-desc-input'); // Updated ID
+    const additionalReqInput = document.getElementById('autojobr-additional-requirements'); // Updated ID
     const statusDiv = document.getElementById('resume-status');
     const statusMessage = statusDiv.querySelector('.status-message');
-    const generateBtn = document.getElementById('generate-resume-btn');
+    const generateBtn = document.getElementById('autojobr-generate-resume-btn'); // Updated ID
     const previewDiv = document.getElementById('resume-preview');
     const contentDiv = document.getElementById('resume-content');
     const downloadBtn = document.getElementById('download-resume-btn');
-    
+
     const jobDescription = jobDescInput.value.trim();
     const additionalRequirements = additionalReqInput.value.trim();
-    
+
     if (!jobDescription) {
       this.showNotification('Please enter a job description', 'warning');
       return;
@@ -1099,7 +1109,7 @@ class AutoJobrContentScript {
     statusMessage.className = 'status-message loading';
     generateBtn.disabled = true;
     generateBtn.innerHTML = '<span class="btn-icon">⏳</span><span>Generating...</span>';
-    
+
     // Hide previous results
     previewDiv.style.display = 'none';
     downloadBtn.style.display = 'none';
@@ -1119,15 +1129,15 @@ class AutoJobrContentScript {
       if (response.success && response.resume) {
         statusMessage.textContent = 'Resume generated successfully!';
         statusMessage.className = 'status-message success';
-        
+
         // Display the resume
         contentDiv.innerHTML = this.formatResumeContent(response.resume);
         previewDiv.style.display = 'block';
         downloadBtn.style.display = 'inline-block';
-        
+
         // Store resume data for download
         this.generatedResume = response.resume;
-        
+
         this.showNotification('Resume generated successfully!', 'success');
       } else {
         statusMessage.textContent = response.error || 'Failed to generate resume';
@@ -1153,15 +1163,18 @@ class AutoJobrContentScript {
     `;
   }
 
-  async downloadResume() {
-    if (!this.generatedResume) {
+  async downloadResume(htmlContent) { // Added htmlContent parameter
+    if (!this.generatedResume && !htmlContent) { // Check both cases
       this.showNotification('No resume to download', 'warning');
       return;
     }
 
     try {
+      // Use the provided htmlContent or the internally stored one
+      const resumeToDownload = htmlContent || this.generatedResume;
+
       // Create a text file with the resume content
-      const blob = new Blob([this.generatedResume], { type: 'text/plain' });
+      const blob = new Blob([resumeToDownload], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -1170,7 +1183,7 @@ class AutoJobrContentScript {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       this.showNotification('Resume downloaded!', 'success');
     } catch (error) {
       console.error('Download error:', error);
@@ -1576,18 +1589,18 @@ class AutoJobrContentScript {
 
   toggleWidget() {
     const widget = document.querySelector('.autojobr-widget');
-    
+
     if (!widget) {
       // Widget doesn't exist, create and show it
       this.showWidget();
       return;
     }
-    
+
     // Check if widget is currently visible
     const isVisible = widget.style.display !== 'none' && 
                       widget.style.opacity !== '0' &&
                       widget.style.transform !== 'translateX(100%)';
-    
+
     if (isVisible) {
       this.hideWidget();
       sessionStorage.setItem('autojobr_widget_closed', 'true');
@@ -2007,7 +2020,7 @@ class AutoJobrContentScript {
     return '';
   }
 
-  async startSmartAutofill(userProfile) {
+  async startSmartAutofill(userProfile, form) { // Added optional form parameter
     if (this.fillInProgress) {
       return { success: false, error: 'Auto-fill already in progress' };
     }
@@ -2047,13 +2060,13 @@ class AutoJobrContentScript {
       const autoSubmit = settings.autoSubmitMode === true;
 
       // Find all forms with enhanced detection
-      const forms = this.findAllForms();
+      const formsToFill = form ? [form] : this.findAllForms(); // Use specific form if provided
       let totalFieldsFound = 0;
       let totalFieldsFilled = 0;
       const fillResults = [];
 
-      for (const form of forms) {
-        const result = await this.fillForm(form, userProfile, smartMode);
+      for (const currentForm of formsToFill) { // Renamed to currentForm to avoid conflict
+        const result = await this.fillForm(currentForm, userProfile, smartMode);
         totalFieldsFound += result.fieldsFound;
         totalFieldsFilled += result.fieldsFilled;
         fillResults.push(result);
@@ -2065,7 +2078,7 @@ class AutoJobrContentScript {
         await this.delay(500);
       }
 
-      // Handle file uploads
+      // Handle file uploads (run after all forms are processed)
       const fileResults = await this.handleAdvancedFileUploads(userProfile);
       totalFieldsFound += fileResults.filesFound;
       totalFieldsFilled += fileResults.filesUploaded;
@@ -2076,7 +2089,7 @@ class AutoJobrContentScript {
       // Detect form navigation buttons after filling
       this.detectFormNavigation();
 
-      // Auto-submit if enabled
+      // Auto-submit if enabled and if we filled at least one field
       if (autoSubmit && totalFieldsFilled > 0) {
         await this.attemptAutoSubmit();
       }
@@ -2183,6 +2196,9 @@ class AutoJobrContentScript {
 
           // Human-like delay
           await this.delay(150 + Math.random() * 200);
+        } else {
+          // Add error feedback if field was identified but not filled
+          this.addFieldFeedback(field, false);
         }
       } catch (error) {
         console.warn('Field fill error:', error);
@@ -2271,7 +2287,11 @@ class AutoJobrContentScript {
       const fieldInfo = this.analyzeFieldAdvanced(field);
       const value = this.getValueForFieldSmart(fieldInfo, userProfile, smartMode);
 
-      if (!value) return false;
+      if (!value) {
+        // If no value is found for the field, don't mark as filled or add feedback.
+        // It might be a field we don't have data for, or it's not relevant.
+        return false;
+      }
 
       // Fill based on field type
       let success = false;
@@ -3046,65 +3066,6 @@ class AutoJobrContentScript {
       return ['yes', 'true', '1', 'on', 'enabled', 'authorized'].includes(lower);
     }
     return false;
-  }
-
-  isYesOption(radioInfo) {
-    const radio = radioInfo.element;
-    const radioValue = (radio.value || '').toLowerCase().trim();
-    const radioId = (radio.id || '').toLowerCase();
-
-    // Get the option's specific label text
-    let optionText = '';
-    const label = radio.closest('label') || document.querySelector(`label[for="${radio.id}"]`);
-    if (label) {
-      optionText = (label.textContent || '').toLowerCase().trim();
-    }
-    if (!optionText && radio.nextSibling) {
-      optionText = (radio.nextSibling.textContent || '').toLowerCase().trim();
-    }
-
-    const thisOptionText = ` ${radioValue} ${radioId} ${optionText} `.toLowerCase();
-
-    // Use word boundary matching to avoid false positives
-    // "\\byes\\b" matches "yes" but not "eyes"
-    const affirmativePatterns = [
-      /\byes\b/,
-      /\btrue\b/,
-      /\bauthorized\b/,
-      /\beligible\b/,
-      /\bqualified\b/
-    ];
-
-    const negativePatterns = [
-      /\bno\b/,
-      /\bfalse\b/,
-      /\bnot\b/,
-      /\bunable\b/,
-      /\bcannot\b/,
-      /\bineligible\b/,
-      /\bdecline\b/,
-      /\bdisabled\b/,
-      /\bunavailable\b/,
-      /\bnever\b/
-    ];
-
-    // Check exact value matches first (most reliable)
-    if (radioValue === 'yes' || radioValue === 'true' || radioValue === '1') {
-      return true;
-    }
-    if (radioValue === 'no' || radioValue === 'false' || radioValue === '0') {
-      return false;
-    }
-
-    // Check for negative indicators first (higher priority)
-    const hasNegative = negativePatterns.some(pattern => pattern.test(thisOptionText));
-    if (hasNegative) {
-      return false;
-    }
-
-    // Then check for affirmative indicators
-    const hasAffirmative = affirmativePatterns.some(pattern => pattern.test(thisOptionText));
-    return hasAffirmative;
   }
 
   shouldSelectRadio(radioInfo, value) {
