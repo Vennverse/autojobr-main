@@ -102,7 +102,38 @@ class AutoJobrContentScript {
       'shine.com': 'shine',
       'timesjobs.com': 'timesjobs',
       'freshersjobs.com': 'freshersjobs',
-      'instahyre.com': 'instahyre'
+      'instahyre.com': 'instahyre',
+      'youtube.com': 'youtube',
+      'twitter.com': 'twitter',
+      'x.com': 'twitter',
+      'stripe.com': 'stripe',
+      'shopify.com': 'shopify',
+      'twitch.tv': 'twitch',
+      'reddit.com': 'reddit',
+      'discord.com': 'discord',
+      'snap.com': 'snap',
+      'tiktok.com': 'tiktok',
+      'nvidia.com': 'nvidia',
+      'intel.com': 'intel',
+      'paypal.com': 'paypal',
+      'adobe.com': 'adobe',
+      'walmart.com': 'walmart',
+      'target.com': 'target',
+      'homedepot.com': 'homedepot',
+      'starbucks.com': 'starbucks',
+      'fedex.com': 'fedex',
+      'delta.com': 'delta',
+      'united.com': 'united',
+      'marriott.com': 'marriott',
+      'jpmorgan.com': 'jpmorgan',
+      'goldmansachs.com': 'goldmansachs',
+      'bankofamerica.com': 'bankofamerica',
+      'verizon.com': 'verizon',
+      'att.com': 'att',
+      'cvs.com': 'cvs',
+      'boeing.com': 'boeing',
+      'ford.com': 'ford',
+      'gm.com': 'gm'
     };
 
     for (const [domain, site] of Object.entries(siteMap)) {
@@ -1468,7 +1499,43 @@ class AutoJobrContentScript {
       'shine.com': ['/job/', '/jobs/', '/job-detail/', '/job-listing/', '/job_detail'],
       'timesjobs.com': ['/job/', '/jobs/', '/job-detail/', '/job-listing/', '/candidatejobs/'],
       'freshersjobs.com': ['/job/', '/jobs/', '/job-detail/', '/job-posting/'],
-      'instahyre.com': ['/job/', '/jobs/', '/job-detail/', '/job/', '/posting/']
+      'instahyre.com': ['/job/', '/jobs/', '/job-detail/', '/job/', '/posting/'],
+      // Tech/Social Media companies
+      'youtube.com': ['/jobs/', '/careers/', '/job/'],
+      'twitter.com': ['/jobs/', '/careers/', '/job/'],
+      'x.com': ['/jobs/', '/careers/', '/job/'],
+      'stripe.com': ['/jobs/', '/careers/', '/job/'],
+      'shopify.com': ['/careers/', '/job/'],
+      'twitch.tv': ['/jobs/', '/careers/', '/job/'],
+      'reddit.com': ['/careers/', '/job/'],
+      'discord.com': ['/jobs/', '/careers/', '/job/'],
+      'snap.com': ['/jobs/', '/careers/', '/job/'],
+      'tiktok.com': ['/careers/', '/job/'],
+      'nvidia.com': ['/careers/', '/job/'],
+      'intel.com': ['/careers/', '/job/'],
+      'paypal.com': ['/careers/', '/job/'],
+      'adobe.com': ['/careers/', '/job/'],
+      // Retail & Services
+      'walmart.com': ['/careers/', '/job/'],
+      'target.com': ['/careers/', '/job/'],
+      'homedepot.com': ['/careers/', '/job/'],
+      'starbucks.com': ['/careers/', '/job/'],
+      'fedex.com': ['/careers/', '/job/'],
+      // Airlines & Hospitality
+      'delta.com': ['/careers/', '/job/'],
+      'united.com': ['/careers/', '/job/'],
+      'marriott.com': ['/careers/', '/job/'],
+      // Finance
+      'jpmorgan.com': ['/careers/', '/job/'],
+      'goldmansachs.com': ['/careers/', '/job/'],
+      'bankofamerica.com': ['/careers/', '/job/'],
+      // Telecom & Other
+      'verizon.com': ['/careers/', '/job/'],
+      'att.com': ['/careers/', '/job/'],
+      'cvs.com': ['/careers/', '/job/'],
+      'boeing.com': ['/careers/', '/job/'],
+      'ford.com': ['/careers/', '/job/'],
+      'gm.com': ['/careers/', '/job/']
     };
 
     // Check if hostname matches and URL contains job pattern
