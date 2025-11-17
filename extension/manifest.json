@@ -260,7 +260,13 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["popup-styles.css", "icons/*", "utils/message-handler.js", "autopilot-engine.js", "resume-optimizer.js", "referral-finder.js"],
+      "resources": [
+        "popup-styles.css",
+        "utils/message-handler.js",
+        "modules/job-detector.js",
+        "modules/form-filler.js",
+        "modules/ui-manager.js"
+      ],
       "matches": ["<all_urls>"]
     }
   ],

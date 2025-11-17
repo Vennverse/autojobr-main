@@ -56,31 +56,54 @@ class AutoJobrContentScript {
     this.init();
   }
 
-  init() {
+  async init() {
     if (this.isInitialized) return;
 
     try {
-      // Load settings first
+      // Load modules first
+      await this.loadModules();
+
+      // Initialize module instances
+      this.jobDetector = new window.JobDetector();
+      this.formFiller = new window.FormFiller(this.fieldMappings);
+      this.uiManager = new window.UIManager();
+
+      // Load settings
       chrome.storage.sync.get(['userApiKey', 'premiumFeaturesEnabled'], (result) => {
         this.groqApiKey = result.userApiKey || null;
         console.log('🔑 API Key loaded:', this.groqApiKey ? 'Present' : 'Not set');
       });
 
-      this.injectEnhancedUI();
+      // Initialize UI using UIManager
+      this.uiManager.injectWidget();
+
       this.setupMessageListener();
       this.observePageChanges();
       this.setupKeyboardShortcuts();
-      this.initializeSmartSelectors();
       this.setupApplicationTracking();
       this.setupAutoAnalysis();
 
       this.isInitialized = true;
       window.autojobrContentScriptLoaded = true;
 
-      console.log('🚀 AutoJobr extension v2.1 initialized on:', this.currentSite);
+      console.log('🚀 AutoJobr extension v2.1 initialized (modular)');
     } catch (error) {
       console.error('❌ AutoJobr initialization error:', error);
-      this.showNotification('Extension initialization failed. Please refresh.', 'error');
+      if (this.uiManager) {
+        this.uiManager.showNotification('Extension initialization failed. Please refresh.', 'error');
+      }
+    }
+  }
+
+  async loadModules() {
+    try {
+      await loadModule('modules/job-detector.js');
+      await loadModule('modules/form-filler.js');
+      await loadModule('modules/ui-manager.js');
+      console.log('✅ All modules loaded successfully');
+    } catch (error) {
+      console.error('❌ Failed to load modules:', error);
+      throw error;
     }
   }
 
@@ -4881,8 +4904,8 @@ class AutoJobrContentScript {
         console.log('✅ Fresh analysis completed - match score:', analysis.matchScore);
 
         // Update widget and show it automatically on job pages
-        this.updateJobMatch(analysis);
         this.showWidget(); // Auto-show widget on job pages
+        this.updateJobMatch(analysis);
         console.log('✅ Widget auto-opened with match score:', analysis.matchScore);
       }
     } catch (error) {
@@ -5263,8 +5286,7 @@ class AutoJobrContentScript {
             <div class="salary-range">
               <span>Min: $${insights.salaryRange?.min?.toLocaleString() || 'N/A'}</span>
               <span>Max: $${insights.salaryRange?.max?.toLocaleString() || 'N/A'}</span>
-            </div>
-          </div>
+            </div>  </div>
           <div class="prep-section">
             <h4>Negotiation Tips</h4>
             <ul>
@@ -5673,7 +5695,7 @@ class AutoJobrContentScript {
       .jobs-search-results__list-item,
       .job-card-container--clickable,
       .jobs-search-two-pane__results-list .scaffold-layout__list-item,
-      .jobs-search-results-list__list-item,
+      .jobs-search-results__list-item,
       .jobs-search-results__list .jobs-search-results__list-item,
       [data-job-id]
     `.trim().split(/\s*,\s*/));
