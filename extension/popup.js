@@ -850,12 +850,65 @@ class AutoJobrPopup {
     if (!this.isAuthenticated) return;
 
     try {
-      const profile = await this.makeApiRequest('/api/extension/profile');
+      const profile = await this.makeApiRequest('/api/profile');
       if (profile && !profile.error) {
         this.userProfile = profile;
+        
+        // Update BYOK status in UI
+        this.updateBYOKStatus(profile.hasByokKey);
       }
     } catch (error) {
       console.error('Failed to load user profile:', error);
+    }
+  }
+
+  updateBYOKStatus(hasByokKey) {
+    const byokStatus = document.getElementById('byokStatus');
+    if (byokStatus) {
+      if (hasByokKey) {
+        byokStatus.textContent = '✓ BYOK Active';
+        byokStatus.style.color = '#22c55e';
+      } else {
+        byokStatus.textContent = 'No BYOK Key';
+        byokStatus.style.color = '#9ca3af';
+      }
+    }
+  }
+
+  async saveBYOKKey(apiKey) {
+    try {
+      const response = await this.makeApiRequest('/api/profile/byok-key', {
+        method: 'POST',
+        body: JSON.stringify({ apiKey })
+      });
+
+      if (response && response.success) {
+        this.showNotification('✅ BYOK key saved successfully!', 'success');
+        this.updateBYOKStatus(true);
+      } else {
+        throw new Error(response?.error || 'Failed to save key');
+      }
+    } catch (error) {
+      console.error('BYOK save error:', error);
+      this.showError('Failed to save BYOK key. Please try again.');
+    }
+  }
+
+  async deleteBYOKKey() {
+    try {
+      const response = await this.makeApiRequest('/api/profile/byok-key', {
+        method: 'DELETE'
+      });
+
+      if (response && response.success) {
+        this.showNotification('✅ BYOK key removed successfully!', 'success');
+        this.updateBYOKStatus(false);
+      } else {
+        throw new Error(response?.error || 'Failed to delete key');
+      }
+    } catch (error) {
+      console.error('BYOK delete error:', error);
+      this.showError('Failed to delete BYOK key. Please try again.');
     }
   }
 
