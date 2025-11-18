@@ -103,6 +103,7 @@ class AutoJobrPopup {
     document.getElementById('analyzeBtn').addEventListener('click', () => this.handleAnalyze());
     document.getElementById('saveJobBtn').addEventListener('click', () => this.handleSaveJob());
     document.getElementById('coverLetterBtn').addEventListener('click', () => this.handleGenerateCoverLetter());
+    document.getElementById('resumeOptimizeBtn')?.addEventListener('click', () => this.handleResumeOptimize());
     document.getElementById('interviewPrepBtn')?.addEventListener('click', () => this.handleInterviewPrep());
     document.getElementById('salaryInsightsBtn')?.addEventListener('click', () => this.handleSalaryInsights());
     document.getElementById('referralFinderBtn')?.addEventListener('click', () => this.handleReferralFinder());
@@ -978,6 +979,73 @@ class AutoJobrPopup {
     } catch (error) {
       console.error('Save job error:', error);
       this.showError('Failed to save job. Please try again.');
+    } finally {
+      this.showLoading(false);
+    }
+  }
+
+  async handleResumeOptimize() {
+    if (!this.isAuthenticated) {
+      this.showError('Please sign in to optimize your resume');
+      return;
+    }
+
+    // Try to get job data if not already loaded
+    if (!this.jobData) {
+      try {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        const response = await chrome.tabs.sendMessage(tabs[0].id, { action: 'extractJobData' });
+        if (response && response.jobData) {
+          this.jobData = response.jobData;
+        }
+      } catch (error) {
+        console.log('Could not extract job data:', error);
+      }
+    }
+
+    if (!this.jobData || !this.jobData.description) {
+      this.showError('Please navigate to a job page with a description to optimize your resume');
+      return;
+    }
+
+    this.showLoading(true);
+
+    try {
+      // Send job description to premium AI resume generator
+      const result = await this.makeApiRequest('/api/premium/ai/generate-tailored-resume', {
+        method: 'POST',
+        body: JSON.stringify({
+          jobDescription: this.jobData.description,
+          jobTitle: this.jobData.title,
+          targetCompany: this.jobData.company,
+          pageFormat: '2-page'
+        })
+      });
+
+      if (result && !result.error) {
+        // Download the optimized resume
+        const blob = await fetch(`data:application/pdf;base64,${result.pdfBase64}`).then(r => r.blob());
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Optimized_Resume_${this.jobData.company || 'JobPosting'}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        this.showNotification('✅ Resume optimized and downloaded!', 'success');
+      } else {
+        throw new Error(result?.error || 'Failed to optimize resume');
+      }
+    } catch (error) {
+      console.error('Resume optimization error:', error);
+      
+      if (error.status === 403 || error.message?.includes('premium')) {
+        this.showError('Resume optimization is a Premium feature. Please upgrade to continue.');
+      } else {
+        this.showError('Failed to optimize resume. Please try again.');
+      }
     } finally {
       this.showLoading(false);
     }
