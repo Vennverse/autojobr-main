@@ -1,6 +1,6 @@
 import express from "express";
 import { db } from "./db";
-import { tasks, userIntegrations, users } from "@shared/schema";
+import { tasks, userIntegrations, users, applications } from "@shared/schema";
 import { eq, and, desc, gte, lte, isNull } from "drizzle-orm";
 import { isAuthenticated } from "./auth";
 import { aiService } from "./aiService";
@@ -27,15 +27,15 @@ function encryptApiKey(apiKey: string): string {
   if (!validateEncryptionKey()) {
     throw new Error('ENCRYPTION_KEY not configured or invalid - BYOK features disabled');
   }
-
+  
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(ENCRYPTION_KEY, 'hex'), iv);
-
+  
   let encrypted = cipher.update(apiKey, 'utf8', 'hex');
   encrypted += cipher.final('hex');
-
+  
   const authTag = cipher.getAuthTag();
-
+  
   return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
 }
 
@@ -43,22 +43,22 @@ function decryptApiKey(encryptedData: string): string {
   if (!validateEncryptionKey()) {
     throw new Error('ENCRYPTION_KEY not configured or invalid - cannot decrypt BYOK keys');
   }
-
+  
   const parts = encryptedData.split(':');
   if (parts.length !== 3) {
     throw new Error('Invalid encrypted data format');
   }
-
+  
   const iv = Buffer.from(parts[0], 'hex');
   const authTag = Buffer.from(parts[1], 'hex');
   const encrypted = parts[2];
-
+  
   const decipher = crypto.createDecipheriv('aes-256-gcm', Buffer.from(ENCRYPTION_KEY, 'hex'), iv);
   decipher.setAuthTag(authTag);
-
+  
   let decrypted = decipher.update(encrypted, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
-
+  
   return decrypted;
 }
 
@@ -80,21 +80,21 @@ router.get('/tasks', isAuthenticated, async (req: any, res) => {
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
     const offset = parseInt(req.query.offset as string) || 0;
     const status = req.query.status as string;
-
+    
     let query = db
       .select()
       .from(tasks)
       .where(eq(tasks.userId, userId));
-
+    
     if (status) {
       query = query.where(and(eq(tasks.userId, userId), eq(tasks.status, status))) as any;
     }
-
+    
     const userTasks = await query
       .orderBy(desc(tasks.createdAt))
       .limit(limit)
       .offset(offset);
-
+    
     res.json({ success: true, tasks: userTasks });
   } catch (error) {
     console.error('Error fetching tasks:', error);
@@ -106,9 +106,9 @@ router.get('/tasks', isAuthenticated, async (req: any, res) => {
 router.post('/tasks', isAuthenticated, async (req: any, res) => {
   try {
     const userId = req.user.id;
-
+    
     const validatedData = createTaskSchema.parse(req.body);
-
+    
     const [newTask] = await db.insert(tasks).values({
       userId,
       title: validatedData.title,
@@ -121,7 +121,7 @@ router.post('/tasks', isAuthenticated, async (req: any, res) => {
       reminderEnabled: validatedData.reminderEnabled ?? (!!validatedData.dueDateTime || !!validatedData.reminderAt),
       status: 'pending'
     }).returning();
-
+    
     res.json({ success: true, task: newTask });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -138,11 +138,11 @@ router.patch('/tasks/:id/status', isAuthenticated, async (req: any, res) => {
     const userId = req.user.id;
     const taskId = parseInt(req.params.id);
     const { status } = req.body;
-
+    
     if (!status || !['pending', 'in_progress', 'completed', 'cancelled'].includes(status)) {
       return res.status(400).json({ success: false, error: 'Invalid status' });
     }
-
+    
     const [updatedTask] = await db
       .update(tasks)
       .set({
@@ -152,11 +152,11 @@ router.patch('/tasks/:id/status', isAuthenticated, async (req: any, res) => {
       })
       .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
       .returning();
-
+    
     if (!updatedTask) {
       return res.status(404).json({ success: false, error: 'Task not found' });
     }
-
+    
     res.json({ success: true, task: updatedTask });
   } catch (error) {
     console.error('Error updating task status:', error);
@@ -170,7 +170,7 @@ router.patch('/tasks/:id', isAuthenticated, async (req: any, res) => {
     const userId = req.user.id;
     const taskId = parseInt(req.params.id);
     const { completed } = req.body;
-
+    
     const [updatedTask] = await db
       .update(tasks)
       .set({
@@ -180,7 +180,7 @@ router.patch('/tasks/:id', isAuthenticated, async (req: any, res) => {
       })
       .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
       .returning();
-
+    
     res.json({ success: true, task: updatedTask });
   } catch (error) {
     console.error('Error updating task:', error);
@@ -193,11 +193,11 @@ router.delete('/tasks/:id', isAuthenticated, async (req: any, res) => {
   try {
     const userId = req.user.id;
     const taskId = parseInt(req.params.id);
-
+    
     await db
       .delete(tasks)
       .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)));
-
+    
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting task:', error);
@@ -209,7 +209,7 @@ router.delete('/tasks/:id', isAuthenticated, async (req: any, res) => {
 router.get('/user/settings', isAuthenticated, async (req: any, res) => {
   try {
     const userId = req.user.id;
-
+    
     const integration = await db
       .select()
       .from(userIntegrations)
@@ -218,24 +218,12 @@ router.get('/user/settings', isAuthenticated, async (req: any, res) => {
         eq(userIntegrations.integrationId, 'groq')
       ))
       .limit(1);
-
-    // Fetch BYOK key from user profile
-    const profile = await db.query.userProfiles.findFirst({
-      where: eq(users.id, userId), // Assuming users.id is the correct foreign key to userProfiles
-      columns: {
-        byokGroqApiKey: true,
-        byokKeyEnabled: true
-      }
-    });
-
-
+    
     res.json({
       success: true,
       settings: {
-        groqApiKey: integration[0]?.apiKey ? true : false, // This part seems to still refer to userIntegrations, might need adjustment if profile is the sole source.
-        encryptionEnabled: validateEncryptionKey(),
-        byokKeyEnabled: profile?.byokKeyEnabled ?? false,
-        hasProfileApiKey: !!profile?.byokGroqApiKey
+        groqApiKey: integration[0]?.apiKey ? true : false,
+        encryptionEnabled: validateEncryptionKey()
       }
     });
   } catch (error) {
@@ -249,18 +237,18 @@ router.post('/user/settings', isAuthenticated, async (req: any, res) => {
   try {
     const userId = req.user.id;
     const { groqApiKey } = req.body;
-
+    
     if (!groqApiKey || typeof groqApiKey !== 'string' || groqApiKey.length < 10) {
       return res.status(400).json({ success: false, error: 'Valid API key is required' });
     }
-
+    
     if (!validateEncryptionKey()) {
       return res.status(503).json({ 
         success: false, 
         error: 'BYOK features are temporarily unavailable. Please contact support to enable encryption.' 
       });
     }
-
+    
     let encryptedKey: string;
     try {
       encryptedKey = encryptApiKey(groqApiKey);
@@ -268,25 +256,34 @@ router.post('/user/settings', isAuthenticated, async (req: any, res) => {
       console.error('Error encrypting API key:', encryptError);
       return res.status(500).json({ success: false, error: 'Failed to encrypt API key' });
     }
-
-    // Update BYOK key in user profile
-    await db
-      .update(users) // Assuming userProfiles table is linked via users.id
-      .set({
-        byokGroqApiKey: encryptedKey,
-        byokKeyEnabled: true,
-        byokKeyLastUsed: new Date()
-      })
-      .where(eq(users.id, userId));
-
-    // Optionally, remove the key from userIntegrations if it exists, to consolidate storage
-    await db
-      .delete(userIntegrations)
+    
+    const existing = await db
+      .select()
+      .from(userIntegrations)
       .where(and(
         eq(userIntegrations.userId, userId),
         eq(userIntegrations.integrationId, 'groq')
-      ));
-
+      ))
+      .limit(1);
+    
+    if (existing.length > 0) {
+      await db
+        .update(userIntegrations)
+        .set({
+          apiKey: encryptedKey,
+          isEnabled: true,
+          updatedAt: new Date()
+        })
+        .where(eq(userIntegrations.id, existing[0].id));
+    } else {
+      await db.insert(userIntegrations).values({
+        userId,
+        integrationId: 'groq',
+        apiKey: encryptedKey,
+        isEnabled: true
+      });
+    }
+    
     res.json({ success: true });
   } catch (error) {
     console.error('Error saving settings:', error);
@@ -298,47 +295,43 @@ router.post('/user/settings', isAuthenticated, async (req: any, res) => {
 router.post('/chat', async (req: any, res) => {
   try {
     const { message, useExtensionKey } = req.body;
-
+    
     if (!message || typeof message !== 'string' || message.length > 10000) {
       return res.status(400).json({ success: false, error: 'Valid message is required (max 10000 chars)' });
     }
-
+    
     let customApiKey: string | undefined;
     let userId = req.user?.id;
-
-    // If authenticated, try to get user's BYOK key from profile
+    
+    // If authenticated, try to get user's stored BYOK key
     if (userId) {
-      const profile = await db.query.userProfiles.findFirst({
-        where: eq(users.id, userId), // Assuming users.id is the correct foreign key to userProfiles
-        columns: {
-          byokGroqApiKey: true,
-          byokKeyEnabled: true
-        }
-      });
-
-      const hasValidByokKey = profile?.byokKeyEnabled && profile?.byokGroqApiKey;
-
+      const integration = await db
+        .select()
+        .from(userIntegrations)
+        .where(and(
+          eq(userIntegrations.userId, userId),
+          eq(userIntegrations.integrationId, 'groq'),
+          eq(userIntegrations.isEnabled, true)
+        ))
+        .limit(1);
+      
+      const hasValidByokKey = integration.length > 0 && integration[0].apiKey && integration[0].isEnabled;
+      
       if (hasValidByokKey && validateEncryptionKey()) {
         try {
-          customApiKey = decryptApiKey(profile.byokGroqApiKey!);
-
-          // Update last used timestamp
-          await db
-            .update(users) // Assuming userProfiles table is linked via users.id
-            .set({ byokKeyLastUsed: new Date() })
-            .where(eq(users.id, userId));
+          customApiKey = decryptApiKey(integration[0].apiKey!);
         } catch (err) {
           console.error('Failed to decrypt BYOK key:', err);
         }
       }
     }
-
+    
     // Use AI service (will handle both custom keys and fallback to system keys)
     const reply = await aiService.chatWithContext(message, {
       userId: userId || 'anonymous',
       customApiKey
     });
-
+    
     res.json({ success: true, reply });
   } catch (error) {
     console.error('Error in chat:', error);
@@ -351,7 +344,7 @@ router.post('/resume/generate', isAuthenticated, async (req: any, res) => {
   try {
     const userId = req.user.id;
     const { jobDescription, additionalRequirements } = req.body;
-
+    
     if (!jobDescription || typeof jobDescription !== 'string' || jobDescription.length < 50) {
       return res.status(400).json({ 
         success: false, 
@@ -365,7 +358,7 @@ router.post('/resume/generate', isAuthenticated, async (req: any, res) => {
         error: 'Job description is too long (maximum 20000 characters)' 
       });
     }
-
+    
     // Check user's premium status
     const user = await db.query.users.findFirst({
       where: eq(users.id, userId),
@@ -377,17 +370,19 @@ router.post('/resume/generate', isAuthenticated, async (req: any, res) => {
     }
 
     const isPremium = user.planType === 'premium' || user.planType === 'enterprise' || user.planType === 'ultra_premium';
-
-    // Check for BYOK key in user profile
-    const profile = await db.query.userProfiles.findFirst({
-      where: eq(users.id, userId), // Assuming users.id is the correct foreign key to userProfiles
-      columns: {
-        byokGroqApiKey: true,
-        byokKeyEnabled: true
-      }
-    });
-
-    const hasValidByokKey = profile?.byokKeyEnabled && profile?.byokGroqApiKey;
+    
+    // Check for BYOK key
+    const integration = await db
+      .select()
+      .from(userIntegrations)
+      .where(and(
+        eq(userIntegrations.userId, userId),
+        eq(userIntegrations.integrationId, 'groq'),
+        eq(userIntegrations.isEnabled, true)
+      ))
+      .limit(1);
+    
+    const hasValidByokKey = integration.length > 0 && integration[0].apiKey && integration[0].isEnabled;
 
     // Enforce premium or BYOK requirement
     if (!isPremium && !hasValidByokKey) {
@@ -396,14 +391,14 @@ router.post('/resume/generate', isAuthenticated, async (req: any, res) => {
         error: 'Resume generation requires a premium subscription or your own Groq API key. Please upgrade to premium or add your API key in Settings.' 
       });
     }
-
+    
     let decryptedKey: string | undefined;
     if (hasValidByokKey) {
       if (!validateEncryptionKey()) {
         console.warn('BYOK key exists but ENCRYPTION_KEY not configured - falling back to premium service');
       } else {
         try {
-          decryptedKey = decryptApiKey(profile.byokGroqApiKey!);
+          decryptedKey = decryptApiKey(integration[0].apiKey!);
         } catch (err) {
           console.error('Failed to decrypt BYOK key - falling back to premium service:', err);
           return res.status(500).json({ 
@@ -436,7 +431,7 @@ Generate a complete, professional resume in plain text format.`;
       userId,
       customApiKey: decryptedKey
     });
-
+    
     if (!resume) {
       return res.status(500).json({ 
         success: false, 
@@ -456,21 +451,43 @@ router.post('/applications/track-submission', isAuthenticated, async (req: any, 
   try {
     const userId = req.user.id;
     const { url, timestamp, statusCode } = req.body;
-
+    
     console.log('[AutoJobr] Application submission tracked:', {
       userId,
       url,
       statusCode,
       timestamp
     });
-
+    
     // Update or create application record
     // Extract job info from URL if possible
     const jobInfo = extractJobInfoFromUrl(url);
+    
+    // Log to database - check if application already exists
+    const existingApp = await db
+      .select()
+      .from(applications)
+      .where(
+        and(
+          eq(applications.userId, userId),
+          eq(applications.companyName, jobInfo.company || 'Unknown')
+        )
+      )
+      .limit(1);
 
-    // Application tracking logged successfully
-    // Note: Application table updates should be handled by main application routes
-
+    if (existingApp.length > 0) {
+      // Update existing application
+      await db
+        .update(applications)
+        .set({
+          status: 'submitted',
+          appliedAt: new Date(timestamp),
+          submissionUrl: url,
+          submissionStatusCode: statusCode
+        })
+        .where(eq(applications.id, existingApp[0].id));
+    }
+    
     res.json({ success: true, message: 'Submission tracked successfully' });
   } catch (error) {
     console.error('Error tracking submission:', error);
@@ -482,7 +499,7 @@ router.post('/applications/track-submission', isAuthenticated, async (req: any, 
 router.get('/applications/pending-reminders', isAuthenticated, async (req: any, res) => {
   try {
     const userId = req.user.id;
-
+    
     // Get tasks with reminders that are due
     const now = new Date();
     const reminderTasks = await db
@@ -497,7 +514,7 @@ router.get('/applications/pending-reminders', isAuthenticated, async (req: any, 
         )
       )
       .limit(10);
-
+    
     res.json({
       success: true,
       reminders: reminderTasks.map(task => ({
@@ -520,7 +537,7 @@ function extractJobInfoFromUrl(url: string): { company: string | null; jobId: st
     const urlObj = new URL(url);
     const hostname = urlObj.hostname;
     const pathname = urlObj.pathname;
-
+    
     // Extract company from different ATS platforms
     if (hostname.includes('greenhouse.io')) {
       const match = pathname.match(/\/([^/]+)\/jobs/);
@@ -544,7 +561,7 @@ function extractJobInfoFromUrl(url: string): { company: string | null; jobId: st
         platform: 'Workday'
       };
     }
-
+    
     return { company: null, jobId: null, platform: 'Unknown' };
   } catch (error) {
     return { company: null, jobId: null, platform: null };

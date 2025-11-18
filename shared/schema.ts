@@ -243,11 +243,6 @@ export const userProfiles = pgTable("user_profiles", {
   totalInterviewsUsed: integer("total_interviews_used").default(0),
   totalRankingTestsUsed: integer("total_ranking_tests_used").default(0),
 
-  // BYOK (Bring Your Own Key) for Chrome Extension AI Features
-  byokGroqApiKey: text("byok_groq_api_key"), // Encrypted Groq API key for extension
-  byokKeyEnabled: boolean("byok_key_enabled").default(false),
-  byokKeyLastUsed: timestamp("byok_key_last_used"),
-
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
