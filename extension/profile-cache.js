@@ -9,7 +9,7 @@ class ProfileCache {
   async getProfile({ requireFresh = false } = {}) {
     try {
       const metadata = await this._getMetadata();
-      
+
       // Invalidate cache if version mismatch (fixes authentication bug in v1.0)
       if (metadata && metadata.cacheVersion !== this.CACHE_VERSION) {
         console.log('🔄 Cache version mismatch - invalidating old cache', {
@@ -19,7 +19,7 @@ class ProfileCache {
         await this.invalidate();
         return null;
       }
-      
+
       if (requireFresh || this._isExpired(metadata)) {
         console.log('📥 Profile cache expired or fresh data required - fetching from server');
         return null;
@@ -51,7 +51,7 @@ class ProfileCache {
     try {
       const normalizedProfile = this._normalizeProfile(profile);
       const hash = this._generateHash(normalizedProfile);
-      
+
       const metadata = {
         cacheVersion: this.CACHE_VERSION,
         lastUpdated: Date.now(),
@@ -64,9 +64,7 @@ class ProfileCache {
         [this.CACHE_KEY]: normalizedProfile
       });
 
-      await chrome.storage.sync.set({
-        [this.METADATA_KEY]: metadata
-      });
+      await this.setMetadata(metadata); // Use the new setMetadata function
 
       console.log('💾 Profile cached successfully', {
         hash: hash.substring(0, 8),
@@ -84,7 +82,7 @@ class ProfileCache {
   async ensureFresh(apiUrl, forceRefresh = false) {
     try {
       const metadata = await this._getMetadata();
-      
+
       if (!forceRefresh && metadata && !this._isExpired(metadata)) {
         const cachedProfile = await this.getProfile();
         if (cachedProfile) {
@@ -108,7 +106,7 @@ class ProfileCache {
       }
 
       const profile = await response.json();
-      
+
       if (profile.authenticated) {
         await this.setProfile(profile);
         return profile;
@@ -146,10 +144,19 @@ class ProfileCache {
 
   async _getMetadata() {
     try {
+      // Check if chrome.storage is available
+      if (!chrome?.storage?.sync) {
+        console.warn('Chrome storage not available yet');
+        return null;
+      }
+
       const result = await chrome.storage.sync.get([this.METADATA_KEY]);
       return result[this.METADATA_KEY] || null;
     } catch (error) {
-      console.error('Get metadata error:', error);
+      // Silently handle "No SW" errors as they're expected during initialization
+      if (error.message !== 'Error: No SW') {
+        console.error('Get metadata error:', error);
+      }
       return null;
     }
   }
@@ -171,21 +178,21 @@ class ProfileCache {
       lastName: profile.lastName,
       professionalTitle: profile.professionalTitle || profile.currentTitle,
       yearsExperience: profile.yearsExperience || this._calculateYearsExperience(profile.workExperience),
-      
+
       skills: this._normalizeSkills(profile.skills),
       workExperience: this._normalizeWorkExperience(profile.workExperience),
       education: this._normalizeEducation(profile.education),
-      
+
       preferredRoles: profile.preferredRoles || [],
       preferredLocations: profile.preferredLocations || [],
       remotePreference: profile.remotePreference || 'hybrid',
-      
+
       certifications: profile.certifications || [],
       tools: profile.tools || [],
       languages: profile.languages || [],
-      
+
       keywordIndex: this._buildKeywordIndex(profile),
-      
+
       authenticated: profile.authenticated ?? false,
       version: profile.version || 1,
       lastUpdated: Date.now()
@@ -196,7 +203,7 @@ class ProfileCache {
 
   _normalizeSkills(skills) {
     if (!skills || !Array.isArray(skills)) return [];
-    
+
     return skills.map(skill => {
       if (typeof skill === 'string') {
         return {
@@ -215,7 +222,7 @@ class ProfileCache {
 
   _normalizeWorkExperience(experience) {
     if (!experience || !Array.isArray(experience)) return [];
-    
+
     return experience.map(exp => ({
       title: exp.title || exp.jobTitle || '',
       company: exp.company || exp.companyName || '',
@@ -229,7 +236,7 @@ class ProfileCache {
 
   _normalizeEducation(education) {
     if (!education || !Array.isArray(education)) return [];
-    
+
     return education.map(edu => ({
       degree: edu.degree || edu.degreeType || '',
       field: edu.field || edu.major || edu.fieldOfStudy || '',
@@ -241,7 +248,7 @@ class ProfileCache {
 
   _buildKeywordIndex(profile) {
     const keywords = new Set();
-    
+
     if (profile.skills) {
       profile.skills.forEach(skill => {
         const skillName = typeof skill === 'string' ? skill : skill.name;
@@ -250,13 +257,13 @@ class ProfileCache {
         }
       });
     }
-    
+
     if (profile.tools) {
       profile.tools.forEach(tool => {
         keywords.add(tool.toLowerCase());
       });
     }
-    
+
     if (profile.workExperience) {
       profile.workExperience.forEach(exp => {
         const title = exp.title || exp.jobTitle || '';
@@ -267,7 +274,7 @@ class ProfileCache {
         }
       });
     }
-    
+
     if (profile.certifications) {
       profile.certifications.forEach(cert => {
         keywords.add(cert.toLowerCase());
@@ -279,28 +286,28 @@ class ProfileCache {
 
   _calculateYearsExperience(workExperience) {
     if (!workExperience || !Array.isArray(workExperience)) return 0;
-    
+
     let totalMonths = 0;
     workExperience.forEach(exp => {
       const months = this._calculateDuration(exp.startDate, exp.endDate);
       totalMonths += months;
     });
-    
+
     return Math.round(totalMonths / 12 * 10) / 10;
   }
 
   _calculateDuration(startDate, endDate) {
     if (!startDate) return 0;
-    
+
     const start = new Date(startDate);
     const end = endDate === 'Present' || !endDate ? new Date() : new Date(endDate);
-    
+
     if (isNaN(start.getTime())) return 0;
     if (isNaN(end.getTime())) return 0;
-    
+
     const diffTime = Math.abs(end - start);
     const diffMonths = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30));
-    
+
     return diffMonths;
   }
 
@@ -312,15 +319,32 @@ class ProfileCache {
       yearsExperience: profile.yearsExperience,
       professionalTitle: profile.professionalTitle
     });
-    
+
     let hash = 0;
     for (let i = 0; i < hashString.length; i++) {
       const char = hashString.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
       hash = hash & hash;
     }
-    
+
     return Math.abs(hash).toString(36);
+  }
+
+  async setMetadata(metadata) {
+    try {
+      // Check if chrome.storage is available
+      if (!chrome?.storage?.sync) {
+        console.warn('Chrome storage not available yet, skipping metadata save');
+        return;
+      }
+
+      await chrome.storage.sync.set({ [this.METADATA_KEY]: metadata });
+    } catch (error) {
+      // Silently handle "No SW" errors
+      if (error.message !== 'Error: No SW') {
+        console.error('Set metadata error:', error);
+      }
+    }
   }
 }
 
