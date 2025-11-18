@@ -5947,10 +5947,10 @@ Generate ONLY the connection note text, nothing else.`
         .orderBy(asc(schema.taskReminders.triggerDateTime))
         .limit(10);
 
-      res.json(reminders);
+      res.json({ success: true, reminders });
     } catch (error) {
       console.error('Get pending reminders error:', error);
-      res.status(500).json({ message: 'Failed to fetch reminders' });
+      res.status(500).json({ success: false, message: 'Failed to fetch reminders' });
     }
   });
 

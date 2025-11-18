@@ -820,6 +820,10 @@ class AutoJobrContentScript {
           this.extractJobDetails().then(sendResponse);
           return true;
 
+        case 'extractJobData':
+          this.extractJobDetails().then(sendResponse);
+          return true;
+
         case 'detectJobPosting':
           this.detectJobPosting().then(sendResponse);
           return true;

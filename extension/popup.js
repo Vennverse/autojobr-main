@@ -983,8 +983,26 @@ class AutoJobrPopup {
   }
 
   async handleGenerateCoverLetter() {
-    if (!this.isAuthenticated || !this.jobData) {
-      this.showError('Please ensure you\'re authenticated and on a job page');
+    if (!this.isAuthenticated) {
+      this.showError('Please sign in to generate cover letters');
+      return;
+    }
+
+    // Try to get job data if not already loaded
+    if (!this.jobData) {
+      try {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        const response = await chrome.tabs.sendMessage(tabs[0].id, { action: 'extractJobData' });
+        if (response && response.jobData) {
+          this.jobData = response.jobData;
+        }
+      } catch (error) {
+        console.log('Could not extract job data:', error);
+      }
+    }
+
+    if (!this.jobData) {
+      this.showError('Please navigate to a job page to generate a cover letter');
       return;
     }
 
