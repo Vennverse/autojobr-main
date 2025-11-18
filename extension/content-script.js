@@ -646,7 +646,7 @@ class AutoJobrContentScript {
             <div class="feature-toggle">
               <input type="checkbox" id="auto-submit"> <label for="auto-submit">Auto Submit</label>
             </div>
-            
+
           </div>
 
           <div class="autojobr-tasks" id="autojobr-tasks" style="display: none;">
@@ -3293,33 +3293,57 @@ class AutoJobrContentScript {
   }
 
   async handleCoverLetter() {
-    if (!this.currentJobData) {
-      this.showNotification('No job data found on this page', 'error');
+    if (!this.isAuthenticated()) {
+      this.showNotification('Please log in to generate cover letters', 'warning');
       return;
     }
 
     try {
-      const userProfile = await this.getUserProfile();
-      const result = await chrome.runtime.sendMessage({
+      // Use current job data if available, otherwise extract
+      let jobData = this.currentJobData;
+
+      if (!jobData || !jobData.description) {
+        jobData = await this.extractJobDetails();
+      }
+
+      if (!jobData || !jobData.success || !jobData.jobData) {
+        this.showNotification('Could not extract job details. Please ensure you are on a job posting page.', 'error');
+        return;
+      }
+
+      const job = jobData.jobData || jobData;
+
+      if (!job.description || job.description.length < 50) {
+        this.showNotification('Job description is too short or missing. Please navigate to the full job posting.', 'error');
+        return;
+      }
+
+      this.showNotification('Generating cover letter...', 'info');
+
+      const response = await chrome.runtime.sendMessage({
         action: 'generateCoverLetter',
         data: {
-          jobData: this.currentJobData,
-          userProfile: userProfile
+          jobTitle: job.title,
+          company: job.company,
+          jobDescription: job.description,
+          requirements: job.requirements || '',
+          location: job.location || '',
+          url: job.url || window.location.href
         }
       });
 
-      if (result.success) {
-        await navigator.clipboard.writeText(result.coverLetter);
-        this.showNotification('✅ Cover letter generated and copied!', 'success');
+      if (response && response.success && response.coverLetter) {
+        this.showNotification('Cover letter generated and copied to clipboard!', 'success');
+        await navigator.clipboard.writeText(response.coverLetter);
 
-        // Try to fill cover letter field
-        await this.fillCoverLetter(result.coverLetter);
+        // Also display in console for debugging
+        console.log('Generated Cover Letter:', response.coverLetter);
       } else {
-        throw new Error('Failed to generate cover letter');
+        throw new Error(response?.error || 'Failed to generate cover letter');
       }
     } catch (error) {
-      console.error('Cover letter error:', error);
-      this.showNotification('❌ Failed to generate cover letter', 'error');
+      console.error('Cover letter generation error:', error);
+      this.showNotification(`Error: ${error.message}`, 'error');
     }
   }
 
@@ -3504,9 +3528,9 @@ class AutoJobrContentScript {
       // Check if this is a job application form
       if (this.isJobApplicationForm(form)) {
         const jobKey = `${window.location.href}|${Date.now()}`;
-        
+
         // Prevent duplicate tracking within 60 seconds
-        if (trackedApplications.has(window.location.href) && 
+        if (trackedApplications.has(window.location.href) &&
             Date.now() - lastFormSubmissionTime < 60000) {
           console.log('[SUBMIT EVENT] ⚠️ Already tracked this application recently - skipping');
           return;

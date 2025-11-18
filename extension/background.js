@@ -57,7 +57,7 @@ class AutoJobrBackground {
 
   async handleCookieChange(changeInfo) {
     const { cookie, removed } = changeInfo;
-    
+
     // Track authentication cookies from our API
     if (cookie.domain.includes('autojobr.com') && cookie.name === 'session') {
       if (removed) {
@@ -73,7 +73,7 @@ class AutoJobrBackground {
 
   async getCookies(domain) {
     if (!chrome.cookies) return [];
-    
+
     try {
       const cookies = await chrome.cookies.getAll({ domain });
       return cookies;
@@ -85,7 +85,7 @@ class AutoJobrBackground {
 
   async setCookie(cookie) {
     if (!chrome.cookies) return false;
-    
+
     try {
       await chrome.cookies.set(cookie);
       return true;
@@ -264,11 +264,11 @@ class AutoJobrBackground {
     const now = new Date();
     const scheduled = new Date();
     scheduled.setHours(hour, minute, 0, 0);
-    
+
     if (scheduled < now) {
       scheduled.setDate(scheduled.getDate() + 1);
     }
-    
+
     return scheduled.getTime();
   }
 
@@ -390,7 +390,7 @@ class AutoJobrBackground {
   async handleApplicationSubmission(details) {
     if (details.statusCode >= 200 && details.statusCode < 300) {
       console.log('[AutoJobr] Application submission detected:', details.url);
-      
+
       // Track successful submission
       try {
         await fetch(`${this.apiUrl}/api/applications/track-submission`, {
@@ -411,7 +411,7 @@ class AutoJobrBackground {
 
   async handleApplicationError(details) {
     console.warn('[AutoJobr] Application submission error:', details);
-    
+
     // Notify content script about the error
     try {
       chrome.tabs.sendMessage(details.tabId, {
@@ -556,13 +556,13 @@ class AutoJobrBackground {
 
   async sendToOffscreen(type, data) {
     const offscreenAvailable = await this.ensureOffscreenDocument();
-    
+
     if (!offscreenAvailable) {
       // Fallback: process in background (slower but functional)
       console.log('[AutoJobr] Processing in background - no offscreen available');
       return await this.processInBackground(type, data);
     }
-    
+
     return new Promise((resolve, reject) => {
       chrome.runtime.sendMessage({ type, data }, (response) => {
         if (chrome.runtime.lastError) {
@@ -581,7 +581,7 @@ class AutoJobrBackground {
   async processInBackground(type, data) {
     // Fallback processing when offscreen is not available
     console.log('[AutoJobr] Background fallback for:', type);
-    
+
     switch (type) {
       case 'OPTIMIZE_RESUME':
       case 'GENERATE_COVER_LETTER':
@@ -590,20 +590,20 @@ class AutoJobrBackground {
         const endpoint = type === 'OPTIMIZE_RESUME' ? '/api/ai/optimize-resume' :
                         type === 'GENERATE_COVER_LETTER' ? '/api/ai/generate-cover-letter' :
                         '/api/ai/analyze-match';
-        
+
         const response = await fetch(`${this.apiUrl}${endpoint}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify(data)
         });
-        
+
         if (!response.ok) {
           throw new Error(`API request failed: ${response.status}`);
         }
-        
+
         return await response.json();
-        
+
       default:
         throw new Error(`Unknown offscreen task type: ${type}`);
     }
@@ -733,8 +733,41 @@ class AutoJobrBackground {
           break;
 
         case 'generateCoverLetter':
-          const coverLetter = await this.generateCoverLetter(message.data);
-          sendResponse({ success: true, coverLetter });
+          try {
+            const { jobTitle, company, jobDescription, requirements, location } = message.data;
+
+            // Validate inputs
+            if (!jobDescription || jobDescription.length < 50) {
+              throw new Error('Job description is required and must be at least 50 characters');
+            }
+
+            if (!jobTitle || !company) {
+              throw new Error('Job title and company are required');
+            }
+
+            // Use internal helper functions or await this.getUserProfile() if not available from message
+            const profile = await this.getUserProfile();
+
+            if (!profile || !profile.professionalTitle) {
+              throw new Error('Please complete your profile before generating cover letters');
+            }
+
+            console.log('[Background] Generating cover letter for:', { jobTitle, company, descLength: jobDescription.length });
+
+            const coverLetter = await this.generateCoverLetter(
+              jobTitle,
+              company,
+              jobDescription,
+              profile,
+              requirements,
+              location
+            );
+
+            sendResponse({ success: true, coverLetter });
+          } catch (error) {
+            console.error('Cover letter generation failed:', error);
+            sendResponse({ success: false, error: error.message || 'Failed to generate cover letter' });
+          }
           break;
 
         case 'analyzeJob':
@@ -1161,7 +1194,7 @@ class AutoJobrBackground {
             data: profile,
             timestamp: Date.now()
           });
-          
+
           // Also save to ProfileCache for future use
           await this.profileCache.setProfile(profile);
         }
@@ -1250,14 +1283,14 @@ class AutoJobrBackground {
         message: error.message,
         stack: error.stack
       });
-      
+
       // Show error notification
       await this.showAdvancedNotification(
         'Tracking Failed ❌',
         error.message || 'Failed to track application',
         'error'
       );
-      
+
       throw error;
     }
   }
@@ -1314,18 +1347,11 @@ class AutoJobrBackground {
     }
   }
 
-  async generateCoverLetter(data) {
+  async generateCoverLetter(jobTitle, company, jobDescription, profile, requirements = '', location = '') {
     try {
-      const result = await chrome.storage.local.get(['sessionToken']);
-      const sessionToken = result.sessionToken;
-
       const headers = {
         'Content-Type': 'application/json'
       };
-
-      if (sessionToken) {
-        headers['Authorization'] = `Bearer ${sessionToken}`;
-      }
 
       const response = await fetch(`${this.apiUrl}/api/generate-cover-letter`, {
         method: 'POST',
@@ -1333,7 +1359,12 @@ class AutoJobrBackground {
         credentials: 'include',
         mode: 'cors',
         body: JSON.stringify({
-          ...data,
+          jobTitle,
+          company,
+          jobDescription,
+          requirements,
+          location,
+          profile,
           requestedAt: new Date().toISOString(),
           source: 'extension_v2'
         })
@@ -1343,7 +1374,7 @@ class AutoJobrBackground {
         if (response.status === 401) {
           await chrome.storage.local.remove(['sessionToken', 'userId']);
         }
-        throw new Error('Failed to generate cover letter');
+        throw new Error(`Failed to generate cover letter: ${response.statusText}`);
       }
 
       const result_data = await response.json();
@@ -1435,7 +1466,7 @@ class AutoJobrBackground {
       // Use API only when necessary
       if (shouldUseAPI) {
         console.log('⚡ Using API for deep analysis (low confidence or explicit request)');
-        
+
         try {
           const response = await fetch(`${this.apiUrl}/api/analyze-job-match`, {
             method: 'POST',
