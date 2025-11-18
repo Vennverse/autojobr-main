@@ -678,16 +678,12 @@ class AutoJobrContentScript {
         e.preventDefault();
         e.stopPropagation();
         this.hideWidget();
-        // Set session storage to remember widget is closed
-        sessionStorage.setItem('autojobr_widget_closed', 'true');
       });
       // Add touch event for mobile
       closeBtn.addEventListener('touchend', (e) => {
         e.preventDefault();
         e.stopPropagation();
         this.hideWidget();
-        // Set session storage to remember widget is closed
-        sessionStorage.setItem('autojobr_widget_closed', 'true');
       });
     }
 
@@ -914,12 +910,6 @@ class AutoJobrContentScript {
       if (!this.isJobPage()) {
         this.hideWidget();
         return { success: false, reason: 'Not a job page' };
-      }
-
-      // Check if widget was manually closed in this session
-      if (sessionStorage.getItem('autojobr_widget_closed') === 'true') {
-        console.log('Widget was manually closed - staying hidden');
-        return { success: false, reason: 'Widget manually closed' };
       }
 
       const jobData = await this.extractJobDetails();
