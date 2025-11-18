@@ -120,10 +120,6 @@ class AutoJobrPopup {
     document.getElementById('addTaskBtn').addEventListener('click', () => this.handleAddTask());
     this.initializeTaskModal();
 
-    // API Key management
-    document.getElementById('manageKeysBtn')?.addEventListener('click', () => this.handleManageApiKeys());
-    this.initializeApiKeyModal();
-
     // Settings toggles
     this.initializeToggle('autofillToggle', 'autofillEnabled');
     this.initializeToggle('trackingToggle', 'trackingEnabled');
@@ -532,45 +528,38 @@ class AutoJobrPopup {
     }
   }
 
-  async showJobAnalysis(forceDeepAnalysis = false) {
+  async showJobAnalysis() {
     if (!this.jobData || !this.userProfile) return;
 
     try {
+      // Clear ALL cache to ensure completely fresh calculation
+      this.cache.clear();
+
       console.log('Analyzing job with user profile:', {
         jobTitle: this.jobData.title,
         userTitle: this.userProfile.professionalTitle,
         userSkills: this.userProfile.skills?.length || 0,
-        userExperience: this.userProfile.yearsExperience,
-        forceDeepAnalysis
+        userExperience: this.userProfile.yearsExperience
       });
 
-      // Use background script's analyzeJob which now supports local matching
-      const result = await chrome.runtime.sendMessage({
-        action: 'analyzeJob',
-        data: {
+      const analysis = await this.makeApiRequest('/api/analyze-job-match', {
+        method: 'POST',
+        body: JSON.stringify({
           jobData: this.jobData,
-          userProfile: this.userProfile,
-          requestDeepAnalysis: forceDeepAnalysis
-        }
+          userProfile: this.userProfile
+        })
       });
 
-      if (!result || !result.success) {
-        throw new Error(result?.error || 'Analysis failed');
-      }
-
-      const analysis = result.analysis;
-      console.log('Job analysis received:', {
-        source: analysis.source,
-        matchScore: analysis.matchScore,
-        executionMs: analysis.executionTimeMs
-      });
+      console.log('Fresh job analysis received:', analysis);
 
       if (analysis && !analysis.error) {
         const scoreSection = document.getElementById('scoreSection');
         const matchScore = document.getElementById('matchScore');
         const scoreFill = document.getElementById('scoreFill');
 
+        // Use the server-calculated score directly without any local modifications
         const score = analysis.matchScore || 0;
+        console.log('Using server-calculated match score:', score);
 
         matchScore.textContent = `${score}%`;
 
@@ -581,7 +570,7 @@ class AutoJobrPopup {
 
         scoreSection.style.display = 'block';
 
-        // Update colors based on score
+        // Update colors based on score (consistent with dashboard)
         let color = '#ef4444';
         if (score >= 80) color = '#22c55e';
         else if (score >= 60) color = '#f59e0b';
@@ -592,86 +581,22 @@ class AutoJobrPopup {
         matchScore.style.webkitBackgroundClip = 'text';
         matchScore.style.webkitTextFillColor = 'transparent';
 
-        // Show analysis source indicator and refresh button
-        this.displayAnalysisSource(analysis);
-
-        // Show detailed score explanations
+        // Show detailed score explanations using consistent server data
         this.displayScoreExplanations(analysis);
 
-        // Store current analysis
-        this.currentAnalysis = analysis;
+        // Log detailed analysis for debugging
+        console.log('Job Analysis Results:', {
+          matchScore: analysis.matchScore,
+          factors: analysis.factors,
+          recommendation: analysis.recommendation,
+          userSkillsCount: analysis.userProfile?.skillsCount,
+          userTitle: analysis.userProfile?.professionalTitle,
+          jobTitle: this.jobData.title,
+          jobCompany: this.jobData.company
+        });
       }
     } catch (error) {
       console.error('Job analysis failed:', error);
-    }
-  }
-
-  displayAnalysisSource(analysis) {
-    const scoreSection = document.getElementById('scoreSection');
-    
-    // Remove existing source indicator if present
-    const existingIndicator = document.getElementById('analysisSourceIndicator');
-    if (existingIndicator) {
-      existingIndicator.remove();
-    }
-
-    // Create source indicator
-    const sourceIndicator = document.createElement('div');
-    sourceIndicator.id = 'analysisSourceIndicator';
-    sourceIndicator.style.cssText = `
-      margin-top: 8px;
-      padding: 8px 12px;
-      background: rgba(255,255,255,0.05);
-      border-radius: 6px;
-      border: 1px solid rgba(255,255,255,0.1);
-      font-size: 11px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    `;
-
-    const isLocal = analysis.source === 'local';
-    const sourceLabel = isLocal ? '⚡ Fast Analysis' : '🔍 Deep Analysis';
-    const sourceDesc = isLocal 
-      ? `Analyzed locally in ${analysis.executionTimeMs || 0}ms` 
-      : 'Analyzed with server AI';
-
-    sourceIndicator.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <span style="color: ${isLocal ? '#22c55e' : '#3b82f6'}; font-weight: 600;">${sourceLabel}</span>
-        <span style="color: #9ca3af; font-size: 10px;">${sourceDesc}</span>
-      </div>
-      ${isLocal ? `
-        <button id="requestDeepAnalysis" style="
-          background: rgba(59, 130, 246, 0.1);
-          border: 1px solid rgba(59, 130, 246, 0.3);
-          color: #60a5fa;
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 10px;
-          cursor: pointer;
-          font-weight: 500;
-          transition: all 0.2s;
-        " onmouseover="this.style.background='rgba(59, 130, 246, 0.2)'" onmouseout="this.style.background='rgba(59, 130, 246, 0.1)'">
-          Deep Analysis
-        </button>
-      ` : ''}
-    `;
-
-    scoreSection.appendChild(sourceIndicator);
-
-    // Add click handler for deep analysis button
-    if (isLocal) {
-      const deepAnalysisBtn = document.getElementById('requestDeepAnalysis');
-      if (deepAnalysisBtn) {
-        deepAnalysisBtn.addEventListener('click', async () => {
-          deepAnalysisBtn.disabled = true;
-          deepAnalysisBtn.textContent = 'Analyzing...';
-          await this.showJobAnalysis(true);
-          deepAnalysisBtn.disabled = false;
-        });
-      }
     }
   }
 
@@ -1586,188 +1511,6 @@ class AutoJobrPopup {
     });
   }
 
-  // ============= API KEY MANAGEMENT METHODS =============
-
-  initializeApiKeyModal() {
-    const modal = document.getElementById('apiKeyModal');
-    const closeBtn = document.getElementById('closeApiKeyModal');
-    const cancelBtn = document.getElementById('cancelApiKeyModal');
-    const saveBtn = document.getElementById('saveApiKey');
-    const providerBtns = document.querySelectorAll('[data-provider]');
-
-    // Close modal handlers
-    closeBtn?.addEventListener('click', () => this.hideApiKeyModal());
-    cancelBtn?.addEventListener('click', () => this.hideApiKeyModal());
-
-    // Click outside to close
-    modal?.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        this.hideApiKeyModal();
-      }
-    });
-
-    // Provider selection
-    providerBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        providerBtns.forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
-      });
-    });
-
-    // Save button
-    saveBtn?.addEventListener('click', () => this.saveApiKey());
-
-    // Load API key status on init
-    this.loadApiKeyStatus();
-  }
-
-  async loadApiKeyStatus() {
-    try {
-      const response = await this.makeApiRequest('/api/extension/ai-keys', { method: 'GET' });
-      
-      if (response && response.success && response.keys) {
-        const statusEl = document.getElementById('apiKeyStatus');
-        const keys = response.keys;
-        
-        if (keys.length === 0) {
-          statusEl.textContent = 'No API keys configured';
-          statusEl.style.color = '#6b7280';
-        } else {
-          const providerNames = {
-            'groq': '🚀 Groq',
-            'openai': '🤖 OpenAI',
-            'anthropic': '🧠 Anthropic',
-            'google-ai': '🌐 Google AI'
-          };
-          const keyList = keys.map(k => providerNames[k.provider] || k.provider).join(', ');
-          statusEl.textContent = `Active: ${keyList}`;
-          statusEl.style.color = '#22c55e';
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load API keys:', error);
-    }
-  }
-
-  async handleManageApiKeys() {
-    const modal = document.getElementById('apiKeyModal');
-    modal.classList.add('show');
-    
-    // Load existing keys
-    await this.loadExistingKeys();
-  }
-
-  async loadExistingKeys() {
-    try {
-      const response = await this.makeApiRequest('/api/extension/ai-keys', { method: 'GET' });
-      const existingKeysEl = document.getElementById('existingKeys');
-      
-      if (!response || !response.success || !response.keys || response.keys.length === 0) {
-        existingKeysEl.innerHTML = '<div style="font-size: 12px; color: #9ca3af; text-align: center; padding: 12px;">No API keys added yet</div>';
-        return;
-      }
-      
-      const providerNames = {
-        'groq': '🚀 Groq',
-        'openai': '🤖 OpenAI',
-        'anthropic': '🧠 Anthropic',
-        'google-ai': '🌐 Google AI'
-      };
-      
-      const keysHtml = response.keys.map(key => `
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <div style="font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 4px;">
-              ${providerNames[key.provider] || key.provider}
-            </div>
-            <div style="font-size: 10px; color: #6b7280;">
-              Added: ${new Date(key.createdAt).toLocaleDateString()}
-              ${key.lastUsed ? `• Last used: ${new Date(key.lastUsed).toLocaleDateString()}` : ''}
-            </div>
-          </div>
-          <button 
-            onclick="popup.deleteApiKey('${key.provider}')" 
-            style="background: #fee2e2; color: #dc2626; border: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 500;">
-            Delete
-          </button>
-        </div>
-      `).join('');
-      
-      existingKeysEl.innerHTML = keysHtml;
-    } catch (error) {
-      console.error('Failed to load existing keys:', error);
-    }
-  }
-
-  async saveApiKey() {
-    const providerBtn = document.querySelector('[data-provider].selected');
-    const apiKeyInput = document.getElementById('apiKeyInput');
-    
-    if (!providerBtn || !apiKeyInput.value.trim()) {
-      this.showNotification('Please select a provider and enter an API key', 'error');
-      return;
-    }
-    
-    const provider = providerBtn.dataset.provider;
-    const apiKey = apiKeyInput.value.trim();
-    
-    try {
-      this.showLoading(true);
-      
-      const response = await this.makeApiRequest('/api/extension/ai-keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, apiKey })
-      });
-      
-      if (response && response.success) {
-        this.showNotification('API key saved successfully!', 'success');
-        apiKeyInput.value = '';
-        await this.loadExistingKeys();
-        await this.loadApiKeyStatus();
-      } else {
-        throw new Error(response?.error || 'Failed to save API key');
-      }
-    } catch (error) {
-      console.error('Error saving API key:', error);
-      this.showNotification(error.message || 'Failed to save API key', 'error');
-    } finally {
-      this.showLoading(false);
-    }
-  }
-
-  async deleteApiKey(provider) {
-    if (!confirm(`Delete ${provider} API key?`)) return;
-    
-    try {
-      this.showLoading(true);
-      
-      const response = await this.makeApiRequest(`/api/extension/ai-keys/${provider}`, {
-        method: 'DELETE'
-      });
-      
-      if (response && response.success) {
-        this.showNotification('API key deleted', 'success');
-        await this.loadExistingKeys();
-        await this.loadApiKeyStatus();
-      } else {
-        throw new Error(response?.error || 'Failed to delete API key');
-      }
-    } catch (error) {
-      console.error('Error deleting API key:', error);
-      this.showNotification(error.message || 'Failed to delete API key', 'error');
-    } finally {
-      this.showLoading(false);
-    }
-  }
-
-  hideApiKeyModal() {
-    const modal = document.getElementById('apiKeyModal');
-    modal.classList.remove('show');
-  }
-
-  // ============= END API KEY MANAGEMENT =============
-
   getTaskTemplates() {
     return {
       follow_up: {
@@ -2115,14 +1858,11 @@ class AutoJobrPopup {
 
 // Make popup instance globally accessible for task management
 let autojobr;
-let popup; // Also expose as popup for API key management
 
 // Initialize popup when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
   autojobr = new AutoJobrPopup();
-  popup = autojobr; // Same instance
 
   // Make methods globally accessible for onclick handlers
   window.autojobr = autojobr;
-  window.popup = popup;
 });
