@@ -43,18 +43,20 @@ class AutoJobrContentScript {
     if (this.isInitialized) return;
 
     try {
-      // Load XPath detector and wait for it to complete
+      // Load XPath detector FIRST and wait for it to complete
+      console.log('[AutoJobr] Loading XPath detector...');
       const xpathLoaded = await this.loadXPathDetector();
       if (!xpathLoaded) {
-        console.warn('[AutoJobr] Starting without XPath detector - using fallback CSS selectors');
+        console.warn('[AutoJobr] XPath detector not available - using fallback CSS selectors');
+      } else {
+        console.log('[AutoJobr] XPath detector loaded successfully');
       }
 
-      // Load settings first
+      // Load settings
       chrome.storage.sync.get(['userApiKey', 'premiumFeaturesEnabled'], (result) => {
         this.groqApiKey = result.userApiKey || null;
-        // Update premium status if feature is explicitly enabled
         if (result.premiumFeaturesEnabled === true) {
-           // Potentially set a flag if premium features are active
+           // Premium features enabled
         }
       });
 
@@ -85,23 +87,32 @@ class AutoJobrContentScript {
         const script = document.createElement('script');
         script.src = chrome.runtime.getURL('xpath-detector.js');
         script.onload = async () => {
+          // Wait a bit for the script to execute
+          await new Promise(r => setTimeout(r, 100));
+          
           if (window.xpathDetector) {
-            await window.xpathDetector.initialize();
-            this.xpathDetector = window.xpathDetector;
-            console.log('[AutoJobr] XPath detector loaded and initialized');
-            resolve(true);
+            try {
+              await window.xpathDetector.initialize();
+              this.xpathDetector = window.xpathDetector;
+              console.log('[AutoJobr] ✅ XPath detector loaded and initialized');
+              console.log('[AutoJobr] Current ATS:', this.xpathDetector.currentATS || 'Generic');
+              resolve(true);
+            } catch (initError) {
+              console.error('[AutoJobr] XPath detector initialization failed:', initError);
+              resolve(false);
+            }
           } else {
-            console.warn('[AutoJobr] XPath detector not available');
+            console.warn('[AutoJobr] ⚠️ window.xpathDetector not available after script load');
             resolve(false);
           }
         };
-        script.onerror = () => {
-          console.error('[AutoJobr] Failed to load XPath detector script');
+        script.onerror = (error) => {
+          console.error('[AutoJobr] ❌ Failed to load XPath detector script:', error);
           resolve(false);
         };
         (document.head || document.documentElement).appendChild(script);
       } catch (error) {
-        console.error('[AutoJobr] Failed to load XPath detector:', error);
+        console.error('[AutoJobr] ❌ Exception loading XPath detector:', error);
         resolve(false);
       }
     });
@@ -1714,19 +1725,22 @@ class AutoJobrContentScript {
 
   async fillForm(form, userProfile, smartMode) {
     // Try XPath-based detection first for better ATS support
-    if (this.xpathDetector && this.xpathDetector.currentATS) {
+    if (this.xpathDetector && typeof this.xpathDetector.getAllFormFields === 'function') {
       try {
         const xpathFields = this.xpathDetector.getAllFormFields();
-        if (Object.keys(xpathFields).length > 0) {
-          console.log('[AutoJobr] Using XPath-based field detection for', this.xpathDetector.currentATS, ':', Object.keys(xpathFields));
+        if (xpathFields && Object.keys(xpathFields).length > 0) {
+          console.log('[AutoJobr] ✅ Using XPath detection for', this.xpathDetector.currentATS || 'Generic');
+          console.log('[AutoJobr] Found fields:', Object.keys(xpathFields));
           return await this.fillFormWithXPath(xpathFields, userProfile, smartMode);
         } else {
-          console.log('[AutoJobr] XPath detector found no fields, falling back to CSS');
+          console.log('[AutoJobr] ⚠️ XPath detector found no fields, using CSS fallback');
         }
       } catch (error) {
-        console.error('[AutoJobr] XPath detection failed:', error);
+        console.error('[AutoJobr] ❌ XPath detection error:', error);
         console.log('[AutoJobr] Falling back to CSS selectors');
       }
+    } else {
+      console.log('[AutoJobr] ℹ️ XPath detector not ready, using CSS selectors');
     }
 
     // Fallback to standard CSS detection

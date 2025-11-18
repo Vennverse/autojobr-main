@@ -7,12 +7,25 @@ class XPathDetector {
   constructor() {
     this.atsConfig = null;
     this.currentATS = null;
+    console.log('[XPathDetector] Constructor called');
   }
 
   async initialize() {
-    const response = await fetch(chrome.runtime.getURL('ats-config.json'));
-    this.atsConfig = await response.json();
-    this.detectCurrentATS();
+    try {
+      console.log('[XPathDetector] Initializing...');
+      const response = await fetch(chrome.runtime.getURL('ats-config.json'));
+      if (!response.ok) {
+        throw new Error(`Failed to load config: ${response.status}`);
+      }
+      this.atsConfig = await response.json();
+      console.log('[XPathDetector] Config loaded:', Object.keys(this.atsConfig));
+      this.detectCurrentATS();
+      console.log('[XPathDetector] Initialization complete. Current ATS:', this.currentATS || 'None detected');
+    } catch (error) {
+      console.error('[XPathDetector] Initialization failed:', error);
+      // Set a minimal config to prevent errors
+      this.atsConfig = { atsConfigurations: {}, fieldDetectionPatterns: {} };
+    }
   }
 
   detectCurrentATS() {
