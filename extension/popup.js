@@ -109,6 +109,7 @@ class AutoJobrPopup {
     document.getElementById('linkedinAutoApplyBtn')?.addEventListener('click', () => this.handleLinkedInAutoApply());
 
     // Quick action buttons
+    document.getElementById('aiChatBtn')?.addEventListener('click', () => this.toggleAIChat());
     document.getElementById('resumeBtn').addEventListener('click', () => this.handleResumeAction());
     document.getElementById('profileBtn').addEventListener('click', () => this.handleProfileAction());
     document.getElementById('historyBtn').addEventListener('click', () => this.handleHistoryAction());
@@ -1084,6 +1085,22 @@ class AutoJobrPopup {
       }
     } finally {
       this.showLoading(false);
+    }
+  }
+
+  toggleAIChat() {
+    const aiWidget = document.getElementById('aiChatWidget');
+    const isVisible = aiWidget.style.display !== 'none';
+    
+    if (isVisible) {
+      aiWidget.style.display = 'none';
+    } else {
+      aiWidget.style.display = 'block';
+      // Initialize AI features if not already done
+      if (typeof AIFeatures !== 'undefined') {
+        const aiFeatures = new AIFeatures();
+        aiFeatures.init();
+      }
     }
   }
 
