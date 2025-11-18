@@ -27,78 +27,80 @@
     }
 
     .header {
-      background: rgba(255, 255, 255, 0.15);
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.95), rgba(118, 75, 162, 0.95));
       backdrop-filter: blur(20px);
-      padding: 20px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    .header-controls {
+    .header-top {
       display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 8px;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
     }
 
     .close-btn {
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.15);
       border: none;
       color: white;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      font-size: 16px;
-      font-weight: bold;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       transition: all 0.2s;
-      line-height: 1;
+      padding: 0;
     }
 
     .close-btn:hover {
-      background: rgba(255, 255, 255, 0.3);
-      transform: scale(1.1);
+      background: rgba(255, 255, 255, 0.25);
+      transform: translateY(-1px);
     }
 
     .close-btn:active {
-      transform: scale(0.95);
+      transform: translateY(0);
     }
 
     .logo {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       color: white;
+    }
+
+    .logo-text {
       font-weight: 700;
-      font-size: 20px;
-      margin-bottom: 12px;
+      font-size: 18px;
+      letter-spacing: -0.5px;
     }
 
     .logo-icon {
-      width: 32px;
-      height: 32px;
-      background: linear-gradient(135deg, #00d4ff, #0ea5e9);
-      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: bold;
       color: white;
-      font-size: 16px;
-      box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     .connection-status {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 6px 12px;
+    }
+
+    .status-indicator {
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.9);
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.95);
     }
 
     .status-dot {
@@ -189,13 +191,18 @@
     }
 
     .section-title {
-      font-size: 16px;
-      font-weight: 600;
+      font-size: 14px;
+      font-weight: 700;
       color: #1f2937;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
       display: flex;
       align-items: center;
       gap: 8px;
+      letter-spacing: -0.3px;
+    }
+
+    .section-title svg {
+      color: #667eea;
     }
 
     .action-grid {
@@ -217,73 +224,97 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 8px;
-      padding: 16px 12px;
-      border: 2px solid #e5e7eb;
+      gap: 6px;
+      padding: 14px 10px;
+      border: 1px solid #e5e7eb;
       border-radius: 12px;
       background: white;
       color: #374151;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       text-align: center;
       position: relative;
       overflow: hidden;
     }
 
-    .action-btn::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-      transition: left 0.5s;
-    }
-
-    .action-btn:hover::before {
-      left: 100%;
-    }
-
     .action-btn:hover {
-      border-color: #3b82f6;
+      border-color: #667eea;
       transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2);
+      background: linear-gradient(135deg, #ffffff, #f8f9ff);
+    }
+
+    .btn-label {
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .btn-hint {
+      font-size: 10px;
+      color: #9ca3af;
+      font-weight: 400;
     }
 
     .action-btn.primary {
-      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      background: linear-gradient(135deg, #667eea, #764ba2);
       color: white;
-      border-color: #3b82f6;
+      border: none;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .action-btn.primary .btn-icon,
+    .action-btn.primary .btn-label,
+    .action-btn.primary .btn-hint {
+      color: white;
     }
 
     .action-btn.primary:hover {
-      background: linear-gradient(135deg, #1d4ed8, #1e40af);
-      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+      background: linear-gradient(135deg, #5568d3, #653a8a);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
     }
 
-    .action-btn.success {
-      background: linear-gradient(135deg, #22c55e, #16a34a);
+    .action-btn.premium {
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
       color: white;
-      border-color: #22c55e;
+      border: none;
+      box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+      position: relative;
     }
 
-    .action-btn.success:hover {
-      background: linear-gradient(135deg, #16a34a, #15803d);
-      box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
+    .action-btn.premium::after {
+      content: '✨';
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      font-size: 12px;
+    }
+
+    .action-btn.premium:hover {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      box-shadow: 0 8px 20px rgba(251, 191, 36, 0.4);
     }
 
     .action-btn.secondary {
-      background: linear-gradient(135deg, #e0f2fe, #bae6fd);
-      color: #0c4a6e;
-      border-color: #bae6fd;
+      background: #f9fafb;
+      color: #4b5563;
+      border-color: #e5e7eb;
+      padding: 10px 12px;
+      flex-direction: row;
+      gap: 8px;
+      font-size: 12px;
+      justify-content: center;
+    }
+
+    .action-btn.secondary svg {
+      flex-shrink: 0;
     }
 
     .action-btn.secondary:hover {
-      background: linear-gradient(135deg, #bae6fd, #93c5fc);
-      box-shadow: 0 8px 25px rgba(147, 197, 253, 0.15);
+      background: white;
+      border-color: #667eea;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
     }
 
     .action-btn:disabled {
@@ -397,7 +428,7 @@
       flex: 1;
       padding: 12px 8px;
       border: 1px solid #e5e7eb;
-      border-radius: 8px;
+      border-radius: 10px;
       background: white;
       color: #6b7280;
       font-size: 11px;
@@ -409,13 +440,24 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 4px;
+      gap: 6px;
+    }
+
+    .quick-action-btn svg {
+      opacity: 0.7;
+      transition: opacity 0.2s;
     }
 
     .quick-action-btn:hover {
-      background: #f9fafb;
-      border-color: #d1d5db;
-      color: #374151;
+      background: linear-gradient(135deg, #f9fafb, #ffffff);
+      border-color: #667eea;
+      color: #667eea;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+    }
+
+    .quick-action-btn:hover svg {
+      opacity: 1;
     }
 
     .settings-section {
@@ -496,22 +538,35 @@
 
     .footer {
       text-align: center;
-      padding: 16px 20px;
+      padding: 14px 20px;
       font-size: 12px;
-      color: rgba(255, 255, 255, 0.8);
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+      border-top: 1px solid #f3f4f6;
     }
 
-    .footer a {
-      color: #00d4ff;
+    .footer-link {
+      color: #667eea;
       text-decoration: none;
-      font-weight: 500;
-      transition: color 0.2s;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 8px;
     }
 
-    .footer a:hover {
-      color: #0ea5e9;
+    .footer-link:hover {
+      background: rgba(102, 126, 234, 0.1);
+      color: #5568d3;
+    }
+
+    .footer-link svg {
+      transition: transform 0.2s;
+    }
+
+    .footer-link:hover svg {
+      transform: scale(1.1);
     }
 
     .login-btn {
@@ -950,16 +1005,26 @@
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">
-        <div class="logo-icon">A</div>
-        AutoJobr
+      <div class="header-top">
+        <div class="logo">
+          <div class="logo-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+          </div>
+          <span class="logo-text">AutoJobr</span>
+        </div>
+        <button class="close-btn" id="closePopup" title="Close">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
       </div>
-      <div class="header-controls">
-        <div class="connection-status">
+      <div class="connection-status">
+        <div class="status-indicator">
           <div class="status-dot" id="statusDot"></div>
           <span id="connectionStatus">Connecting...</span>
         </div>
-        <button class="close-btn" id="closePopup" title="Close">×</button>
       </div>
     </div>
 
@@ -975,48 +1040,94 @@
 
       <div class="action-section">
         <div class="section-title">
-          ⚡ Quick Actions
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+          Quick Actions
         </div>
         <div class="action-grid" id="actionGrid">
           <button class="action-btn primary" id="autofillBtn">
-            <div class="btn-icon">✎</div>
-            Auto-fill
+            <div class="btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </div>
+            <span class="btn-label">Auto-fill</span>
+            <span class="btn-hint">Fill form instantly</span>
           </button>
 
           <button class="action-btn" id="analyzeBtn">
-            <div class="btn-icon">📊</div>
-            Analyze Match
+            <div class="btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 20V10M12 20V4M6 20v-6"/>
+              </svg>
+            </div>
+            <span class="btn-label">Analyze</span>
+            <span class="btn-hint">Match score</span>
           </button>
 
           <button class="action-btn" id="saveJobBtn">
-            <div class="btn-icon">💾</div>
-            Save Job
+            <div class="btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/>
+                <polyline points="7 3 7 8 15 8"/>
+              </svg>
+            </div>
+            <span class="btn-label">Save Job</span>
+            <span class="btn-hint">Track later</span>
           </button>
 
           <button class="action-btn" id="coverLetterBtn">
-            <div class="btn-icon">📝</div>
-            Cover Letter
+            <div class="btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+            </div>
+            <span class="btn-label">Cover Letter</span>
+            <span class="btn-hint">AI generated</span>
           </button>
         </div>
 
         <div class="action-row">
           <button class="action-btn secondary" id="interviewPrepBtn">
-            <div class="btn-icon">🎯</div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
             <span>Interview Prep</span>
           </button>
           <button class="action-btn secondary" id="salaryInsightsBtn">
-            <div class="btn-icon">💰</div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="23"/>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
             <span>Salary Intel</span>
           </button>
           <button class="action-btn secondary" id="referralFinderBtn">
-            <div class="btn-icon">🤝</div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
             <span>Find Referrals</span>
           </button>
         </div>
 
         <div class="action-row" style="margin-top: 12px;">
-          <button class="action-btn primary" id="linkedinAutoApplyBtn" style="grid-column: 1 / -1;">
-            <div class="btn-icon">🤖</div>
+          <button class="action-btn premium" id="linkedinAutoApplyBtn" style="grid-column: 1 / -1;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+              <line x1="9" y1="9" x2="9.01" y2="9"/>
+              <line x1="15" y1="9" x2="15.01" y2="9"/>
+            </svg>
             <span>LinkedIn Auto-Apply</span>
           </button>
         </div>
@@ -1024,24 +1135,27 @@
 
         <div class="quick-actions">
           <button id="resumeBtn" class="quick-action-btn" title="Manage Resumes">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
               <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
             </svg>
-            Resume
+            <span>Resume</span>
           </button>
           <button id="profileBtn" class="quick-action-btn" title="Edit Profile">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
               <circle cx="12" cy="7" r="4"/>
             </svg>
-            Profile
+            <span>Profile</span>
           </button>
           <button id="historyBtn" class="quick-action-btn" title="View Applications">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
             </svg>
-            History
+            <span>History</span>
           </button>
         </div>
 
@@ -1109,7 +1223,15 @@
     </div>
 
     <div class="footer">
-      <a href="#" id="openDashboard">🚀 Open Dashboard</a>
+      <a href="#" id="openDashboard" class="footer-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"/>
+          <rect x="14" y="3" width="7" height="7"/>
+          <rect x="14" y="14" width="7" height="7"/>
+          <rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        Open Dashboard
+      </a>
     </div>
   </div>
 
