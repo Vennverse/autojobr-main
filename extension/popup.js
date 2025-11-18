@@ -1109,6 +1109,19 @@ class AutoJobrPopup {
       return;
     }
 
+    // Try to get job data if not already loaded
+    if (!this.jobData) {
+      try {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        const response = await chrome.tabs.sendMessage(tabs[0].id, { action: 'extractJobData' });
+        if (response && response.jobData) {
+          this.jobData = response.jobData;
+        }
+      } catch (error) {
+        console.log('Could not extract job data:', error);
+      }
+    }
+
     if (!this.jobData) {
       this.showError('Please navigate to a job page to get interview preparation');
       return;
@@ -1123,14 +1136,16 @@ class AutoJobrPopup {
           jobTitle: this.jobData.title,
           company: this.jobData.company,
           jobDescription: this.jobData.description,
+          location: this.jobData.location,
           requestedAt: new Date().toISOString()
         })
       });
 
-      if (response && !response.error) {
+      if (response && !response.error && response.success) {
         this.showInterviewPrepModal(response);
+        this.showNotification('✅ Interview prep generated!', 'success');
       } else {
-        throw new Error(response?.error || 'Failed to get interview prep');
+        throw new Error(response?.error || response?.message || 'Failed to get interview prep');
       }
     } catch (error) {
       console.error('Interview prep error:', error);

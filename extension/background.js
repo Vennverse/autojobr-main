@@ -29,10 +29,70 @@ class AutoJobrBackground {
     this.profileCache = new ProfileCache();
     this.matchEngine = new MatchEngine();
 
+    // Setup cookie synchronization for better auth
+    this.setupCookieSync();
+
     // Load cached profile on startup
     await this.ensureCachedProfile();
 
-    console.log('🚀 AutoJobr Autopilot v3.0 initialized with advanced features + client-side matching');
+    console.log('🚀 AutoJobr Autopilot v3.0 initialized with XPath ATS detection, alarms, webRequest monitoring, and cookie sync');
+  }
+
+  setupCookieSync() {
+    if (!chrome.cookies) {
+      console.log('[AutoJobr] cookies API not available');
+      return;
+    }
+
+    try {
+      // Monitor cookies for auth changes
+      chrome.cookies.onChanged.addListener((changeInfo) => {
+        this.handleCookieChange(changeInfo);
+      });
+      console.log('[AutoJobr] Cookie synchronization enabled');
+    } catch (error) {
+      console.error('[AutoJobr] Failed to setup cookie sync:', error);
+    }
+  }
+
+  async handleCookieChange(changeInfo) {
+    const { cookie, removed } = changeInfo;
+    
+    // Track authentication cookies from our API
+    if (cookie.domain.includes('autojobr.com') && cookie.name === 'session') {
+      if (removed) {
+        console.log('[AutoJobr] User logged out - clearing cache');
+        await this.profileCache.invalidate();
+        this.cache.clear();
+      } else {
+        console.log('[AutoJobr] Session updated - refreshing profile');
+        await this.ensureCachedProfile();
+      }
+    }
+  }
+
+  async getCookies(domain) {
+    if (!chrome.cookies) return [];
+    
+    try {
+      const cookies = await chrome.cookies.getAll({ domain });
+      return cookies;
+    } catch (error) {
+      console.error('[AutoJobr] Failed to get cookies:', error);
+      return [];
+    }
+  }
+
+  async setCookie(cookie) {
+    if (!chrome.cookies) return false;
+    
+    try {
+      await chrome.cookies.set(cookie);
+      return true;
+    } catch (error) {
+      console.error('[AutoJobr] Failed to set cookie:', error);
+      return false;
+    }
   }
 
   async detectApiUrl() {
@@ -118,6 +178,13 @@ class AutoJobrBackground {
       } else if (details.reason === 'update') {
         this.handleUpdate(details.previousVersion);
       }
+      // Setup context menus
+      this.setupContextMenus();
+    });
+
+    // Handle context menu clicks
+    chrome.contextMenus.onClicked.addListener((info, tab) => {
+      this.handleContextMenuClick(info, tab);
     });
 
     // Handle messages from content scripts and popup
@@ -154,27 +221,206 @@ class AutoJobrBackground {
   }
 
   setupPeriodicTasks() {
-    // Clean cache every 5 minutes
-    setInterval(() => {
-      this.cleanCache();
-    }, 5 * 60 * 1000);
+    // Use Alarms API for reliable scheduled tasks (better than setInterval for extensions)
+    this.setupAlarms();
 
-    // Clean rate limiter every minute
-    setInterval(() => {
-      this.cleanRateLimiter();
-    }, 60 * 1000);
+    // Setup webRequest monitoring for application tracking
+    this.setupWebRequestMonitoring();
 
-    // Sync user data every 10 minutes if authenticated
-    setInterval(() => {
-      this.syncUserData();
-    }, 10 * 60 * 1000);
+    // Legacy intervals as fallback
+    setInterval(() => this.cleanCache(), 5 * 60 * 1000);
+    setInterval(() => this.cleanRateLimiter(), 60 * 1000);
+  }
 
-    // Process application queue every minute
-    setInterval(() => {
-      if (this.applicationOrchestrator) {
-        this.applicationOrchestrator.processQueue();
+  setupAlarms() {
+    // Daily resume optimization check (9 AM)
+    chrome.alarms.create('dailyResumeCheck', {
+      when: this.getNextScheduledTime(9, 0),
+      periodInMinutes: 1440 // 24 hours
+    });
+
+    // Application reminder check (every 4 hours)
+    chrome.alarms.create('applicationReminder', {
+      periodInMinutes: 240
+    });
+
+    // Cache cleanup (every 30 minutes)
+    chrome.alarms.create('cacheCleanup', {
+      periodInMinutes: 30
+    });
+
+    // User data sync (every 10 minutes)
+    chrome.alarms.create('userDataSync', {
+      periodInMinutes: 10
+    });
+
+    // Handle alarm events
+    chrome.alarms.onAlarm.addListener((alarm) => {
+      this.handleAlarm(alarm);
+    });
+  }
+
+  getNextScheduledTime(hour, minute) {
+    const now = new Date();
+    const scheduled = new Date();
+    scheduled.setHours(hour, minute, 0, 0);
+    
+    if (scheduled < now) {
+      scheduled.setDate(scheduled.getDate() + 1);
+    }
+    
+    return scheduled.getTime();
+  }
+
+  async handleAlarm(alarm) {
+    console.log('[AutoJobr] Alarm triggered:', alarm.name);
+
+    switch (alarm.name) {
+      case 'dailyResumeCheck':
+        await this.performDailyResumeCheck();
+        break;
+      case 'applicationReminder':
+        await this.checkApplicationReminders();
+        break;
+      case 'cacheCleanup':
+        this.cleanCache();
+        break;
+      case 'userDataSync':
+        await this.syncUserData();
+        break;
+    }
+  }
+
+  async performDailyResumeCheck() {
+    try {
+      const profile = await this.getCachedProfile();
+      if (!profile || !profile.authenticated) return;
+
+      // Notify user about resume optimization opportunities
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icons/icon48.png',
+        title: 'Daily Resume Check',
+        message: 'Review your resume optimization opportunities for today.',
+        priority: 1
+      });
+    } catch (error) {
+      console.error('[AutoJobr] Daily resume check failed:', error);
+    }
+  }
+
+  async checkApplicationReminders() {
+    try {
+      // Check for pending applications that need follow-up
+      const response = await fetch(`${this.apiUrl}/api/applications/pending-reminders`, {
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.reminders && data.reminders.length > 0) {
+          chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icons/icon48.png',
+            title: 'Application Reminders',
+            message: `You have ${data.reminders.length} pending follow-ups.`,
+            priority: 2
+          });
+        }
       }
-    }, 60000);
+    } catch (error) {
+      console.error('[AutoJobr] Application reminder check failed:', error);
+    }
+  }
+
+  setupWebRequestMonitoring() {
+    if (!chrome.webRequest) {
+      console.log('[AutoJobr] webRequest API not available');
+      return;
+    }
+
+    try {
+      // Monitor application submissions to track success/failure - SCOPED to known ATS domains
+      chrome.webRequest.onCompleted.addListener(
+        (details) => {
+          this.handleApplicationSubmission(details);
+        },
+        {
+          urls: [
+            '*://boards.greenhouse.io/*/jobs/*/application*',
+            '*://boards.eu.greenhouse.io/*/jobs/*/application*',
+            '*://jobs.lever.co/*/apply*',
+            '*://jobs.eu.lever.co/*/apply*',
+            '*://*.myworkdayjobs.com/*/application*',
+            '*://*.taleo.net/*/jobapply*',
+            '*://*.icims.com/jobs/*/apply*',
+            '*://*.smartrecruiters.com/*/jobs/*/application*',
+            '*://jobs.ashbyhq.com/*/application*',
+            '*://*.bamboohr.com/jobs/apply*',
+            '*://jobs.jobvite.com/*/apply*'
+          ],
+          types: ['xmlhttprequest']
+        }
+      );
+
+      // Monitor for errors during application submission - SCOPED to ATS domains only
+      chrome.webRequest.onErrorOccurred.addListener(
+        (details) => {
+          this.handleApplicationError(details);
+        },
+        {
+          urls: [
+            '*://boards.greenhouse.io/*',
+            '*://jobs.lever.co/*',
+            '*://*.myworkdayjobs.com/*',
+            '*://*.taleo.net/*',
+            '*://*.icims.com/*',
+            '*://*.smartrecruiters.com/*'
+          ],
+          types: ['xmlhttprequest']
+        }
+      );
+
+      console.log('[AutoJobr] WebRequest monitoring enabled for ATS domains');
+    } catch (error) {
+      console.error('[AutoJobr] Failed to setup webRequest monitoring:', error);
+    }
+  }
+
+  async handleApplicationSubmission(details) {
+    if (details.statusCode >= 200 && details.statusCode < 300) {
+      console.log('[AutoJobr] Application submission detected:', details.url);
+      
+      // Track successful submission
+      try {
+        await fetch(`${this.apiUrl}/api/applications/track-submission`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            url: details.url,
+            timestamp: new Date().toISOString(),
+            statusCode: details.statusCode
+          })
+        });
+      } catch (error) {
+        console.error('[AutoJobr] Failed to track submission:', error);
+      }
+    }
+  }
+
+  async handleApplicationError(details) {
+    console.warn('[AutoJobr] Application submission error:', details);
+    
+    // Notify content script about the error
+    try {
+      chrome.tabs.sendMessage(details.tabId, {
+        action: 'submissionError',
+        error: details.error
+      });
+    } catch (error) {
+      // Tab might not have content script
+    }
   }
 
   async handleInstall() {
@@ -252,6 +498,117 @@ class AutoJobrBackground {
     console.log('✅ Migrated settings to v2.0');
   }
 
+  setupContextMenus() {
+    this.createContextMenus();
+  }
+
+  async handleContextMenuClick(info, tab) {
+    switch (info.menuItemId) {
+      case 'autofill-form':
+        chrome.tabs.sendMessage(tab.id, { action: 'autofillForm' });
+        break;
+      case 'analyze-job':
+        chrome.tabs.sendMessage(tab.id, { action: 'analyzeJob' });
+        break;
+      case 'save-job':
+        chrome.tabs.sendMessage(tab.id, { action: 'saveJob' });
+        break;
+      case 'generate-cover-letter':
+        chrome.tabs.sendMessage(tab.id, { action: 'generateCoverLetter' });
+        break;
+      case 'bulk-apply':
+        chrome.tabs.sendMessage(tab.id, { action: 'startBulkApply' });
+        break;
+      case 'open-dashboard':
+        chrome.tabs.create({ url: `${this.apiUrl}/dashboard` });
+        break;
+    }
+  }
+
+  async ensureOffscreenDocument() {
+    if (!chrome.offscreen) {
+      console.log('[AutoJobr] offscreen API not available - processing in background');
+      return false;
+    }
+
+    try {
+      const existingContexts = await chrome.runtime.getContexts({
+        contextTypes: ['OFFSCREEN_DOCUMENT']
+      });
+
+      if (existingContexts.length > 0) {
+        return true;
+      }
+
+      await chrome.offscreen.createDocument({
+        url: 'offscreen.html',
+        reasons: ['WORKERS'],
+        justification: 'Heavy AI processing for resume optimization and cover letter generation'
+      });
+
+      console.log('[AutoJobr] Offscreen document created');
+      return true;
+    } catch (error) {
+      console.error('[AutoJobr] Failed to create offscreen document:', error);
+      return false;
+    }
+  }
+
+  async sendToOffscreen(type, data) {
+    const offscreenAvailable = await this.ensureOffscreenDocument();
+    
+    if (!offscreenAvailable) {
+      // Fallback: process in background (slower but functional)
+      console.log('[AutoJobr] Processing in background - no offscreen available');
+      return await this.processInBackground(type, data);
+    }
+    
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ type, data }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('[AutoJobr] Offscreen message error:', chrome.runtime.lastError);
+          // Fallback to background processing
+          this.processInBackground(type, data).then(resolve).catch(reject);
+        } else if (response && response.success) {
+          resolve(response.data);
+        } else {
+          reject(new Error(response?.error || 'Unknown offscreen error'));
+        }
+      });
+    });
+  }
+
+  async processInBackground(type, data) {
+    // Fallback processing when offscreen is not available
+    console.log('[AutoJobr] Background fallback for:', type);
+    
+    switch (type) {
+      case 'OPTIMIZE_RESUME':
+      case 'GENERATE_COVER_LETTER':
+      case 'ANALYZE_JOB_MATCH':
+        // Make direct API call from background
+        const endpoint = type === 'OPTIMIZE_RESUME' ? '/api/ai/optimize-resume' :
+                        type === 'GENERATE_COVER_LETTER' ? '/api/ai/generate-cover-letter' :
+                        '/api/ai/analyze-match';
+        
+        const response = await fetch(`${this.apiUrl}${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) {
+          throw new Error(`API request failed: ${response.status}`);
+        }
+        
+        return await response.json();
+        
+      default:
+        throw new Error(`Unknown offscreen task type: ${type}`);
+    }
+  }
+
   createContextMenus() {
     // Define consistent job site patterns (matches manifest.json)
     const jobSitePatterns = [
@@ -314,6 +671,32 @@ class AutoJobrBackground {
       title: 'Save this job',
       contexts: ['page'],
       documentUrlPatterns: jobSitePatterns
+    });
+
+    chrome.contextMenus.create({
+      id: 'generate-cover-letter',
+      title: 'Generate cover letter',
+      contexts: ['page'],
+      documentUrlPatterns: [...jobSitePatterns, ...applicationPatterns]
+    });
+
+    chrome.contextMenus.create({
+      id: 'bulk-apply',
+      title: 'Start bulk apply mode',
+      contexts: ['page'],
+      documentUrlPatterns: jobSitePatterns
+    });
+
+    chrome.contextMenus.create({
+      id: 'separator-1',
+      type: 'separator',
+      contexts: ['page']
+    });
+
+    chrome.contextMenus.create({
+      id: 'open-dashboard',
+      title: 'Open AutoJobr Dashboard',
+      contexts: ['page']
     });
   }
 
@@ -856,15 +1239,10 @@ class AutoJobrBackground {
         duplicate: result.duplicate
       });
 
-      if (result.success) {
-        await this.showAdvancedNotification(
-          result.duplicate ? 'Already Tracked! 📋' : 'Application Tracked! 📊',
-          `${data.jobTitle} at ${data.company}`,
-          'success'
-        );
-      }
+      // Don't show notifications to reduce spam - just log to console
+      // Users can check their dashboard for tracked applications
 
-      return { success: true, application: result.application || result };
+      return { success: true, application: result.application || result, duplicate: result.duplicate };
 
     } catch (error) {
       console.error('[TRACK APP] ❌ Error:', error);

@@ -1,7 +1,7 @@
 import express from "express";
 import { db } from "./db";
-import { tasks, userIntegrations, users } from "@shared/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { tasks, userIntegrations, users, applications } from "@shared/schema";
+import { eq, and, desc, gte, lte, isNull } from "drizzle-orm";
 import { isAuthenticated } from "./auth";
 import { aiService } from "./aiService";
 import { z } from "zod";
@@ -445,5 +445,127 @@ Generate a complete, professional resume in plain text format.`;
     res.status(500).json({ success: false, error: 'Failed to generate resume' });
   }
 });
+
+// Track application submission from extension
+router.post('/applications/track-submission', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const { url, timestamp, statusCode } = req.body;
+    
+    console.log('[AutoJobr] Application submission tracked:', {
+      userId,
+      url,
+      statusCode,
+      timestamp
+    });
+    
+    // Update or create application record
+    // Extract job info from URL if possible
+    const jobInfo = extractJobInfoFromUrl(url);
+    
+    // Log to database - check if application already exists
+    const existingApp = await db
+      .select()
+      .from(applications)
+      .where(
+        and(
+          eq(applications.userId, userId),
+          eq(applications.companyName, jobInfo.company || 'Unknown')
+        )
+      )
+      .limit(1);
+
+    if (existingApp.length > 0) {
+      // Update existing application
+      await db
+        .update(applications)
+        .set({
+          status: 'submitted',
+          appliedAt: new Date(timestamp),
+          submissionUrl: url,
+          submissionStatusCode: statusCode
+        })
+        .where(eq(applications.id, existingApp[0].id));
+    }
+    
+    res.json({ success: true, message: 'Submission tracked successfully' });
+  } catch (error) {
+    console.error('Error tracking submission:', error);
+    res.status(500).json({ success: false, error: 'Failed to track submission' });
+  }
+});
+
+// Get pending application reminders
+router.get('/applications/pending-reminders', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Get tasks with reminders that are due
+    const now = new Date();
+    const reminderTasks = await db
+      .select()
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.userId, userId),
+          eq(tasks.reminderEnabled, true),
+          eq(tasks.status, 'pending'),
+          lte(tasks.reminderDateTime, now)
+        )
+      )
+      .limit(10);
+    
+    res.json({
+      success: true,
+      reminders: reminderTasks.map(task => ({
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        dueDate: task.dueDate,
+        category: task.category
+      }))
+    });
+  } catch (error) {
+    console.error('Error fetching reminders:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch reminders' });
+  }
+});
+
+// Helper function to extract job info from URL
+function extractJobInfoFromUrl(url: string): { company: string | null; jobId: string | null; platform: string | null } {
+  try {
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname;
+    const pathname = urlObj.pathname;
+    
+    // Extract company from different ATS platforms
+    if (hostname.includes('greenhouse.io')) {
+      const match = pathname.match(/\/([^/]+)\/jobs/);
+      return {
+        company: match ? match[1] : null,
+        jobId: pathname.split('/').pop() || null,
+        platform: 'Greenhouse'
+      };
+    } else if (hostname.includes('lever.co')) {
+      const match = pathname.match(/\/([^/]+)\//);
+      return {
+        company: match ? match[1] : null,
+        jobId: pathname.split('/').pop() || null,
+        platform: 'Lever'
+      };
+    } else if (hostname.includes('myworkdayjobs.com')) {
+      const match = hostname.match(/([^.]+)\.myworkdayjobs\.com/);
+      return {
+        company: match ? match[1] : null,
+        jobId: pathname.split('/').pop() || null,
+        platform: 'Workday'
+      };
+    }
+    
+    return { company: null, jobId: null, platform: 'Unknown' };
+  } catch (error) {
+    return { company: null, jobId: null, platform: null };
+  }
+}
 
 export default router;

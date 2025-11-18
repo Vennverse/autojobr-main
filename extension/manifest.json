@@ -10,7 +10,12 @@
     "notifications",
     "webNavigation",
     "tabs",
-    "contextMenus"
+    "contextMenus",
+    "alarms",
+    "cookies",
+    "offscreen",
+    "webRequest",
+    "unlimitedStorage"
   ],
   "host_permissions": [
     "http://localhost:5000/*",
@@ -121,14 +126,12 @@
     "*://*.ashbyhq.com/*",
     "*://jobs.ashbyhq.com/*"
   ],
-  "optional_host_permissions": [
-    "*://*/*"
-  ],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
+      "all_frames": true,
       "matches": [
         "http://localhost:5000/*",
         "http://localhost/*",
@@ -261,7 +264,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["popup-styles.css", "icons/*", "utils/message-handler.js", "autopilot-engine.js", "resume-optimizer.js", "referral-finder.js"],
+      "resources": ["popup-styles.css", "icons/*", "utils/message-handler.js", "autopilot-engine.js", "resume-optimizer.js", "referral-finder.js", "ats-config.json", "xpath-detector.js"],
       "matches": ["<all_urls>"]
     }
   ],

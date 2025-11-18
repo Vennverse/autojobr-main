@@ -33,13 +33,22 @@ class AutoJobrContentScript {
     this.groqApiKey = null;
     this.groqApiUrl = 'https://api.groq.com/openai/v1';
 
+    // XPath detector for ATS systems
+    this.xpathDetector = null;
+
     this.init();
   }
 
-  init() {
+  async init() {
     if (this.isInitialized) return;
 
     try {
+      // Load XPath detector and wait for it to complete
+      const xpathLoaded = await this.loadXPathDetector();
+      if (!xpathLoaded) {
+        console.warn('[AutoJobr] Starting without XPath detector - using fallback CSS selectors');
+      }
+
       // Load settings first
       chrome.storage.sync.get(['userApiKey', 'premiumFeaturesEnabled'], (result) => {
         this.groqApiKey = result.userApiKey || null;
@@ -63,10 +72,39 @@ class AutoJobrContentScript {
       // Mark as loaded for background script
       window.autojobrContentScriptLoaded = true;
 
-      console.log('🚀 AutoJobr extension v2.0 initialized on:', this.currentSite);
+      console.log('🚀 AutoJobr extension v2.2 initialized on:', this.currentSite);
+      console.log('🎯 ATS Detected:', this.xpathDetector?.currentATS || 'Generic (CSS fallback)');
     } catch (error) {
       console.error('AutoJobr initialization error:', error);
     }
+  }
+
+  async loadXPathDetector() {
+    return new Promise((resolve) => {
+      try {
+        const script = document.createElement('script');
+        script.src = chrome.runtime.getURL('xpath-detector.js');
+        script.onload = async () => {
+          if (window.xpathDetector) {
+            await window.xpathDetector.initialize();
+            this.xpathDetector = window.xpathDetector;
+            console.log('[AutoJobr] XPath detector loaded and initialized');
+            resolve(true);
+          } else {
+            console.warn('[AutoJobr] XPath detector not available');
+            resolve(false);
+          }
+        };
+        script.onerror = () => {
+          console.error('[AutoJobr] Failed to load XPath detector script');
+          resolve(false);
+        };
+        (document.head || document.documentElement).appendChild(script);
+      } catch (error) {
+        console.error('[AutoJobr] Failed to load XPath detector:', error);
+        resolve(false);
+      }
+    });
   }
 
   detectSite() {
@@ -1675,6 +1713,24 @@ class AutoJobrContentScript {
   }
 
   async fillForm(form, userProfile, smartMode) {
+    // Try XPath-based detection first for better ATS support
+    if (this.xpathDetector && this.xpathDetector.currentATS) {
+      try {
+        const xpathFields = this.xpathDetector.getAllFormFields();
+        if (Object.keys(xpathFields).length > 0) {
+          console.log('[AutoJobr] Using XPath-based field detection for', this.xpathDetector.currentATS, ':', Object.keys(xpathFields));
+          return await this.fillFormWithXPath(xpathFields, userProfile, smartMode);
+        } else {
+          console.log('[AutoJobr] XPath detector found no fields, falling back to CSS');
+        }
+      } catch (error) {
+        console.error('[AutoJobr] XPath detection failed:', error);
+        console.log('[AutoJobr] Falling back to CSS selectors');
+      }
+    }
+
+    // Fallback to standard CSS detection
+    console.log('[AutoJobr] Using standard CSS selector detection');
     const fields = form.querySelectorAll('input, select, textarea');
     let fieldsFound = 0;
     let fieldsFilled = 0;
@@ -1698,6 +1754,66 @@ class AutoJobrContentScript {
       } catch (error) {
         console.warn('Field fill error:', error);
         this.addFieldFeedback(field, false);
+      }
+    }
+
+    return { fieldsFound, fieldsFilled };
+  }
+
+  async fillFormWithXPath(xpathFields, userProfile, smartMode) {
+    let fieldsFound = Object.keys(xpathFields).length;
+    let fieldsFilled = 0;
+
+    const fieldMapping = {
+      'email': userProfile.email,
+      'phone': userProfile.phone,
+      'first_name': userProfile.firstName || userProfile.name?.split(' ')[0],
+      'last_name': userProfile.lastName || userProfile.name?.split(' ').slice(1).join(' '),
+      'full_name': userProfile.name,
+      'linkedin': userProfile.linkedinUrl,
+      'resume': userProfile.resumePath,
+      'cover_letter': userProfile.coverLetter
+    };
+
+    for (const [fieldType, element] of Object.entries(xpathFields)) {
+      try {
+        const value = fieldMapping[fieldType];
+        if (!value) continue;
+
+        // Scroll field into view
+        element.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+          inline: 'nearest'
+        });
+        await this.delay(100);
+
+        // Focus the field
+        element.focus();
+        await this.delay(50);
+
+        // Fill based on element type
+        let success = false;
+        if (element.tagName.toLowerCase() === 'select') {
+          success = await this.fillSelectFieldSmart(element, value);
+        } else if (element.tagName.toLowerCase() === 'textarea') {
+          success = await this.fillTextAreaSmart(element, value);
+        } else if (element.type === 'file') {
+          success = await this.fillFileFieldSmart(element, value, userProfile);
+        } else {
+          success = await this.fillTextFieldSmart(element, value);
+        }
+
+        if (success) {
+          fieldsFilled++;
+          this.addFieldFeedback(element, true);
+          console.log(`[AutoJobr] Filled ${fieldType} via XPath`);
+        }
+
+        await this.delay(150 + Math.random() * 200);
+      } catch (error) {
+        console.warn(`[AutoJobr] Failed to fill ${fieldType}:`, error);
+        this.addFieldFeedback(xpathFields[fieldType], false);
       }
     }
 
@@ -3369,11 +3485,12 @@ class AutoJobrContentScript {
   async setupApplicationTracking() {
     console.log('✅ Setting up application tracking - attaching submit listener globally');
 
-    // Track form submission state
+    // Track form submission state and prevent duplicates
     let lastFormSubmissionTime = 0;
     let currentUrl = window.location.href;
+    let trackedApplications = new Set(); // Prevent duplicate tracking
 
-    // ALWAYS attach submit listener - validate inside the handler
+    // ONLY track actual form submit events - most reliable
     document.addEventListener('submit', async (e) => {
       const form = e.target;
 
@@ -3386,50 +3503,34 @@ class AutoJobrContentScript {
 
       // Check if this is a job application form
       if (this.isJobApplicationForm(form)) {
+        const jobKey = `${window.location.href}|${Date.now()}`;
+        
+        // Prevent duplicate tracking within 60 seconds
+        if (trackedApplications.has(window.location.href) && 
+            Date.now() - lastFormSubmissionTime < 60000) {
+          console.log('[SUBMIT EVENT] ⚠️ Already tracked this application recently - skipping');
+          return;
+        }
+
         console.log('[SUBMIT EVENT] ✅ Identified as job application form - will track');
         lastFormSubmissionTime = Date.now();
+        trackedApplications.add(window.location.href);
 
         // Track with a delay to allow form submission to complete
         setTimeout(() => {
           console.log('[SUBMIT EVENT] Executing delayed tracking...');
           this.trackApplicationSubmission();
-        }, 3000);
+        }, 2000);
       } else {
         console.log('[SUBMIT EVENT] ⚠️ Not a job application form - skipping tracking');
       }
     });
 
-    // Also listen for button clicks on submit buttons (for SPAs that don't use form submit)
-    document.addEventListener('click', async (e) => {
-      const target = e.target;
-
-      // Check if this is a submit button
-      if (this.isSubmissionButton(target) || this.isSubmissionButton(target.closest('button'))) {
-        console.log('[CLICK EVENT] Submit button clicked:', {
-          text: target.textContent,
-          url: window.location.href
-        });
-
-        // Wait for form submission to complete, then track
-        setTimeout(() => {
-          console.log('[CLICK EVENT] Executing delayed tracking after button click...');
-          this.trackApplicationSubmission();
-        }, 3000);
-      }
-    }, true); // Use capture phase to catch clicks before they're handled
-
-    // Monitor for confirmation pages after submission
+    // Clean up old tracked applications every 5 minutes
     setInterval(() => {
-      if (window.location.href !== currentUrl) {
-        currentUrl = window.location.href;
-
-        // Check for confirmation within 30 seconds of form submission
-        if (Date.now() - lastFormSubmissionTime < 30000 && lastFormSubmissionTime > 0) {
-          console.log('[URL CHANGE] Checking for confirmation page...');
-          this.checkForSubmissionConfirmation();
-        }
-      }
-    }, 2000);
+      trackedApplications.clear();
+      console.log('[CLEANUP] Cleared tracked applications cache');
+    }, 300000);
 
     console.log('✅ Application tracking setup complete - listeners attached');
   }
@@ -3554,14 +3655,17 @@ class AutoJobrContentScript {
           console.log('[TRACK] Background response:', response);
 
           if (response && response.success) {
-            this.showNotification('✅ Application tracked successfully!', 'success');
+            // Only log to console - don't show notification to reduce spam
             console.log('[TRACK] ✅ Application saved to database');
             console.log('[TRACK] Application ID:', response.applicationId || response.application?.id);
             return { success: true, application: response.application };
           } else {
             const errorMsg = response?.error || 'Unknown error';
             console.error('[TRACK] ❌ Tracking failed:', errorMsg);
-            this.showNotification(`⚠️ Tracking failed: ${errorMsg}`, 'error');
+            // Only show notification if it's a real error (not duplicate)
+            if (!errorMsg.includes('already tracked') && !errorMsg.includes('duplicate')) {
+              this.showNotification(`⚠️ Tracking failed: ${errorMsg}`, 'error');
+            }
             return { success: false, error: errorMsg };
           }
         } catch (runtimeError) {
@@ -4138,28 +4242,33 @@ class AutoJobrContentScript {
 
   // Handle Interview Prep
   async handleInterviewPrep() {
+    // Try to extract job data if not available
     if (!this.currentJobData) {
-      this.showNotification('No job data found on this page', 'error');
-      return;
+      const jobDataResult = await this.extractJobDetails();
+      if (jobDataResult.success && jobDataResult.jobData) {
+        this.currentJobData = jobDataResult.jobData;
+      } else {
+        this.showNotification('No job data found on this page', 'error');
+        return;
+      }
     }
 
     try {
       this.updateStatus('🔄 Generating interview prep...', 'loading');
 
-      const userProfile = await this.getUserProfile();
       const result = await chrome.runtime.sendMessage({
         action: 'getInterviewPrep',
         data: {
-          jobData: this.currentJobData,
-          userProfile: userProfile
+          jobData: this.currentJobData
         }
       });
 
       if (result && result.success) {
-        this.showInterviewPrepModal(result.prep);
+        this.showInterviewPrepModal(result);
         this.updateStatus('✅ Interview prep ready!', 'success');
+        this.showNotification('✅ Interview prep generated!', 'success');
       } else {
-        throw new Error('Failed to generate interview prep');
+        throw new Error(result?.message || 'Failed to generate interview prep');
       }
     } catch (error) {
       console.error('Interview prep error:', error);

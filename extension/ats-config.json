@@ -1,0 +1,548 @@
+{
+  "version": "1.1",
+  "lastUpdated": "2025-01-18",
+  "atsConfigurations": {
+    "Greenhouse": {
+      "urls": [
+        "*://boards.eu.greenhouse.io/*",
+        "*://boards.greenhouse.io/*",
+        "*://job-boards.eu.greenhouse.io/*",
+        "*://job-boards.greenhouse.io/*",
+        "*://*/**gh_jid**"
+      ],
+      "containerPath": [
+        ".//form[starts-with(@action, \"https://boards.greenhouse.io/\")]",
+        ".//form[starts-with(@action, \"https://boards.eu.greenhouse.io/\")]",
+        ".//form[descendant::input[@type=\"hidden\" and @name=\"action\" and (@value=\"greenhouse/applications/submit\" or @value=\"gh_application_submission\")]]",
+        ".//iframe[@id=\"grnhse_iframe\" or contains(@src, \"greenhouse.io/embed/job_app?\")]"
+      ],
+      "successPaths": [
+        ".//div[@class=\"confirmation\"]/div[@class=\"confirmation__content\"]",
+        ".//h2[contains(@class, \"rich-text__title\") and contains(text(), \"We got your application\")]"
+      ],
+      "method": "react",
+      "fieldMappings": {
+        "first_name": [
+          ".//input[@id=\"first_name\"]",
+          ".//input[@name=\"first_name\"]"
+        ],
+        "last_name": [
+          ".//input[@id=\"last_name\"]",
+          ".//input[@name=\"last_name\"]"
+        ],
+        "email": [
+          ".//input[@id=\"email\"]",
+          ".//input[@name=\"email\"]",
+          ".//input[@type=\"email\"]"
+        ],
+        "phone": [
+          ".//input[@id=\"phone\"]",
+          ".//input[@name=\"phone\"]",
+          ".//input[@type=\"tel\"]"
+        ],
+        "resume": [
+          ".//input[@id=\"resume\"]",
+          ".//input[@name=\"resume\"]",
+          ".//input[@type=\"file\"]"
+        ],
+        "cover_letter": [
+          ".//textarea[@id=\"cover_letter\"]",
+          ".//textarea[@name=\"cover_letter\"]"
+        ],
+        "linkedin": [
+          ".//input[contains(@id, 'linkedin')]",
+          ".//input[contains(@name, 'linkedin')]"
+        ]
+      }
+    },
+    "Lever": {
+      "urls": [
+        "*://jobs.lever.co/*",
+        "*://jobs.eu.lever.co/*/*",
+        "*://*/*?LeverAppId=*"
+      ],
+      "containerPath": [],
+      "successPaths": [
+        ".//h3[@data-qa=\"msg-submit-success\" and contains(., \"Application\")]",
+        ".//*[(contains(translate(., \"APPLICATION RECEIVED\", \"application received\"), \"application received\") or contains(translate(., \"APPLICATION SUBMI\", \"application submi\"), \"application submi\"))]"
+      ],
+      "method": "standard",
+      "fieldMappings": {
+        "name": [
+          ".//input[@name=\"name\"]"
+        ],
+        "email": [
+          ".//input[@name=\"email\"]",
+          ".//input[@type=\"email\"]"
+        ],
+        "phone": [
+          ".//input[@name=\"phone\"]",
+          ".//input[@type=\"tel\"]"
+        ],
+        "resume": [
+          ".//input[@name=\"resume\"]",
+          ".//input[@type=\"file\"]"
+        ],
+        "cover_letter": [
+          ".//textarea[@name=\"comments\"]"
+        ],
+        "linkedin": [
+          ".//input[contains(@name, 'urls')]"
+        ]
+      }
+    },
+    "Workday": {
+      "urls": [
+        "*://*.myworkdayjobs.com/*",
+        "*://*.myworkdaysite.com/*"
+      ],
+      "containerPath": [
+        "//html[not(descendant::div[@data-automation-id=\"applyFlowReviewPage\" or @data-automation-id=\"reviewJobApplicationPage\"])]",
+        "//div[@data-automation-id=\"pageFooter\"]"
+      ],
+      "successPaths": [
+        ".//div[@role=\"dialog\"]//svg[contains(@class, \"wd-icon-check-circle\")]",
+        ".//div[@role=\"dialog\"]//h2[starts-with(translate(normalize-space(.), \"APPLICATION SUBMITTED\", \"application submitted\"), \"application submitted\")]"
+      ],
+      "method": "react",
+      "fieldMappings": {
+        "first_name": [
+          ".//input[@data-automation-id=\"legalNameSection_firstName\"]"
+        ],
+        "last_name": [
+          ".//input[@data-automation-id=\"legalNameSection_lastName\"]"
+        ],
+        "email": [
+          ".//input[@data-automation-id=\"email\"]",
+          ".//input[@type=\"email\"]"
+        ],
+        "phone": [
+          ".//input[@data-automation-id=\"phone\"]"
+        ],
+        "country": [
+          ".//input[@data-automation-id=\"countryDropdown\"]"
+        ],
+        "resume": [
+          ".//input[@data-automation-id=\"file-upload-input-ref\"]"
+        ]
+      }
+    },
+    "Taleo": {
+      "urls": [
+        "*://*.taleo.net/*/application.jss*",
+        "*://*.taleo.net/*/flow.jsf*",
+        "*://*.taleo.net/*/jobapply*"
+      ],
+      "containerPath": [],
+      "successPaths": [
+        ".//div[@class=\"oracletaleocwsv2-step-title\" and contains(translate(., \"APPLICATION COMPLETE\", \"application complete\"), \"application complete\")]"
+      ],
+      "method": "standard",
+      "fieldMappings": {
+        "first_name": [
+          ".//input[@id=\"requisitionDescriptionInterface.ID1497.row1\"]"
+        ],
+        "last_name": [
+          ".//input[@id=\"requisitionDescriptionInterface.ID1499.row1\"]"
+        ],
+        "email": [
+          ".//input[@type=\"email\"]",
+          ".//input[contains(@id, 'email')]"
+        ],
+        "phone": [
+          ".//input[@type=\"tel\"]",
+          ".//input[contains(@id, 'phone')]"
+        ],
+        "resume": [
+          ".//input[@type=\"file\"]"
+        ]
+      }
+    },
+    "SmartRecruiters": {
+      "urls": [
+        "*://jobs.smartrecruiters.com/oneclick-ui/company/*",
+        "*://jobs.smartrecruiters.com/*/*"
+      ],
+      "containerPath": [],
+      "successPaths": [
+        ".//h2[@data-test=\"success-page-confirmation\"]"
+      ],
+      "method": "defaultWithoutBlur",
+      "fieldMappings": {
+        "first_name": [
+          ".//input[@id=\"first-name-input\"]"
+        ],
+        "last_name": [
+          ".//input[@id=\"last-name-input\"]"
+        ],
+        "email": [
+          ".//input[@id=\"email-input\"]"
+        ],
+        "phone": [
+          ".//input[@id=\"phone-input\"]"
+        ],
+        "resume": [
+          ".//input[@type=\"file\"][@id=\"resume-input\"]"
+        ],
+        "linkedin": [
+          ".//input[@id=\"linkedin-input\"]"
+        ]
+      }
+    },
+    "BambooHR": {
+      "urls": [
+        "*://*.bamboohr.com/jobs*",
+        "*://*.bamboohr.com/careers*"
+      ],
+      "containerPath": [],
+      "successPaths": [
+        ".//a[@href=\"/careers\"]/button/span[contains(., \"See all Job Openings\")]"
+      ],
+      "method": "standard",
+      "fieldMappings": {
+        "first_name": [
+          ".//input[@id=\"firstName\"]"
+        ],
+        "last_name": [
+          ".//input[@id=\"lastName\"]"
+        ],
+        "email": [
+          ".//input[@id=\"email\"]"
+        ],
+        "phone": [
+          ".//input[@id=\"phone\"]"
+        ],
+        "resume": [
+          ".//input[@id=\"resume\"]",
+          ".//input[@type=\"file\"]"
+        ]
+      }
+    },
+    "ADP": {
+      "urls": [
+        "*://recruiting.adp.com/srccar/public/*",
+        "*://myjobs.adp.com/*/cx/*"
+      ],
+      "containerPath": [
+        ".//div[@id=\"theViewNode\"]"
+      ],
+      "successPaths": [
+        "//div[@id=\"done\"]//*[contains(translate(., \"THANK YOU\", \"thank you\"), \"thank you\")]"
+      ],
+      "method": "dijit",
+      "fieldMappings": {
+        "first_name": [
+          ".//input[starts-with(@name, \"firstName\")]"
+        ],
+        "last_name": [
+          ".//input[starts-with(@name, \"lastName\")]"
+        ],
+        "email": [
+          ".//input[starts-with(@name, \"emailAddress\")]"
+        ],
+        "phone": [
+          ".//input[starts-with(@name, \"phone\")]"
+        ]
+      }
+    },
+    "Jobvite": {
+      "urls": [
+        "*://jobs.jobvite.com/*/job/*",
+        "*://jobs.jobvite.com/*/apply*"
+      ],
+      "containerPath": [],
+      "successPaths": [
+        ".//h2[@class=\"jv-page-message-header\" and contains(., \"Application Sent\")]"
+      ],
+      "method": "standard",
+      "fieldMappings": {
+        "first_name": [
+          ".//input[@id=\"firstName\"]"
+        ],
+        "last_name": [
+          ".//input[@id=\"lastName\"]"
+        ],
+        "email": [
+          ".//input[@id=\"email\"]"
+        ],
+        "phone": [
+          ".//input[@id=\"phone\"]"
+        ],
+        "resume": [
+          ".//input[@type=\"file\"][@name=\"resume\"]"
+        ]
+      }
+    },
+    "AshbyHQ": {
+      "urls": [
+        "*://jobs.ashbyhq.com/*"
+      ],
+      "containerPath": [],
+      "successPaths": [
+        ".//div[contains(@class, \"application-form-success-container\")]"
+      ],
+      "method": "standard",
+      "fieldMappings": {
+        "full_name": [
+          ".//input[@name=\"fullName\"]"
+        ],
+        "email": [
+          ".//input[@name=\"email\"]"
+        ],
+        "phone": [
+          ".//input[@name=\"phone\"]"
+        ],
+        "resume": [
+          ".//input[@type=\"file\"]"
+        ],
+        "linkedin": [
+          ".//input[@name=\"linkedinUrl\"]"
+        ]
+      }
+    },
+    "iCIMS": {
+      "urls": [
+        "*://*.icims.com/jobs/*/apply*",
+        "*://*.icims.com/jobs/*/job*"
+      ],
+      "containerPath": [],
+      "successPaths": [
+        ".//div[contains(@class, 'iCIMS_ConfirmationPage')]"
+      ],
+      "method": "standard",
+      "fieldMappings": {
+        "first_name": [
+          ".//input[@id='first-name']",
+          ".//input[contains(@name, 'firstname')]"
+        ],
+        "last_name": [
+          ".//input[@id='last-name']",
+          ".//input[contains(@name, 'lastname')]"
+        ],
+        "email": [
+          ".//input[@type='email']"
+        ],
+        "phone": [
+          ".//input[@type='tel']"
+        ],
+        "resume": [
+          ".//input[@type='file'][@name='resume']"
+        ]
+      }
+    },
+    "LinkedIn": {
+      "urls": [
+        "*://*.linkedin.com/jobs/*currentJobId=*"
+      ],
+      "containerPath": [],
+      "successPaths": [
+        ".//div[@data-test-modal]//h3[contains(., \"Your application was sent\")]"
+      ],
+      "method": "standard",
+      "fieldMappings": {}
+    },
+    "Google": {
+      "urls": [
+        "*://*.google.com/about/careers/applications/apply/*"
+      ],
+      "containerPath": [],
+      "successPaths": [
+        ".//div[@aria-labelledby=\"SubmittedApplications\" and descendant::span[starts-with(., \"Updated\") and contains(., \"second\")] and descendant::span[contains(., \"Submitted\")]]"
+      ],
+      "method": "standard",
+      "fieldMappings": {}
+    },
+    "Amazon": {
+      "urls": [
+        "*://*.amazon.jobs/*/*"
+      ],
+      "containerPath": [],
+      "successPaths": [
+        ".//div[contains(@class, \"submission-complete\") or @data-react-class=\"ApplicationSuccessExternalScreen\"]"
+      ],
+      "method": "standard",
+      "fieldMappings": {}
+    },
+    "Apple": {
+      "urls": [
+        "*://jobs.apple.com/*/*",
+        "*://jobs.apple.com/app/*/apply/*"
+      ],
+      "containerPath": [],
+      "successPaths": [
+        ".//div[@class=\"thanks-message\" and contains(., \"submitted\")]"
+      ],
+      "method": "standard",
+      "fieldMappings": {}
+    },
+    "Meta": {
+      "urls": [
+        "*://*.facebookcareers.com/*",
+        "*://*.metacareers.com/*"
+      ],
+      "containerPath": [],
+      "successPaths": [
+        ".//div[contains(@class, \"JobApplicationResponse__success\")]"
+      ],
+      "method": "standard",
+      "fieldMappings": {}
+    },
+    "Avature": {
+      "urls": [
+        "*://*.avature.net/*/ApplicationForm*",
+        "*://*.avature.net/*/ApplicationMethods*",
+        "*://*.avature.net/*/ApplicationQuestions*",
+        "*://*.avature.net/*/ApplicationReview*",
+        "*://*.avature.net/*/Register*"
+      ],
+      "containerPath": [],
+      "successPaths": [
+        ".//article//*[contains(@class, \"article__header__text\") and (contains(translate(., \"SUCCESSFULLY SUBMITTED\", \"successfully submitted\"), \"successfully submitted\") or contains(translate(., \"SUCCESSFULLY APPLIED\", \"successfully applied\"), \"successfully applied\") or contains(translate(., \"THANK YOU FOR APPLYING\", \"thank you for applying\"), \"thank you for applying\"))]"
+      ],
+      "method": "standard",
+      "fieldMappings": {}
+    },
+    "BrassRing": {
+      "urls": [
+        "*://*/TGnewUI/Search/home/Home*",
+        "*://*/TGnewUI/Search/Home/Home*",
+        "*://*/TGNewUI/Profile/Home/ProfileBuilder*"
+      ],
+      "containerPath": [],
+      "successPaths": [
+        ".//div[@aria-label=\"Application Complete\" and contains(., \"Thank you\")]"
+      ],
+      "method": "standard",
+      "fieldMappings": {}
+    },
+    "JazzHR": {
+      "urls": [
+        "*://*.applytojob.com/apply/*/*"
+      ],
+      "containerPath": [],
+      "successPaths": [
+        ".//div[@class=\"page-body success\" and contains(., \"application\")]"
+      ],
+      "method": "standard",
+      "fieldMappings": {}
+    },
+    "Comeet": {
+      "urls": [
+        "*://*.comeet.com/jobs/*/*/*/*",
+        "*://*.comeet.co/jobs/*/*/apply*"
+      ],
+      "containerPath": [],
+      "successPaths": [
+        ".//div[contains(@ng-if, \"isSubmitted\") and contains(., \"Your application has been submitted\")]"
+      ],
+      "method": "standard",
+      "fieldMappings": {}
+    },
+    "Workable": {
+      "urls": [
+        "*://apply.workable.com/*",
+        "*://jobs.workable.com/search?*selectedJobId=*"
+      ],
+      "containerPath": [],
+      "successPaths": [
+        ".//div[@data-ui=\"successful-submit\"]"
+      ],
+      "method": "react",
+      "fieldMappings": {}
+    }
+  },
+  "fieldDetectionPatterns": {
+    "email": {
+      "xpaths": [
+        ".//input[@type=\"email\"]",
+        ".//input[contains(@id, 'email')]",
+        ".//input[contains(@name, 'email')]",
+        ".//input[contains(@placeholder, 'email')]"
+      ],
+      "keywords": [
+        "email",
+        "e-mail",
+        "emailaddress"
+      ]
+    },
+    "phone": {
+      "xpaths": [
+        ".//input[@type=\"tel\"]",
+        ".//input[contains(@id, 'phone')]",
+        ".//input[contains(@name, 'phone')]",
+        ".//input[contains(@placeholder, 'phone')]"
+      ],
+      "keywords": [
+        "phone",
+        "telephone",
+        "mobile",
+        "cell"
+      ]
+    },
+    "first_name": {
+      "xpaths": [
+        ".//input[contains(@id, 'first') and contains(@id, 'name')]",
+        ".//input[contains(@name, 'first') and contains(@name, 'name')]",
+        ".//input[contains(@id, 'firstname')]",
+        ".//input[contains(@name, 'firstname')]"
+      ],
+      "keywords": [
+        "first name",
+        "firstname",
+        "given name"
+      ]
+    },
+    "last_name": {
+      "xpaths": [
+        ".//input[contains(@id, 'last') and contains(@id, 'name')]",
+        ".//input[contains(@name, 'last') and contains(@name, 'name')]",
+        ".//input[contains(@id, 'lastname')]",
+        ".//input[contains(@name, 'lastname')]"
+      ],
+      "keywords": [
+        "last name",
+        "lastname",
+        "surname",
+        "family name"
+      ]
+    },
+    "resume": {
+      "xpaths": [
+        ".//input[@type=\"file\" and contains(@id, 'resume')]",
+        ".//input[@type=\"file\" and contains(@name, 'resume')]",
+        ".//input[@type=\"file\" and contains(@id, 'cv')]",
+        ".//input[@type=\"file\"]"
+      ],
+      "keywords": [
+        "resume",
+        "cv",
+        "curriculum vitae"
+      ]
+    },
+    "cover_letter": {
+      "xpaths": [
+        ".//textarea[contains(@id, 'cover')]",
+        ".//textarea[contains(@name, 'cover')]",
+        ".//textarea[contains(@id, 'letter')]",
+        ".//textarea[contains(@placeholder, 'cover')]"
+      ],
+      "keywords": [
+        "cover letter",
+        "coverletter",
+        "motivation"
+      ]
+    },
+    "linkedin": {
+      "xpaths": [
+        ".//input[contains(@id, 'linkedin')]",
+        ".//input[contains(@name, 'linkedin')]",
+        ".//input[contains(@placeholder, 'linkedin')]"
+      ],
+      "keywords": [
+        "linkedin",
+        "linkedin url",
+        "linkedin profile"
+      ]
+    }
+  }
+}
