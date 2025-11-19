@@ -610,8 +610,10 @@ class AutoJobrBackground {
   }
 
   createContextMenus() {
-    // Define consistent job site patterns (matches manifest.json)
-    const jobSitePatterns = [
+    // Remove all existing context menus first to prevent duplicates
+    chrome.contextMenus.removeAll(() => {
+      // Define consistent job site patterns (matches manifest.json)
+      const jobSitePatterns = [
       '*://*.linkedin.com/jobs/*',
       '*://*.indeed.com/viewjob*',
       '*://*.indeed.com/jobs/*',
@@ -697,6 +699,7 @@ class AutoJobrBackground {
       id: 'open-dashboard',
       title: 'Open AutoJobr Dashboard',
       contexts: ['page']
+    });
     });
   }
 

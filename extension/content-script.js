@@ -86,30 +86,42 @@ class AutoJobrContentScript {
       try {
         const script = document.createElement('script');
         script.src = chrome.runtime.getURL('xpath-detector.js');
+        script.type = 'text/javascript';
+        
         script.onload = async () => {
-          // Wait a bit for the script to execute
-          await new Promise(r => setTimeout(r, 100));
+          // Wait for script execution with retries
+          let retries = 0;
+          const maxRetries = 10;
           
-          if (window.xpathDetector) {
-            try {
-              await window.xpathDetector.initialize();
-              this.xpathDetector = window.xpathDetector;
-              console.log('[AutoJobr] ✅ XPath detector loaded and initialized');
-              console.log('[AutoJobr] Current ATS:', this.xpathDetector.currentATS || 'Generic');
-              resolve(true);
-            } catch (initError) {
-              console.error('[AutoJobr] XPath detector initialization failed:', initError);
-              resolve(false);
+          while (retries < maxRetries) {
+            await new Promise(r => setTimeout(r, 50));
+            
+            if (window.xpathDetector) {
+              try {
+                await window.xpathDetector.initialize();
+                this.xpathDetector = window.xpathDetector;
+                console.log('[AutoJobr] ✅ XPath detector loaded and initialized');
+                console.log('[AutoJobr] Current ATS:', this.xpathDetector.currentATS || 'Generic');
+                resolve(true);
+                return;
+              } catch (initError) {
+                console.error('[AutoJobr] XPath detector initialization failed:', initError);
+                resolve(false);
+                return;
+              }
             }
-          } else {
-            console.warn('[AutoJobr] ⚠️ window.xpathDetector not available after script load');
-            resolve(false);
+            retries++;
           }
+          
+          console.warn('[AutoJobr] ⚠️ window.xpathDetector not available after script load');
+          resolve(false);
         };
+        
         script.onerror = (error) => {
           console.error('[AutoJobr] ❌ Failed to load XPath detector script:', error);
           resolve(false);
         };
+        
         (document.head || document.documentElement).appendChild(script);
       } catch (error) {
         console.error('[AutoJobr] ❌ Exception loading XPath detector:', error);
