@@ -42,6 +42,13 @@ BEGIN
     END IF;
 END $$;
 
+-- Add eventDate if missing
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'networking_events' AND column_name = 'eventDate') THEN
+        ALTER TABLE networking_events ADD COLUMN "eventDate" TIMESTAMP NOT NULL DEFAULT NOW();
+    END IF;
+END $$;
+
 -- Add indexes if they don't exist
 CREATE INDEX IF NOT EXISTS "idx_networking_events_organizer" ON networking_events("organizerId");
 CREATE INDEX IF NOT EXISTS "idx_networking_events_date" ON networking_events("eventDate");
