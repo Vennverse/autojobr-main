@@ -140,6 +140,27 @@
 
 .autojobr-content {
   padding: 20px;
+  max-height: calc(80vh - 120px);
+  overflow-y: auto;
+}
+
+/* Scrollbar styling for widget */
+.autojobr-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.autojobr-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.autojobr-content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.autojobr-content::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 .autojobr-status {

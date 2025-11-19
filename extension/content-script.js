@@ -585,7 +585,7 @@ class AutoJobrContentScript {
           </div>
         </div>
 
-        <div class="autojobr-content">
+        <div class="autojobr-content" style="overflow-y: auto; max-height: calc(100vh - 150px);">
           <div class="autojobr-status" id="autojobr-status">
             <div class="status-icon">🎯</div>
             <div class="status-text">Job detected - Ready to auto-fill</div>
@@ -704,6 +704,21 @@ class AutoJobrContentScript {
           </div>
         </div>
       </div>
+
+      <!-- AI Chat Widget -->
+      <div id="aiChatWidget" class="ai-chat-widget" style="display: none;">
+        <div class="ai-chat-header">
+          <h4>🤖 AutoJobr AI Assistant</h4>
+          <button class="ai-chat-close-btn">&times;</button>
+        </div>
+        <div class="ai-chat-messages" id="ai-chat-messages">
+          <!-- Chat messages will appear here -->
+        </div>
+        <div class="ai-chat-input-area">
+          <input type="text" id="ai-question" placeholder="Ask me anything..." />
+          <button id="ai-send-btn">Send</button>
+        </div>
+      </div>
     `;
 
     document.body.appendChild(overlay);
@@ -727,6 +742,7 @@ class AutoJobrContentScript {
 
     // AI Feature Buttons
     document.getElementById('autojobr-resume-gen')?.addEventListener('click', () => this.handleResumeGeneration());
+    // Updated listener for Ask AI button to toggle the AI chat widget
     document.getElementById('autojobr-ask-ai')?.addEventListener('click', () => this.handleAskAI());
 
     // Widget controls
@@ -794,6 +810,18 @@ class AutoJobrContentScript {
       if (premiumCheckbox.checked && !result.userApiKey) {
          premiumCheckbox.checked = false; // Uncheck if API key is missing
          this.showNotification('API key missing for Premium AI. Please add it in extension settings.', 'warning');
+      }
+    });
+
+    // AI Chat Widget Event Listeners
+    document.querySelector('.ai-chat-close-btn')?.addEventListener('click', () => {
+      document.getElementById('aiChatWidget').style.display = 'none';
+    });
+
+    document.getElementById('ai-send-btn')?.addEventListener('click', () => this.sendMessageToAI());
+    document.getElementById('ai-question')?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        this.sendMessageToAI();
       }
     });
   }
@@ -4323,14 +4351,26 @@ class AutoJobrContentScript {
     return '#ef4444';
   }
 
-  // Removed duplicate getUserProfile method - using the background script version instead
+  // Placeholder for getUserApiKey - will fetch from settings
+  async getUserApiKey() {
+    try {
+      const result = await chrome.storage.sync.get(['userApiKey']);
+      return result.userApiKey || null;
+    } catch (error) {
+      console.error('Error getting user API key:', error);
+      return null;
+    }
+  }
 
-  async getApiUrl() {
-    return new Promise((resolve) => {
-      chrome.runtime.sendMessage({ action: 'getApiUrl' }, (response) => {
-        resolve(response?.apiUrl || 'https://autojobr.com');
-      });
-    });
+  // Placeholder for isPremiumUser - will fetch from settings
+  async isPremiumUser() {
+     try {
+      const result = await chrome.storage.sync.get(['premiumFeaturesEnabled']);
+      return result.premiumFeaturesEnabled === true;
+    } catch (error) {
+      console.error('Error checking premium status:', error);
+      return false;
+    }
   }
 
   // Handle Interview Prep
@@ -5315,47 +5355,86 @@ class AutoJobrContentScript {
   /**
    * Handles the 'Ask AI' feature, sending a question to the AI.
    */
-  async handleAskAI() {
-    const question = prompt('Ask our AI anything:');
-    if (!question) return; // User cancelled
-
-    this.updateStatus('🤖 Asking AI...', 'loading');
-    try {
-      // Check if premium features or API key are enabled
-      const settingsResponse = await chrome.runtime.sendMessage({ action: 'getSettings' });
-      const premiumAiEnabled = settingsResponse.settings?.premiumFeaturesEnabled;
-      const userApiKey = settingsResponse.settings?.userApiKey;
-
-      if (!premiumAiEnabled || !userApiKey) {
-        this.showNotification('Please enable Premium AI features and add your API key in the extension settings to use this feature.', 'warning');
-        this.updateStatus('AI features not configured.', 'info');
-        return;
-      }
-
-      // Optionally, extract context from the current page (e.g., job description)
-      let context = '';
-      if (this.currentJobData?.description) {
-        context = `Context: Job Description - ${this.currentJobData.description.substring(0, 500)}...`; // Limit context length
-      }
-
-      // Call background script to ask AI
-      const aiResponse = await chrome.runtime.sendMessage({
-        action: 'askAI',
-        data: { question, context }
-      });
-
-      if (aiResponse.success) {
-        this.showAIResponseModal(question, aiResponse.answer);
-        this.updateStatus('AI response received!', 'success');
-      } else {
-        throw new Error(aiResponse.error || 'AI response failed.');
-      }
-
-    } catch (error) {
-      console.error('Ask AI failed:', error);
-      this.showNotification(`❌ Ask AI failed: ${error.message}`, 'error');
-      this.updateStatus('AI query failed.', 'error');
+  async handleAskAI(data) { // Added data parameter for potential future use
+    // Toggle AI chat widget visibility
+    const aiWidget = document.getElementById('aiChatWidget');
+    if (!aiWidget) {
+      console.error('AI Chat widget not found');
+      return;
     }
+
+    const isVisible = aiWidget.style.display !== 'none';
+
+    if (isVisible) {
+      aiWidget.style.display = 'none';
+    } else {
+      aiWidget.style.display = 'block';
+
+      // Focus on the AI question input
+      setTimeout(() => {
+        const aiQuestionInput = document.getElementById('ai-question');
+        if (aiQuestionInput) {
+          aiQuestionInput.focus();
+        }
+      }, 100);
+    }
+  }
+
+  sendMessageToAI() {
+    const questionInput = document.getElementById('ai-question');
+    const sendBtn = document.getElementById('ai-send-btn');
+    const messagesContainer = document.getElementById('ai-chat-messages');
+
+    if (!questionInput || !messagesContainer) return;
+
+    const question = questionInput.value.trim();
+    if (!question) return;
+
+    // Display user's question
+    const userMessage = document.createElement('div');
+    userMessage.className = 'ai-message user-message';
+    userMessage.textContent = question;
+    messagesContainer.appendChild(userMessage);
+
+    questionInput.value = ''; // Clear input
+    messagesContainer.scrollTop = messagesContainer.scrollHeight; // Scroll to bottom
+
+    // Show loading indicator for AI response
+    const aiLoadingMessage = document.createElement('div');
+    aiLoadingMessage.className = 'ai-message ai-loading';
+    aiLoadingMessage.textContent = 'AI is thinking...';
+    messagesContainer.appendChild(aiLoadingMessage);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    // Disable send button while processing
+    if (sendBtn) sendBtn.disabled = true;
+
+    // Call background script to ask AI
+    chrome.runtime.sendMessage({
+      action: 'askAI',
+      data: { question }
+    }, async (response) => {
+      // Remove loading message
+      aiLoadingMessage.remove();
+
+      if (response && response.success) {
+        const aiAnswer = response.answer;
+        const aiMessage = document.createElement('div');
+        aiMessage.className = 'ai-message ai-response';
+        aiMessage.textContent = aiAnswer;
+        messagesContainer.appendChild(aiMessage);
+      } else {
+        const errorMessage = response?.error || 'An error occurred. Please try again.';
+        const errorMsgElement = document.createElement('div');
+        errorMsgElement.className = 'ai-message ai-error';
+        errorMsgElement.textContent = `Error: ${errorMessage}`;
+        messagesContainer.appendChild(errorMsgElement);
+      }
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+      // Re-enable send button
+      if (sendBtn) sendBtn.disabled = false;
+    });
   }
 
   /**
@@ -5405,28 +5484,6 @@ class AutoJobrContentScript {
     } catch (error) {
       console.error('Error getting job description:', error);
       return { success: false, error: error.message };
-    }
-  }
-
-  // Placeholder for getUserApiKey - will fetch from settings
-  async getUserApiKey() {
-    try {
-      const result = await chrome.storage.sync.get(['userApiKey']);
-      return result.userApiKey || null;
-    } catch (error) {
-      console.error('Error getting user API key:', error);
-      return null;
-    }
-  }
-
-  // Placeholder for isPremiumUser - will fetch from settings
-  async isPremiumUser() {
-     try {
-      const result = await chrome.storage.sync.get(['premiumFeaturesEnabled']);
-      return result.premiumFeaturesEnabled === true;
-    } catch (error) {
-      console.error('Error checking premium status:', error);
-      return false;
     }
   }
 }
