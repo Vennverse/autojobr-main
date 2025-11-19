@@ -337,9 +337,9 @@ class AutoJobrPopup {
             const userId = url.searchParams.get('userId');
 
             if (token && userId) {
-              chrome.storage.local.set({ 
-                sessionToken: token, 
-                userId: userId 
+              chrome.storage.local.set({
+                sessionToken: token,
+                userId: userId
               }).then(() => {
                 chrome.tabs.remove(tab.id);
                 this.checkConnection();
@@ -1062,11 +1062,11 @@ class AutoJobrPopup {
       console.error('Cover letter error:', error);
 
       // Handle specific error cases - check status and message from server
-      if (error.status === 429 || 
+      if (error.status === 429 ||
           (error.message && (error.message.includes('daily limit') || error.message.includes('upgrade to Premium')))) {
         // Show the exact server error message if available, otherwise use a default premium upgrade message
-        const message = (error.message && error.message.includes('daily limit')) ? 
-          error.message : 
+        const message = (error.message && error.message.includes('daily limit')) ?
+          error.message :
           'You have used your daily cover letter generation. Please upgrade to Premium for unlimited access.';
         this.showError(message);
       } else {
@@ -1080,7 +1080,7 @@ class AutoJobrPopup {
   toggleAIChat() {
     const aiWidget = document.getElementById('aiChatWidget');
     const isVisible = aiWidget.style.display !== 'none';
-    
+
     if (isVisible) {
       aiWidget.style.display = 'none';
     } else {
@@ -1216,15 +1216,15 @@ class AutoJobrPopup {
     try {
       // Check if we're on LinkedIn
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      
+
       if (!tab.url.includes('linkedin.com')) {
         this.showNotification('Please navigate to LinkedIn jobs page first', 'error');
         return;
       }
 
       // Send message to content script to start automation
-      chrome.tabs.sendMessage(tab.id, { 
-        action: 'startLinkedInAutomation' 
+      chrome.tabs.sendMessage(tab.id, {
+        action: 'startLinkedInAutomation'
       }, (response) => {
         if (chrome.runtime.lastError) {
           this.showNotification('Please refresh the LinkedIn page and try again', 'error');
@@ -1443,27 +1443,62 @@ class AutoJobrPopup {
   }
 
   displayTasks(tasks) {
-    const tasksList = document.getElementById('tasksList');
     const tasksSection = document.getElementById('tasksSection');
+    const tasksList = document.getElementById('tasksList');
+    const tasksCount = document.getElementById('tasksCount');
 
-    if (!tasks || tasks.length === 0) {
-      tasksList.innerHTML = '<div class="no-tasks">No pending tasks</div>';
-      tasksSection.style.display = 'block';
+    console.log('[Tasks Display] Displaying tasks:', tasks);
+
+    if (!tasksSection || !tasksList || !tasksCount) {
+      console.error('[Tasks Display] Required elements not found');
       return;
     }
 
-    tasksList.innerHTML = tasks.map(task => `
-      <div class="task-item" data-task-id="${task.id}">
-        <div class="task-checkbox ${task.status === 'completed' ? 'checked' : ''}" 
-             onclick="autojobr.toggleTaskStatus(${task.id}, '${task.status === 'completed' ? 'pending' : 'completed'}')">
-          ${task.status === 'completed' ? '✓' : ''}
-        </div>
-        <div class="task-text">${task.title}</div>
-        <div class="task-priority ${task.priority || 'medium'}"></div>
-      </div>
-    `).join('');
-
+    // Always show the tasks section (even if empty)
     tasksSection.style.display = 'block';
+
+    if (!tasks || tasks.length === 0) {
+      tasksCount.textContent = '0';
+      tasksList.innerHTML = '<div class="no-tasks">No tasks yet. Click + Add Task to create one.</div>';
+      return;
+    }
+
+    tasksCount.textContent = tasks.length;
+
+    // Filter and display pending tasks (non-completed)
+    const pendingTasks = tasks.filter(task => task.status !== 'completed');
+    const displayTasks = pendingTasks.length > 0 ? pendingTasks : tasks.slice(0, 5);
+
+    tasksList.innerHTML = displayTasks.map(task => {
+      const isCompleted = task.status === 'completed';
+      return `
+        <div class="task-item ${isCompleted ? 'completed' : ''}" data-task-id="${task.id}">
+          <div class="task-checkbox ${isCompleted ? 'checked' : ''}" 
+               data-task-id="${task.id}">
+            ${isCompleted ? '✓' : ''}
+          </div>
+          <span class="task-text">${this.escapeHtml(task.title || 'Untitled Task')}</span>
+          <div class="task-priority ${task.priority || 'medium'}"></div>
+        </div>
+      `;
+    }).join('');
+
+    // Add click handlers for checkboxes
+    tasksList.querySelectorAll('.task-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const taskId = parseInt(e.target.dataset.taskId);
+        if (!isNaN(taskId)) {
+          await this.toggleTask(taskId);
+        }
+      });
+    });
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
   updateTasksCount(count) {
@@ -1892,6 +1927,57 @@ class AutoJobrPopup {
     chrome.tabs.create({
       url: `${API_BASE_URL}/applications`
     });
+  }
+
+  async loadUserTasks() {
+    try {
+      console.log('[Tasks] Loading user tasks...');
+
+      const response = await this.makeApiRequest('/api/tasks', {
+        method: 'GET'
+      });
+
+      console.log('[Tasks] Response:', response);
+
+      // Handle both response formats: { tasks: [...] } and direct array
+      const taskList = response?.tasks || response || [];
+
+      console.log('[Tasks] Task list:', taskList);
+
+      if (Array.isArray(taskList)) {
+        this.displayTasks(taskList);
+      } else {
+        console.warn('[Tasks] Invalid task data format:', taskList);
+        this.displayTasks([]);
+      }
+    } catch (error) {
+      console.error('[Tasks] Failed to load tasks:', error);
+      this.displayTasks([]);
+    }
+  }
+
+  async toggleTask(taskId) {
+    try {
+      console.log('[Tasks] Toggling task:', taskId);
+
+      const response = await this.makeApiRequest(`/api/tasks/${taskId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'completed' })
+      });
+
+      console.log('[Tasks] Toggle response:', response);
+
+      if (response && response.success) {
+        this.showNotification('✅ Task completed!', 'success');
+        // Reload tasks to reflect the change
+        await this.loadUserTasks();
+      } else {
+        throw new Error(response?.error || 'Failed to update task');
+      }
+    } catch (error) {
+      console.error('[Tasks] Toggle task error:', error);
+      this.showError('Failed to update task');
+    }
   }
 }
 
