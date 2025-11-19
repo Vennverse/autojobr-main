@@ -116,7 +116,7 @@ router.post('/tasks', isAuthenticated, async (req: any, res) => {
       priority: validatedData.priority || 'medium',
       category: validatedData.category || 'general',
       taskType: validatedData.taskType || 'reminder',
-      dueDate: validatedData.dueDateTime ? new Date(validatedData.dueDateTime) : null,
+      dueDateTime: validatedData.dueDateTime ? new Date(validatedData.dueDateTime) : null,
       reminderDateTime: (validatedData.dueDateTime || validatedData.reminderAt) ? new Date(validatedData.dueDateTime || validatedData.reminderAt!) : null,
       reminderEnabled: validatedData.reminderEnabled ?? (!!validatedData.dueDateTime || !!validatedData.reminderAt),
       status: 'pending'
