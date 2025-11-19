@@ -2601,32 +2601,6 @@ export const networkingEventAttendees = pgTable("networking_event_attendees", {
   index("idx_networking_event_attendees_user").on(table.userId),
 ]);
 
-// Insert schemas for networking
-export const insertNetworkingContactSchema = createInsertSchema(networkingContacts).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertNetworkingEventSchema = createInsertSchema(networkingEvents).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertNetworkingEventAttendeeSchema = createInsertSchema(networkingEventAttendees).omit({
-  id: true,
-  registeredAt: true,
-});
-
-// Networking types
-export type NetworkingContact = typeof networkingContacts.$inferSelect;
-export type InsertNetworkingContact = z.infer<typeof insertNetworkingContactSchema>;
-export type NetworkingEvent = typeof networkingEvents.$inferSelect;
-export type InsertNetworkingEvent = z.infer<typeof insertNetworkingEventSchema>;
-export type NetworkingEventAttendee = typeof networkingEventAttendees.$inferSelect;
-export type InsertNetworkingEventAttendee = z.infer<typeof insertNetworkingEventAttendeeSchema>;
-
 // CRM CONTACT MANAGEMENT SYSTEM
 
 // Contacts - Universal contact database for both job seekers and recruiters
