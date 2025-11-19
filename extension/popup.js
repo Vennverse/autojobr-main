@@ -110,7 +110,6 @@ class AutoJobrPopup {
 
     // Quick action buttons
     document.getElementById('aiChatBtn')?.addEventListener('click', () => this.toggleAIChat());
-    document.getElementById('resumeBtn').addEventListener('click', () => this.handleResumeAction());
     document.getElementById('profileBtn').addEventListener('click', () => this.handleProfileAction());
     document.getElementById('historyBtn').addEventListener('click', () => this.handleHistoryAction());
 
@@ -1091,10 +1090,6 @@ class AutoJobrPopup {
         aiFeatures.init();
       }
     }
-  }
-
-  async handleResumeAction() {
-    this.showNotification('Resume optimization coming soon!', 'info');
   }
 
   async handleProfileAction() {

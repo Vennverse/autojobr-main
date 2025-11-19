@@ -87,15 +87,15 @@ class AutoJobrContentScript {
         const script = document.createElement('script');
         script.src = chrome.runtime.getURL('xpath-detector.js');
         script.type = 'text/javascript';
-        
+
         script.onload = async () => {
           // Wait for script execution with retries
           let retries = 0;
           const maxRetries = 10;
-          
+
           while (retries < maxRetries) {
             await new Promise(r => setTimeout(r, 50));
-            
+
             if (window.xpathDetector) {
               try {
                 await window.xpathDetector.initialize();
@@ -112,16 +112,16 @@ class AutoJobrContentScript {
             }
             retries++;
           }
-          
+
           console.warn('[AutoJobr] ⚠️ window.xpathDetector not available after script load');
           resolve(false);
         };
-        
+
         script.onerror = (error) => {
           console.error('[AutoJobr] ❌ Failed to load XPath detector script:', error);
           resolve(false);
         };
-        
+
         (document.head || document.documentElement).appendChild(script);
       } catch (error) {
         console.error('[AutoJobr] ❌ Exception loading XPath detector:', error);
@@ -783,6 +783,19 @@ class AutoJobrContentScript {
       }
       chrome.storage.sync.set({ premiumFeaturesEnabled: e.target.checked });
     });
+
+    // Retrieve and set initial state for toggles
+    chrome.storage.sync.get(['smartFillMode', 'autoSubmitMode', 'autoResumeMode', 'premiumFeaturesEnabled', 'userApiKey'], (result) => {
+      document.getElementById('smart-fill').checked = result.smartFillMode !== false;
+      document.getElementById('auto-submit').checked = result.autoSubmitMode === true;
+      document.getElementById('auto-resume-upload').checked = result.autoResumeMode !== false;
+      const premiumCheckbox = document.getElementById('auto-fill-premium-ai');
+      premiumCheckbox.checked = result.premiumFeaturesEnabled === true;
+      if (premiumCheckbox.checked && !result.userApiKey) {
+         premiumCheckbox.checked = false; // Uncheck if API key is missing
+         this.showNotification('API key missing for Premium AI. Please add it in extension settings.', 'warning');
+      }
+    });
   }
 
   makeWidgetDraggable() {
@@ -926,6 +939,10 @@ class AutoJobrContentScript {
           return true;
         case 'askAI': // Action to trigger AI question answering
           this.handleAskAI(message.data).then(sendResponse);
+          return true;
+        case 'openPopup': // Action to open the popup
+          this.showWidget();
+          sendResponse({ success: true });
           return true;
         default:
           sendResponse({ success: false, error: 'Unknown action' });
@@ -3112,21 +3129,25 @@ class AutoJobrContentScript {
     const navigationHTML = `
       <div class="autojobr-navigation" id="autojobr-navigation">
         <div class="nav-header">
-          <span class="nav-title">📋 Form Navigation</span>
+          <span class="nav-title">🧭 Quick Navigation</span>
         </div>
         <div class="nav-buttons">
-          ${nextButtons.length > 0 ? `
-            <button class="autojobr-btn secondary" id="autojobr-next-page">
-              <span class="btn-icon">➡️</span>
-              <span>Next Page (${nextButtons.length})</span>
-            </button>
-          ` : ''}
-          ${submitButtons.length > 0 ? `
-            <button class="autojobr-btn primary" id="autojobr-submit-form">
-              <span class="btn-icon">✅</span>
-              <span>Submit Application (${submitButtons.length})</span>
-            </button>
-          ` : ''}
+          <button class="autojobr-btn secondary" id="navDashboard">
+            <span class="btn-icon">📊</span>
+            <span class="btn-text">Dashboard</span>
+          </button>
+          <button class="autojobr-btn secondary" id="navJobs">
+            <span class="btn-icon">💼</span>
+            <span class="btn-text">Job Discovery</span>
+          </button>
+          <button class="autojobr-btn secondary" id="navApplications">
+            <span class="btn-icon">📋</span>
+            <span class="btn-text">My Applications</span>
+          </button>
+          <button class="autojobr-btn primary" id="navProfile">
+            <span class="btn-icon">👤</span>
+            <span class="btn-text">Complete Profile</span>
+          </button>
         </div>
       </div>
     `;
@@ -3137,6 +3158,26 @@ class AutoJobrContentScript {
       actionsDiv.insertAdjacentHTML('afterend', navigationHTML);
 
       // Add event listeners
+      document.getElementById('navDashboard')?.addEventListener('click', async () => {
+        const apiUrl = await this.getApiUrl();
+        window.open(`${apiUrl}/applications`, '_blank');
+      });
+
+      document.getElementById('navJobs')?.addEventListener('click', async () => {
+        const apiUrl = await this.getApiUrl();
+        window.open(`${apiUrl}/jobs`, '_blank');
+      });
+
+      document.getElementById('navApplications')?.addEventListener('click', async () => {
+        const apiUrl = await this.getApiUrl();
+        window.open(`${apiUrl}/applications`, '_blank');
+      });
+
+      document.getElementById('navProfile')?.addEventListener('click', async () => {
+        const apiUrl = await this.getApiUrl();
+        window.open(`${apiUrl}/profile`, '_blank');
+      });
+
       document.getElementById('autojobr-next-page')?.addEventListener('click', () => {
         this.handleNextPage(nextButtons);
       });
@@ -3295,6 +3336,7 @@ class AutoJobrContentScript {
     }
 
     try {
+      const apiUrl = await this.getApiUrl(); // Ensure apiUrl is fetched
       const result = await chrome.runtime.sendMessage({
         action: 'saveJob',
         data: {
@@ -3303,7 +3345,8 @@ class AutoJobrContentScript {
           location: this.currentJobData.location,
           jobUrl: window.location.href,
           description: this.currentJobData.description,
-          source: 'extension_v2'
+          source: 'extension_v2',
+          apiUrl: apiUrl // Include apiUrl if needed by the background script
         }
       });
 
