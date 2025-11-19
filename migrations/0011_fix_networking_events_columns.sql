@@ -20,6 +20,12 @@ BEGIN
         ALTER TABLE networking_events ADD COLUMN "attendeesCount" INTEGER DEFAULT 0 NOT NULL;
     END IF;
 
+    -- Add eventDate if missing
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'networking_events' AND column_name = 'eventDate') THEN
+        ALTER TABLE networking_events ADD COLUMN "eventDate" TIMESTAMP NOT NULL DEFAULT NOW();
+    END IF;
+
     -- Add other missing columns
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
                    WHERE table_name = 'networking_events' AND column_name = 'eventType') THEN
@@ -39,13 +45,6 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
                    WHERE table_name = 'networking_events' AND column_name = 'status') THEN
         ALTER TABLE networking_events ADD COLUMN status VARCHAR DEFAULT 'upcoming';
-    END IF;
-END $$;
-
--- Add eventDate if missing
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                   WHERE table_name = 'networking_events' AND column_name = 'eventDate') THEN
-        ALTER TABLE networking_events ADD COLUMN "eventDate" TIMESTAMP NOT NULL DEFAULT NOW();
     END IF;
 END $$;
 
