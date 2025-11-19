@@ -36,6 +36,12 @@ class AutoJobrContentScript {
     // XPath detector for ATS systems
     this.xpathDetector = null;
 
+    // Fast button injection tracking
+    this.lastInjectedJobUrn = null;
+    this.buttonInjectionAttempts = 0;
+    this.maxButtonInjectionAttempts = 20; // ~3 seconds with 150ms intervals
+    this.autoDismissedDialogs = new Set(); // Track dismissed dialogs
+
     this.init();
   }
 
@@ -66,6 +72,12 @@ class AutoJobrContentScript {
       this.setupKeyboardShortcuts();
       this.initializeSmartSelectors();
       this.setupApplicationTracking(); // Setup tracking once during initialization
+
+      // Setup SPA navigation listeners for LinkedIn (high priority)
+      if (window.location.hostname.includes('linkedin.com')) {
+        this.setupLinkedInSPAListeners();
+        this.setupModalAutoDismiss();
+      }
 
       // Setup automatic job analysis with debouncing
       this.setupAutoAnalysis();
@@ -128,6 +140,209 @@ class AutoJobrContentScript {
         resolve(false);
       }
     });
+  }
+
+  // Setup fast LinkedIn SPA navigation detection
+  setupLinkedInSPAListeners() {
+    console.log('🚀 [LinkedIn Optimization] Setting up fast SPA navigation listeners');
+    
+    // Wrap History API for instant SPA navigation detection
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+    
+    const handleNavigation = () => {
+      console.log('🔄 [LinkedIn SPA] Navigation detected, fast button injection starting');
+      this.fastInjectLinkedInButton();
+    };
+    
+    history.pushState = function(...args) {
+      const result = originalPushState.apply(this, args);
+      handleNavigation();
+      return result;
+    };
+    
+    history.replaceState = function(...args) {
+      const result = originalReplaceState.apply(this, args);
+      handleNavigation();
+      return result;
+    };
+    
+    window.addEventListener('popstate', handleNavigation);
+    
+    // Focused MutationObserver on job topcard for SPA job swaps
+    const topCardObserver = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        // Check if job-id attribute changed
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-job-id') {
+          console.log('🎯 [LinkedIn SPA] Job ID changed, triggering fast injection');
+          this.fastInjectLinkedInButton();
+          break;
+        }
+        
+        // Check if new job card container was added
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          for (const node of mutation.addedNodes) {
+            if (node.nodeType === 1 && (
+              node.classList?.contains('jobs-unified-top-card') ||
+              node.querySelector?.('[data-job-id]')
+            )) {
+              console.log('🎯 [LinkedIn SPA] New job card detected, triggering fast injection');
+              this.fastInjectLinkedInButton();
+              break;
+            }
+          }
+        }
+      }
+    });
+    
+    // Observe the main content area and top card
+    const mainContent = document.querySelector('#main-content');
+    if (mainContent) {
+      topCardObserver.observe(mainContent, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['data-job-id']
+      });
+      this.observers.push(topCardObserver);
+    }
+    
+    // Initial fast injection
+    setTimeout(() => this.fastInjectLinkedInButton(), 100);
+  }
+
+  // Fast button injection using requestAnimationFrame and short polling
+  fastInjectLinkedInButton() {
+    const currentJobUrn = this.getCurrentJobUrn();
+    
+    // Check if we've already injected for this job
+    if (currentJobUrn && currentJobUrn === this.lastInjectedJobUrn) {
+      console.log('✅ [Fast Injection] Button already injected for job:', currentJobUrn);
+      return;
+    }
+    
+    console.log('⚡ [Fast Injection] Starting fast button injection for job:', currentJobUrn || 'pending detection');
+    
+    // Phase 1: requestAnimationFrame burst for first 500ms
+    const startTime = Date.now();
+    this.buttonInjectionAttempts = 0;
+    
+    const attemptInjection = () => {
+      const elapsed = Date.now() - startTime;
+      
+      // Try to inject
+      const saveButton = document.querySelector('[aria-label*="Save"]') ||
+                        document.querySelector('button.jobs-save-button') ||
+                        document.querySelector('[data-control-name*="save"]');
+      
+      if (saveButton) {
+        console.log('✅ [Fast Injection] Save button found, injecting Auto Apply button');
+        this.injectLinkedInButtons(null); // Mount button without score
+        this.lastInjectedJobUrn = currentJobUrn;
+        
+        // Schedule analysis update in background
+        setTimeout(() => {
+          this.debouncedAnalysis?.();
+        }, 500);
+        return true;
+      }
+      
+      // Phase 1: requestAnimationFrame for first 500ms
+      if (elapsed < 500) {
+        requestAnimationFrame(attemptInjection);
+        return false;
+      }
+      
+      // Phase 2: Short polling with 150ms intervals for up to 3 seconds
+      if (this.buttonInjectionAttempts < this.maxButtonInjectionAttempts) {
+        this.buttonInjectionAttempts++;
+        setTimeout(attemptInjection, 150);
+        return false;
+      }
+      
+      console.warn('⚠️ [Fast Injection] Save button not found after 3 seconds, button injection aborted');
+      return false;
+    };
+    
+    attemptInjection();
+  }
+
+  // Get current LinkedIn job URN for tracking
+  getCurrentJobUrn() {
+    const jobIdElement = document.querySelector('[data-job-id]');
+    if (jobIdElement) {
+      return jobIdElement.getAttribute('data-job-id');
+    }
+    
+    // Fallback: extract from URL
+    const urlMatch = window.location.href.match(/currentJobId=(\d+)/);
+    return urlMatch ? urlMatch[1] : null;
+  }
+
+  // Setup modal auto-dismiss for "Save this application?" dialog
+  setupModalAutoDismiss() {
+    console.log('🎯 [Auto-Dismiss] Setting up auto-dismiss for post-application dialogs');
+    
+    const modalObserver = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          for (const node of mutation.addedNodes) {
+            if (node.nodeType === 1 && (
+              node.classList?.contains('artdeco-modal') ||
+              node.getAttribute?.('data-test-modal') ||
+              node.getAttribute?.('role') === 'dialog'
+            )) {
+              // Check if this is the "Save this application?" dialog
+              const dialogText = node.textContent || '';
+              if (dialogText.includes('Save this application') || 
+                  dialogText.includes('Save to return to this application')) {
+                
+                const dialogId = node.id || `modal-${Date.now()}`;
+                
+                // Ensure we haven't already dismissed this dialog
+                if (!this.autoDismissedDialogs.has(dialogId)) {
+                  this.autoDismissedDialogs.add(dialogId);
+                  console.log('🚫 [Auto-Dismiss] "Save application" dialog detected, auto-clicking Discard');
+                  
+                  // Wait a moment for dialog to fully render
+                  setTimeout(() => {
+                    // Find and click the Discard button
+                    const discardButton = node.querySelector('button[aria-label="Discard"]') ||
+                                         node.querySelector('button[data-control-name="discard_application"]') ||
+                                         node.querySelector('button[data-control-name*="discard"]') ||
+                                         Array.from(node.querySelectorAll('button')).find(btn => 
+                                           btn.textContent.trim().toLowerCase() === 'discard'
+                                         );
+                    
+                    if (discardButton && !discardButton.disabled) {
+                      console.log('✅ [Auto-Dismiss] Clicking Discard button');
+                      discardButton.click();
+                      
+                      // Clean up old dialog IDs to prevent memory leak
+                      if (this.autoDismissedDialogs.size > 50) {
+                        const dialogIds = Array.from(this.autoDismissedDialogs);
+                        this.autoDismissedDialogs = new Set(dialogIds.slice(-25));
+                      }
+                    } else {
+                      console.warn('⚠️ [Auto-Dismiss] Discard button not found or disabled');
+                    }
+                  }, 200);
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+    
+    // Observe the entire body for modal additions
+    modalObserver.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    
+    this.observers.push(modalObserver);
+    console.log('✅ [Auto-Dismiss] Modal observer active');
   }
 
   detectSite() {
