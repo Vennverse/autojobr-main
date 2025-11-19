@@ -1422,6 +1422,18 @@ class AutoJobrPopup {
   }
 
   // Task Management Methods
+  clearTasksCache() {
+    // Clear all cache entries related to tasks
+    const keysToDelete = [];
+    for (const [key] of this.cache) {
+      if (key.includes('/api/tasks')) {
+        keysToDelete.push(key);
+      }
+    }
+    keysToDelete.forEach(key => this.cache.delete(key));
+    console.log('[Tasks] Cache cleared for tasks endpoints');
+  }
+
   async loadTasks() {
     if (!this.isAuthenticated) return;
 
@@ -1865,6 +1877,8 @@ class AutoJobrPopup {
       });
 
       if (response && response.success) {
+        // Clear cache for tasks endpoints to ensure fresh data
+        this.clearTasksCache();
         await this.loadTasks(); // Refresh tasks
         this.hideTaskModal();
         this.showNotification(`✨ Task "${taskData.title}" created successfully!`, 'success');
@@ -1964,7 +1978,8 @@ class AutoJobrPopup {
 
       if (response && response.success) {
         this.showNotification('✅ Task completed!', 'success');
-        // Reload tasks to reflect the change
+        // Clear cache and reload tasks to reflect the change
+        this.clearTasksCache();
         await this.loadUserTasks();
       } else {
         throw new Error(response?.error || 'Failed to update task');

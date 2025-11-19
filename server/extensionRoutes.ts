@@ -81,19 +81,21 @@ router.get('/tasks', isAuthenticated, async (req: any, res) => {
     const offset = parseInt(req.query.offset as string) || 0;
     const status = req.query.status as string;
     
-    let query = db
-      .select()
-      .from(tasks)
-      .where(eq(tasks.userId, userId));
-    
+    // Build where conditions properly
+    const whereConditions = [eq(tasks.userId, userId)];
     if (status) {
-      query = query.where(and(eq(tasks.userId, userId), eq(tasks.status, status))) as any;
+      whereConditions.push(eq(tasks.status, status));
     }
     
-    const userTasks = await query
+    const userTasks = await db
+      .select()
+      .from(tasks)
+      .where(and(...whereConditions))
       .orderBy(desc(tasks.createdAt))
       .limit(limit)
       .offset(offset);
+    
+    console.log(`[Extension API] Fetched ${userTasks.length} tasks for user ${userId}${status ? ` with status=${status}` : ''}`);
     
     res.json({ success: true, tasks: userTasks });
   } catch (error) {
