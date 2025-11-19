@@ -41,6 +41,12 @@ class AutoJobrContentScript {
     this.buttonInjectionAttempts = 0;
     this.maxButtonInjectionAttempts = 20; // ~3 seconds with 150ms intervals
     this.autoDismissedDialogs = new Set(); // Track dismissed dialogs
+    
+    // LinkedIn SPA listener tracking
+    this.linkedInSPAListenersActive = false;
+    this.originalPushState = null;
+    this.originalReplaceState = null;
+    this.popstateHandler = null;
 
     this.init();
   }
@@ -146,28 +152,39 @@ class AutoJobrContentScript {
   setupLinkedInSPAListeners() {
     console.log('🚀 [LinkedIn Optimization] Setting up fast SPA navigation listeners');
     
-    // Wrap History API for instant SPA navigation detection
-    const originalPushState = history.pushState;
-    const originalReplaceState = history.replaceState;
+    // Prevent duplicate setup
+    if (this.linkedInSPAListenersActive) {
+      console.log('⚠️ [LinkedIn SPA] Listeners already active, skipping setup');
+      return;
+    }
+    this.linkedInSPAListenersActive = true;
     
+    // Store original History API methods for restoration during cleanup
+    this.originalPushState = history.pushState;
+    this.originalReplaceState = history.replaceState;
+    
+    // Bind to class instance to preserve 'this' context
     const handleNavigation = () => {
       console.log('🔄 [LinkedIn SPA] Navigation detected, fast button injection starting');
       this.fastInjectLinkedInButton();
     };
     
+    // Wrap history methods with navigation detection
     history.pushState = function(...args) {
-      const result = originalPushState.apply(this, args);
+      const result = this.originalPushState.apply(this, args);
       handleNavigation();
       return result;
-    };
+    }.bind(this);
     
     history.replaceState = function(...args) {
-      const result = originalReplaceState.apply(this, args);
+      const result = this.originalReplaceState.apply(this, args);
       handleNavigation();
       return result;
-    };
+    }.bind(this);
     
-    window.addEventListener('popstate', handleNavigation);
+    // Store bound handler for cleanup
+    this.popstateHandler = handleNavigation;
+    window.addEventListener('popstate', this.popstateHandler);
     
     // Focused MutationObserver on job topcard for SPA job swaps
     const topCardObserver = new MutationObserver((mutations) => {
@@ -279,6 +296,31 @@ class AutoJobrContentScript {
     return urlMatch ? urlMatch[1] : null;
   }
 
+  // Cleanup LinkedIn SPA listeners (called on extension unload/navigation)
+  cleanupLinkedInSPAListeners() {
+    if (!this.linkedInSPAListenersActive) return;
+    
+    console.log('🧹 [LinkedIn SPA] Cleaning up listeners');
+    
+    // Remove popstate listener
+    if (this.popstateHandler) {
+      window.removeEventListener('popstate', this.popstateHandler);
+      this.popstateHandler = null;
+    }
+    
+    // CRITICAL: Restore original history methods to prevent wrapper stacking
+    if (this.originalPushState) {
+      history.pushState = this.originalPushState;
+      this.originalPushState = null;
+    }
+    if (this.originalReplaceState) {
+      history.replaceState = this.originalReplaceState;
+      this.originalReplaceState = null;
+    }
+    
+    this.linkedInSPAListenersActive = false;
+  }
+
   // Setup modal auto-dismiss for "Save this application?" dialog
   setupModalAutoDismiss() {
     console.log('🎯 [Auto-Dismiss] Setting up auto-dismiss for post-application dialogs');
@@ -319,9 +361,11 @@ class AutoJobrContentScript {
                       discardButton.click();
                       
                       // Clean up old dialog IDs to prevent memory leak
-                      if (this.autoDismissedDialogs.size > 50) {
+                      // More aggressive pruning: keep only last 10 entries
+                      if (this.autoDismissedDialogs.size > 10) {
                         const dialogIds = Array.from(this.autoDismissedDialogs);
-                        this.autoDismissedDialogs = new Set(dialogIds.slice(-25));
+                        this.autoDismissedDialogs = new Set(dialogIds.slice(-10));
+                        console.log('[Auto-Dismiss] 🧹 Pruned dialog cache to 10 entries');
                       }
                     } else {
                       console.warn('⚠️ [Auto-Dismiss] Discard button not found or disabled');
@@ -3817,58 +3861,275 @@ class AutoJobrContentScript {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  // Application tracking system - Only tracks actual form submissions
+  // Comprehensive Application tracking system - Tracks ALL submission methods
   async setupApplicationTracking() {
-    console.log('✅ Setting up application tracking - attaching submit listener globally');
+    console.log('🎯 [App Tracking] Setting up COMPREHENSIVE application tracking system');
+    console.log('📍 [App Tracking] Current site:', this.currentSite);
+    console.log('🌐 [App Tracking] URL:', window.location.href);
 
     // Track form submission state and prevent duplicates
     let lastFormSubmissionTime = 0;
     let currentUrl = window.location.href;
     let trackedApplications = new Set(); // Prevent duplicate tracking
+    let pendingSubmission = false; // Track if we're waiting for confirmation
 
-    // ONLY track actual form submit events - most reliable
+    // Helper to check if should track
+    const shouldTrack = () => {
+      if (trackedApplications.has(window.location.href) &&
+          Date.now() - lastFormSubmissionTime < 60000) {
+        console.log('[App Tracking] ⏭️ Already tracked this URL recently - skipping');
+        return false;
+      }
+      return true;
+    };
+
+    // Helper to mark as tracked
+    const markAsTracked = () => {
+      lastFormSubmissionTime = Date.now();
+      trackedApplications.add(window.location.href);
+      pendingSubmission = true;
+      console.log('[App Tracking] 🎯 Submission pending - observers activated');
+    };
+
+    // Helper to reset tracking state (critical for re-arming)
+    const resetTrackingState = (success = true) => {
+      pendingSubmission = false;
+      
+      // If tracking failed, remove from tracked set so retry is allowed
+      if (!success && currentUrl) {
+        trackedApplications.delete(currentUrl);
+        console.log('[App Tracking] ⚠️ Tracking FAILED - URL removed from cache, retry allowed');
+      }
+      
+      console.log(`[App Tracking] ♻️ Tracking state reset (${success ? 'SUCCESS' : 'FAILURE'}) - ready for next submission`);
+    };
+
+    // LAYER 1: Form submit events (most reliable)
     document.addEventListener('submit', async (e) => {
       const form = e.target;
-
-      console.log('[SUBMIT EVENT] Form submitted:', {
+      console.log('[App Tracking] 📝 FORM SUBMIT event detected:', {
         action: form.action,
         method: form.method,
-        url: window.location.href,
-        formText: form.textContent.substring(0, 100)
+        url: window.location.href
       });
 
-      // Check if this is a job application form
       if (this.isJobApplicationForm(form)) {
-        const jobKey = `${window.location.href}|${Date.now()}`;
+        if (!shouldTrack()) return;
+        
+        console.log('[App Tracking] ✅ Job application form identified');
+        markAsTracked();
 
-        // Prevent duplicate tracking within 60 seconds
-        if (trackedApplications.has(window.location.href) &&
-            Date.now() - lastFormSubmissionTime < 60000) {
-          console.log('[SUBMIT EVENT] ⚠️ Already tracked this application recently - skipping');
-          return;
-        }
-
-        console.log('[SUBMIT EVENT] ✅ Identified as job application form - will track');
-        lastFormSubmissionTime = Date.now();
-        trackedApplications.add(window.location.href);
-
-        // Track with a delay to allow form submission to complete
-        setTimeout(() => {
-          console.log('[SUBMIT EVENT] Executing delayed tracking...');
-          this.trackApplicationSubmission();
+        setTimeout(async () => {
+          console.log('[App Tracking] Executing delayed tracking from FORM SUBMIT...');
+          let success = false;
+          try {
+            const result = await this.trackApplicationSubmission();
+            success = result && result.success;
+          } catch (error) {
+            console.error('[App Tracking] Tracking error:', error);
+            success = false;
+          } finally {
+            resetTrackingState(success);
+          }
         }, 2000);
-      } else {
-        console.log('[SUBMIT EVENT] ⚠️ Not a job application form - skipping tracking');
+      }
+    }, true); // Use capture phase
+
+    // LAYER 2: Submit button click tracking (catches SPA submissions)
+    document.addEventListener('click', async (e) => {
+      const target = e.target;
+      const button = target.closest('button, input[type="submit"], a[role="button"]');
+      
+      if (button && this.isSubmissionButton(button)) {
+        console.log('[App Tracking] 🖱️ SUBMIT BUTTON clicked:', {
+          text: button.textContent?.substring(0, 50),
+          type: button.type,
+          class: button.className
+        });
+
+        // Check if we're on a job application page
+        if (this.isJobApplicationPage()) {
+          if (!shouldTrack()) return;
+
+          console.log('[App Tracking] ✅ Submit button on job application page');
+          markAsTracked();
+
+          // Track after delay to allow submission to process
+          setTimeout(async () => {
+            console.log('[App Tracking] Executing delayed tracking from BUTTON CLICK...');
+            let success = false;
+            try {
+              const result = await this.trackApplicationSubmission();
+              success = result && result.success;
+            } catch (error) {
+              console.error('[App Tracking] Tracking error:', error);
+              success = false;
+            } finally {
+              resetTrackingState(success);
+            }
+          }, 3000); // Longer delay for SPA submissions
+        }
+      }
+    }, true);
+
+    // LAYER 3: Success confirmation observers (watches for success modals/messages)
+    const successObserver = new MutationObserver((mutations) => {
+      if (!pendingSubmission) return; // Only check if we're expecting a submission
+
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          for (const node of mutation.addedNodes) {
+            if (node.nodeType === 1) {
+              const text = node.textContent?.toLowerCase() || '';
+              
+              // Check for success confirmation messages
+              const successPatterns = [
+                'application submitted',
+                'application received',
+                'thank you for applying',
+                'successfully submitted',
+                'application sent',
+                'we received your application',
+                'application complete'
+              ];
+
+              const hasSuccessMessage = successPatterns.some(pattern => text.includes(pattern));
+              
+              if (hasSuccessMessage) {
+                console.log('[App Tracking] 🎉 SUCCESS MESSAGE detected:', text.substring(0, 100));
+                
+                // Use XPath detector if available for more precise confirmation
+                if (this.xpathDetector) {
+                  const xpathSuccess = this.xpathDetector.checkSubmissionSuccess();
+                  if (xpathSuccess) {
+                    console.log('[App Tracking] ✅ XPath confirmed success');
+                  }
+                }
+
+                setTimeout(async () => {
+                  console.log('[App Tracking] Executing delayed tracking from SUCCESS MESSAGE...');
+                  let success = false;
+                  try {
+                    const result = await this.trackApplicationSubmission();
+                    success = result && result.success;
+                  } catch (error) {
+                    console.error('[App Tracking] Tracking error:', error);
+                    success = false;
+                  } finally {
+                    resetTrackingState(success);
+                  }
+                }, 1000);
+              }
+            }
+          }
+        }
       }
     });
 
+    successObserver.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    this.observers.push(successObserver);
+
+    // LAYER 4: URL change detection (for redirect after submission)
+    let previousUrl = window.location.href;
+    const urlCheckInterval = setInterval(() => {
+      if (window.location.href !== previousUrl) {
+        const newUrl = window.location.href.toLowerCase();
+        
+        // Check if redirected to confirmation page
+        const confirmationUrls = [
+          'confirmation',
+          'thank-you',
+          'application-submitted',
+          'success',
+          'applied'
+        ];
+
+        const isConfirmationUrl = confirmationUrls.some(pattern => newUrl.includes(pattern));
+        
+        if (isConfirmationUrl && pendingSubmission) {
+          console.log('[App Tracking] 🔄 URL CHANGED to confirmation page:', newUrl);
+          
+          setTimeout(async () => {
+            console.log('[App Tracking] Executing delayed tracking from URL CHANGE...');
+            let success = false;
+            try {
+              const result = await this.trackApplicationSubmission();
+              success = result && result.success;
+            } catch (error) {
+              console.error('[App Tracking] Tracking error:', error);
+              success = false;
+            } finally {
+              resetTrackingState(success);
+            }
+          }, 1500);
+        }
+        
+        previousUrl = window.location.href;
+      }
+    }, 1000);
+
+    // LAYER 5: LinkedIn Easy Apply specific tracking
+    if (window.location.hostname.includes('linkedin.com')) {
+      console.log('[App Tracking] 🔵 LinkedIn detected - setting up Easy Apply tracking');
+      
+      // Watch for Easy Apply modal success
+      const linkedInObserver = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+            for (const node of mutation.addedNodes) {
+              if (node.nodeType === 1 && node.classList?.contains('artdeco-modal')) {
+                const modalText = node.textContent?.toLowerCase() || '';
+                
+                if (modalText.includes('application was sent') || 
+                    modalText.includes('your application was sent to')) {
+                  console.log('[App Tracking] ✅ LinkedIn Easy Apply SUCCESS detected');
+                  
+                  if (shouldTrack()) {
+                    markAsTracked();
+                    setTimeout(async () => {
+                      console.log('[App Tracking] Executing tracking from LINKEDIN SUCCESS...');
+                      let success = false;
+                      try {
+                        const result = await this.trackApplicationSubmission();
+                        success = result && result.success;
+                      } catch (error) {
+                        console.error('[App Tracking] Tracking error:', error);
+                        success = false;
+                      } finally {
+                        resetTrackingState(success);
+                      }
+                    }, 1000);
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      linkedInObserver.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+      this.observers.push(linkedInObserver);
+    }
+
     // Clean up old tracked applications every 5 minutes
     setInterval(() => {
+      const oldSize = trackedApplications.size;
       trackedApplications.clear();
-      console.log('[CLEANUP] Cleared tracked applications cache');
+      console.log(`[App Tracking] 🧹 Cleanup: Cleared ${oldSize} tracked applications from cache`);
     }, 300000);
 
-    console.log('✅ Application tracking setup complete - listeners attached');
+    console.log('✅ [App Tracking] Comprehensive tracking system active with 5 detection layers:');
+    console.log('   1️⃣ Form submit events');
+    console.log('   2️⃣ Submit button clicks');
+    console.log('   3️⃣ Success message observers');
+    console.log('   4️⃣ URL change detection');
+    console.log('   5️⃣ Platform-specific tracking (LinkedIn, Workday, etc.)');
   }
 
   isJobApplicationForm(form) {
@@ -4575,6 +4836,29 @@ class AutoJobrContentScript {
       console.error('Error getting user API key:', error);
       return null;
     }
+  }
+
+  // Get API URL from background script or use fallback
+  async getApiUrl() {
+    return new Promise((resolve) => {
+      try {
+        chrome.runtime.sendMessage({ action: 'getApiUrl' }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.log('Background script not available, using fallback API URL');
+            resolve('https://autojobr.com');
+            return;
+          }
+          if (response && response.apiUrl) {
+            resolve(response.apiUrl);
+          } else {
+            resolve('https://autojobr.com');
+          }
+        });
+      } catch (error) {
+        console.error('Error getting API URL:', error);
+        resolve('https://autojobr.com');
+      }
+    });
   }
 
   // Placeholder for isPremiumUser - will fetch from settings

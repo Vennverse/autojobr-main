@@ -1,7 +1,7 @@
 import express from "express";
 import { db } from "./db";
 import { tasks, userIntegrations, users, jobApplications } from "@shared/schema";
-import { eq, and, desc, gte, lte, isNull } from "drizzle-orm";
+import { eq, and, desc, gte, lte, isNull, sql } from "drizzle-orm";
 import { isAuthenticated } from "./auth";
 import { aiService } from "./aiService";
 import { z } from "zod";
@@ -77,14 +77,28 @@ const createTaskSchema = z.object({
 router.get('/tasks', isAuthenticated, async (req: any, res) => {
   try {
     const userId = req.user.id;
-    const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
-    const offset = parseInt(req.query.offset as string) || 0;
-    const status = req.query.status as string;
     
-    // Build where conditions properly
+    // Validate and sanitize limit with NaN/negative guards
+    const limitParam = parseInt(req.query.limit as string);
+    const limit = Math.min(isNaN(limitParam) || limitParam < 0 ? 50 : limitParam, 100);
+    
+    // Validate and sanitize offset with NaN/negative guards and ceiling (max 10000)
+    const offsetParam = parseInt(req.query.offset as string);
+    const offset = Math.min(Math.max(isNaN(offsetParam) || offsetParam < 0 ? 0 : offsetParam, 0), 10000);
+    
+    // Normalize and sanitize status (only allow known enum values)
+    const validStatuses = ['pending', 'in_progress', 'completed', 'overdue', 'cancelled'];
+    let status = null;
+    if (req.query.status) {
+      const statusLower = (req.query.status as string).toLowerCase().replace(/[^a-z_]/g, '');
+      status = validStatuses.includes(statusLower) ? statusLower : null;
+    }
+    
+    // Build where conditions properly with case-insensitive status matching
     const whereConditions = [eq(tasks.userId, userId)];
     if (status) {
-      whereConditions.push(eq(tasks.status, status));
+      // Use SQL LOWER() for case-insensitive status matching
+      whereConditions.push(sql`LOWER(${tasks.status}) = ${status.toLowerCase()}`);
     }
     
     const userTasks = await db
