@@ -1026,22 +1026,11 @@ class AutoJobrPopup {
     try {
       // Enhanced cover letter generation with extracted job data
       const coverLetterData = {
-        jobData: {
-          ...this.jobData,
-          // Ensure we're using the extracted company and role
-          company: this.jobData.company || this.jobData.companyName || 'the company',
-          title: this.jobData.title || this.jobData.role || this.jobData.position || 'this position',
-          location: this.jobData.location,
-          description: this.jobData.description,
-          requirements: this.jobData.requirements,
-          url: window.location.href
-        },
-        userProfile: this.userProfile,
-        extractedData: {
-          company: this.jobData.company,
-          role: this.jobData.title,
-          extractedAt: new Date().toISOString()
-        }
+        jobTitle: this.jobData.title || this.jobData.role || this.jobData.position || 'this position',
+        companyName: this.jobData.company || this.jobData.companyName || 'the company',
+        jobDescription: this.jobData.description || '',
+        requirements: this.jobData.requirements || '',
+        location: this.jobData.location || ''
       };
 
       const result = await this.makeApiRequest('/api/generate-cover-letter', {

@@ -1360,7 +1360,7 @@ class AutoJobrBackground {
         mode: 'cors',
         body: JSON.stringify({
           jobTitle,
-          company,
+          companyName: company,
           jobDescription,
           requirements,
           location,
