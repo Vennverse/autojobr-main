@@ -2547,6 +2547,86 @@ export const educations = education;
 export const virtualInterviewSessions = virtualInterviews;
 export const mockInterviewSessions = mockInterviews;
 
+// NETWORKING HUB SYSTEM
+
+// Networking Contacts - Professional connections for job seekers
+export const networkingContacts = pgTable("networking_contacts", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  fullName: varchar("full_name").notNull(),
+  company: varchar("company"),
+  jobTitle: varchar("job_title"),
+  email: varchar("email"),
+  phone: varchar("phone"),
+  linkedinUrl: varchar("linkedin_url"),
+  notes: text("notes"),
+  tags: text("tags").array(),
+  lastContactedAt: timestamp("last_contacted_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_networking_contacts_user").on(table.userId),
+  index("idx_networking_contacts_company").on(table.company),
+]);
+
+// Networking Events - Events for professional networking
+export const networkingEvents = pgTable("networking_events", {
+  id: serial("id").primaryKey(),
+  organizerId: varchar("organizer_id").references(() => users.id).notNull(),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  eventType: varchar("event_type").default("virtual"), // virtual, in-person, hybrid
+  eventDate: timestamp("event_date").notNull(),
+  location: varchar("location"),
+  capacity: integer("capacity"),
+  registrationUrl: varchar("registration_url"),
+  status: varchar("status").default("upcoming"), // upcoming, ongoing, completed, cancelled
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_networking_events_organizer").on(table.organizerId),
+  index("idx_networking_events_date").on(table.eventDate),
+  index("idx_networking_events_status").on(table.status),
+]);
+
+// Networking Event Attendees - Track who's attending events
+export const networkingEventAttendees = pgTable("networking_event_attendees", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id").references(() => networkingEvents.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  registeredAt: timestamp("registered_at").defaultNow(),
+  attended: boolean("attended").default(false),
+}, (table) => [
+  index("idx_networking_event_attendees_event").on(table.eventId),
+  index("idx_networking_event_attendees_user").on(table.userId),
+]);
+
+// Insert schemas for networking
+export const insertNetworkingContactSchema = createInsertSchema(networkingContacts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertNetworkingEventSchema = createInsertSchema(networkingEvents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertNetworkingEventAttendeeSchema = createInsertSchema(networkingEventAttendees).omit({
+  id: true,
+  registeredAt: true,
+});
+
+// Networking types
+export type NetworkingContact = typeof networkingContacts.$inferSelect;
+export type InsertNetworkingContact = z.infer<typeof insertNetworkingContactSchema>;
+export type NetworkingEvent = typeof networkingEvents.$inferSelect;
+export type InsertNetworkingEvent = z.infer<typeof insertNetworkingEventSchema>;
+export type NetworkingEventAttendee = typeof networkingEventAttendees.$inferSelect;
+export type InsertNetworkingEventAttendee = z.infer<typeof insertNetworkingEventAttendeeSchema>;
+
 // CRM CONTACT MANAGEMENT SYSTEM
 
 // Contacts - Universal contact database for both job seekers and recruiters
