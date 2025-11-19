@@ -10956,6 +10956,10 @@ Return ONLY the JSON object, no additional text.`;
     }
   });
 
+  // ============= NETWORKING HUB ROUTES =============
+  const networkingHubRouter = await import('./networkingHubRoutes');
+  app.use('/api/networking', networkingHubRouter.default);
+
   // ============= ENHANCED CRM FEATURES (HubSpot-level) =============
   const { EnhancedCrmService } = await import('./enhancedCrmService');
 

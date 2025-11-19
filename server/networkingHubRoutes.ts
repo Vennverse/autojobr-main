@@ -1,8 +1,23 @@
 
 
 
+import express from 'express';
+import { db } from './db';
+import { networkingContacts, networkingEvents, networkingEventAttendees } from '../shared/schema';
+import { eq, and, desc } from 'drizzle-orm';
+
+const router = express.Router();
+
+// Middleware to check authentication
+const isAuthenticated = (req: any, res: any, next: any) => {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ error: 'Unauthorized' });
+};
+
 // Contact Management Routes
-router.get('/contacts', async (req, res) => {
+router.get('/contacts', isAuthenticated, async (req, res) => {
   try {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -21,12 +36,8 @@ router.get('/contacts', async (req, res) => {
   }
 });
 
-router.post('/contacts', async (req, res) => {
+router.post('/contacts', isAuthenticated, async (req: any, res) => {
   try {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
     const { fullName, company, jobTitle, email, phone, linkedinUrl, notes } = req.body;
 
     if (!fullName) {
@@ -51,12 +62,8 @@ router.post('/contacts', async (req, res) => {
   }
 });
 
-router.patch('/contacts/:id', async (req, res) => {
+router.patch('/contacts/:id', isAuthenticated, async (req: any, res) => {
   try {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
     const contactId = parseInt(req.params.id);
     const updates = req.body;
 
@@ -80,12 +87,8 @@ router.patch('/contacts/:id', async (req, res) => {
   }
 });
 
-router.delete('/contacts/:id', async (req, res) => {
+router.delete('/contacts/:id', isAuthenticated, async (req: any, res) => {
   try {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
     const contactId = parseInt(req.params.id);
 
     await db
@@ -101,3 +104,5 @@ router.delete('/contacts/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to delete contact' });
   }
 });
+
+export default router;
