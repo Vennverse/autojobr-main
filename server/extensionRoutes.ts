@@ -2,7 +2,7 @@ import express from "express";
 import { db } from "./db";
 import { tasks, userIntegrations, users, jobApplications } from "@shared/schema";
 import { eq, and, desc, gte, lte, isNull, sql } from "drizzle-orm";
-import { isAuthenticated } from "./auth";
+import { isAuthenticatedExtension } from "./auth";
 import { aiService } from "./aiService";
 import { z } from "zod";
 import crypto from "crypto";
@@ -74,7 +74,7 @@ const createTaskSchema = z.object({
 });
 
 // Get user tasks
-router.get('/tasks', isAuthenticated, async (req: any, res) => {
+router.get('/tasks', isAuthenticatedExtension, async (req: any, res) => {
   try {
     const userId = req.user.id;
     
@@ -119,7 +119,7 @@ router.get('/tasks', isAuthenticated, async (req: any, res) => {
 });
 
 // Create task
-router.post('/tasks', isAuthenticated, async (req: any, res) => {
+router.post('/tasks', isAuthenticatedExtension, async (req: any, res) => {
   try {
     const userId = req.user.id;
     
@@ -149,7 +149,7 @@ router.post('/tasks', isAuthenticated, async (req: any, res) => {
 });
 
 // Update task status
-router.patch('/tasks/:id/status', isAuthenticated, async (req: any, res) => {
+router.patch('/tasks/:id/status', isAuthenticatedExtension, async (req: any, res) => {
   try {
     const userId = req.user.id;
     const taskId = parseInt(req.params.id);
@@ -181,7 +181,7 @@ router.patch('/tasks/:id/status', isAuthenticated, async (req: any, res) => {
 });
 
 // Update task (general)
-router.patch('/tasks/:id', isAuthenticated, async (req: any, res) => {
+router.patch('/tasks/:id', isAuthenticatedExtension, async (req: any, res) => {
   try {
     const userId = req.user.id;
     const taskId = parseInt(req.params.id);
@@ -205,7 +205,7 @@ router.patch('/tasks/:id', isAuthenticated, async (req: any, res) => {
 });
 
 // Delete task
-router.delete('/tasks/:id', isAuthenticated, async (req: any, res) => {
+router.delete('/tasks/:id', isAuthenticatedExtension, async (req: any, res) => {
   try {
     const userId = req.user.id;
     const taskId = parseInt(req.params.id);
@@ -222,7 +222,7 @@ router.delete('/tasks/:id', isAuthenticated, async (req: any, res) => {
 });
 
 // Get user settings (including BYOK API key)
-router.get('/user/settings', isAuthenticated, async (req: any, res) => {
+router.get('/user/settings', isAuthenticatedExtension, async (req: any, res) => {
   try {
     const userId = req.user.id;
     
@@ -249,7 +249,7 @@ router.get('/user/settings', isAuthenticated, async (req: any, res) => {
 });
 
 // Save user settings (BYOK API key)
-router.post('/user/settings', isAuthenticated, async (req: any, res) => {
+router.post('/user/settings', isAuthenticatedExtension, async (req: any, res) => {
   try {
     const userId = req.user.id;
     const { groqApiKey } = req.body;
@@ -356,7 +356,7 @@ router.post('/chat', async (req: any, res) => {
 });
 
 // Resume Generation endpoint
-router.post('/resume/generate', isAuthenticated, async (req: any, res) => {
+router.post('/resume/generate', isAuthenticatedExtension, async (req: any, res) => {
   try {
     const userId = req.user.id;
     const { jobDescription, additionalRequirements } = req.body;
@@ -463,7 +463,7 @@ Generate a complete, professional resume in plain text format.`;
 });
 
 // Track application submission from extension
-router.post('/applications/track-submission', isAuthenticated, async (req: any, res) => {
+router.post('/applications/track-submission', isAuthenticatedExtension, async (req: any, res) => {
   try {
     const userId = req.user.id;
     const { url, timestamp, statusCode } = req.body;
@@ -510,7 +510,7 @@ router.post('/applications/track-submission', isAuthenticated, async (req: any, 
 });
 
 // Get pending application reminders
-router.get('/applications/pending-reminders', isAuthenticated, async (req: any, res) => {
+router.get('/applications/pending-reminders', isAuthenticatedExtension, async (req: any, res) => {
   try {
     const userId = req.user.id;
     
