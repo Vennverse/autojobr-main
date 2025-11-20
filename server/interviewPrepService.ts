@@ -29,6 +29,7 @@ interface InterviewPreparation {
     technical: string[];
     behavioral: string[];
     negotiation: string[];
+    location: string[];
   };
   preparationChecklist: {
     category: string;
@@ -1945,7 +1946,8 @@ export class InterviewPrepService {
           general: ['Research the company', 'Prepare STAR stories', 'Ask thoughtful questions'],
           technical: ['Review fundamentals', 'Practice coding', 'Understand trade-offs'],
           behavioral: ['Use specific examples', 'Quantify achievements', 'Show growth mindset'],
-          negotiation: ['Know your worth', 'Consider total compensation', 'Be prepared to discuss']
+          negotiation: ['Know your worth', 'Consider total compensation', 'Be prepared to discuss'],
+          location: []
         },
         preparationChecklist: [
           {

@@ -4921,23 +4921,27 @@ class AutoJobrContentScript {
     try {
       this.updateStatus('🔄 Generating interview prep...', 'loading');
 
-      const result = await chrome.runtime.sendMessage({
+      const response = await chrome.runtime.sendMessage({
         action: 'getInterviewPrep',
         data: {
           jobData: this.currentJobData
         }
       });
 
-      if (result && result.success) {
-        this.showInterviewPrepModal(result);
+      if (response && response.success && response.prep) {
+        // Ensure questions is always an array
+        if (!Array.isArray(response.prep.questions)) {
+          response.prep.questions = [];
+        }
+        this.displayInterviewPrep(response.prep);
         this.updateStatus('✅ Interview prep ready!', 'success');
         this.showNotification('✅ Interview prep generated!', 'success');
       } else {
-        throw new Error(result?.message || 'Failed to generate interview prep');
+        throw new Error(response?.message || 'Failed to generate interview prep');
       }
     } catch (error) {
       console.error('Interview prep error:', error);
-      this.showNotification('❌ Failed to generate interview prep', 'error');
+      this.showNotification('❌ Interview prep failed: ' + error.message, 'error');
       this.updateStatus('❌ Interview prep failed', 'error');
     }
   }
@@ -5023,7 +5027,7 @@ class AutoJobrContentScript {
           </div>
           <div class="prep-section">
             <h4>Common Interview Questions</h4>
-            <ul>
+            <ul class="prep-questions">
               ${(prep.questions || []).map(q => `<li>${q}</li>`).join('')}
             </ul>
           </div>
@@ -5470,7 +5474,7 @@ class AutoJobrContentScript {
       .jobs-search-results__list-item,
       .job-card-container--clickable,
       .jobs-search-two-pane__results-list .scaffold-layout__list-item,
-      .jobs-search-results-list__list-item,
+      .jobs-search-results__list-item,
       .jobs-search-results__list .jobs-search-results__list-item,
       [data-job-id]
     `.trim().split(/\s*,\s*/));
