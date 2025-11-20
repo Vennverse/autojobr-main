@@ -462,7 +462,7 @@ Generate a complete, professional resume in plain text format.`;
   }
 });
 
-// Track application submission from extension
+// Track application submission from extension (already authenticated)
 router.post('/applications/track-submission', isAuthenticatedExtension, async (req: any, res) => {
   try {
     const userId = req.user.id;
@@ -509,7 +509,7 @@ router.post('/applications/track-submission', isAuthenticatedExtension, async (r
   }
 });
 
-// Get pending application reminders
+// Get pending application reminders (already authenticated)
 router.get('/applications/pending-reminders', isAuthenticatedExtension, async (req: any, res) => {
   try {
     const userId = req.user.id;
