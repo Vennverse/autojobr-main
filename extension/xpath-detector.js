@@ -1,7 +1,7 @@
 
 /**
  * XPath-based Field Detection Engine
- * Inspired by Simplify extension's configuration-driven approach
+ * Enhanced version with improved error handling, caching, and performance
  */
 
 class XPathDetector {
@@ -9,29 +9,77 @@ class XPathDetector {
     this.atsConfig = null;
     this.currentATS = null;
     this.initialized = false;
+    this.initPromise = null; // Track initialization promise to prevent race conditions
+    this.fieldCache = new Map(); // Cache detected fields
+    this.xpathCache = new Map(); // Cache XPath evaluation results
     console.log('[XPathDetector] Constructor called');
   }
 
+  /**
+   * Initialize the detector (with deduplication)
+   * @returns {Promise<boolean>}
+   */
   async initialize() {
-    // Prevent duplicate initialization
-    if (this.initialized) {
-      console.log('[XPathDetector] Already initialized, skipping');
-      return true;
+    // Return existing promise if initialization is in progress
+    if (this.initPromise) {
+      console.log('[XPathDetector] Initialization already in progress, waiting...');
+      return this.initPromise;
     }
 
+    // Return immediately if already initialized
+    if (this.initialized) {
+      console.log('[XPathDetector] Already initialized, skipping');
+      return Promise.resolve(true);
+    }
+
+    // Create and store the initialization promise
+    this.initPromise = this._performInitialization();
+    
+    try {
+      const result = await this.initPromise;
+      return result;
+    } finally {
+      this.initPromise = null; // Clear promise after completion
+    }
+  }
+
+  /**
+   * Internal initialization logic
+   * @private
+   * @returns {Promise<boolean>}
+   */
+  async _performInitialization() {
     try {
       console.log('[XPathDetector] Initializing...');
+      
+      // Check if chrome.runtime is available
+      if (typeof chrome === 'undefined' || !chrome.runtime) {
+        throw new Error('Chrome runtime not available');
+      }
+
       const configUrl = chrome.runtime.getURL('ats-config.json');
       console.log('[XPathDetector] Loading config from:', configUrl);
       
       const response = await fetch(configUrl);
       if (!response.ok) {
-        throw new Error(`Failed to load config: ${response.status}`);
+        throw new Error(`Failed to load config: ${response.status} ${response.statusText}`);
       }
       
-      this.atsConfig = await response.json();
+      const configText = await response.text();
+      if (!configText || configText.trim() === '') {
+        throw new Error('Config file is empty');
+      }
+
+      this.atsConfig = JSON.parse(configText);
+      
+      // Validate config structure
+      if (!this.atsConfig.atsConfigurations || typeof this.atsConfig.atsConfigurations !== 'object') {
+        console.warn('[XPathDetector] Invalid config structure, using empty config');
+        this.atsConfig = { atsConfigurations: {}, fieldDetectionPatterns: {} };
+      }
+      
       console.log('[XPathDetector] Config loaded successfully');
-      console.log('[XPathDetector] Available ATS platforms:', Object.keys(this.atsConfig.atsConfigurations || {}));
+      console.log('[XPathDetector] Available ATS platforms:', Object.keys(this.atsConfig.atsConfigurations));
       
       this.detectCurrentATS();
       this.initialized = true;
@@ -42,11 +90,15 @@ class XPathDetector {
       console.error('[XPathDetector] ❌ Initialization failed:', error);
       // Set a minimal config to prevent errors
       this.atsConfig = { atsConfigurations: {}, fieldDetectionPatterns: {} };
-      this.initialized = true; // Mark as initialized even on error to prevent retry loops
+      this.initialized = true; // Mark as initialized to prevent retry loops
       return false;
     }
   }
 
+  /**
+   * Detect which ATS is being used on the current page
+   * @returns {string|null}
+   */
   detectCurrentATS() {
     const currentUrl = window.location.href;
     
@@ -72,6 +124,12 @@ class XPathDetector {
     return null;
   }
 
+  /**
+   * Check if URL matches a wildcard pattern
+   * @param {string} url 
+   * @param {string} pattern 
+   * @returns {boolean}
+   */
   matchesPattern(url, pattern) {
     try {
       const regex = pattern
@@ -85,7 +143,24 @@ class XPathDetector {
     }
   }
 
+  /**
+   * Evaluate XPath and return first matching node
+   * @param {string} xpath 
+   * @param {Node} contextNode 
+   * @returns {Node|null}
+   */
   evaluateXPath(xpath, contextNode = document) {
+    // Check cache first
+    const cacheKey = `${xpath}:${contextNode === document ? 'document' : contextNode.tagName}`;
+    if (this.xpathCache.has(cacheKey)) {
+      const cached = this.xpathCache.get(cacheKey);
+      // Verify cached element still exists in DOM
+      if (cached && document.contains(cached)) {
+        return cached;
+      }
+      this.xpathCache.delete(cacheKey);
+    }
+
     try {
       const result = document.evaluate(
         xpath,
@@ -94,13 +169,26 @@ class XPathDetector {
         XPathResult.FIRST_ORDERED_NODE_TYPE,
         null
       );
-      return result.singleNodeValue;
+      const node = result.singleNodeValue;
+      
+      // Cache successful result
+      if (node) {
+        this.xpathCache.set(cacheKey, node);
+      }
+      
+      return node;
     } catch (error) {
       console.error(`[XPathDetector] XPath evaluation error: ${xpath}`, error);
       return null;
     }
   }
 
+  /**
+   * Evaluate XPath and return all matching nodes
+   * @param {string} xpath 
+   * @param {Node} contextNode 
+   * @returns {Array<Node>}
+   */
   evaluateXPathAll(xpath, contextNode = document) {
     try {
       const result = document.evaluate(
@@ -121,12 +209,29 @@ class XPathDetector {
     }
   }
 
+  /**
+   * Detect a specific form field by name
+   * @param {string} fieldName 
+   * @returns {HTMLElement|null}
+   */
   detectField(fieldName) {
-    if (!this.initialized) {
-      console.warn('[XPathDetector] Not initialized yet, using CSS fallback');
-      return this.detectFieldByCSS(fieldName);
+    // Check cache first
+    if (this.fieldCache.has(fieldName)) {
+      const cached = this.fieldCache.get(fieldName);
+      if (cached && document.contains(cached)) {
+        return cached;
+      }
+      this.fieldCache.delete(fieldName);
     }
 
+    if (!this.initialized) {
+      console.warn('[XPathDetector] Not initialized yet, using CSS fallback');
+      const element = this.detectFieldByCSS(fieldName);
+      if (element) this.fieldCache.set(fieldName, element);
+      return element;
+    }
+
+    // Try ATS-specific mappings first
     if (this.currentATS && this.atsConfig.atsConfigurations[this.currentATS]) {
       const atsConfig = this.atsConfig.atsConfigurations[this.currentATS];
       const fieldMappings = atsConfig.fieldMappings;
@@ -136,52 +241,71 @@ class XPathDetector {
           const element = this.evaluateXPath(xpath);
           if (element) {
             console.log(`[XPathDetector] Found ${fieldName} via ATS-specific XPath: ${xpath}`);
+            this.fieldCache.set(fieldName, element);
             return element;
           }
         }
       }
     }
 
-    const genericPatterns = this.atsConfig.fieldDetectionPatterns[fieldName];
+    // Try generic patterns
+    const genericPatterns = this.atsConfig.fieldDetectionPatterns?.[fieldName];
     if (genericPatterns && genericPatterns.xpaths) {
       for (const xpath of genericPatterns.xpaths) {
         const element = this.evaluateXPath(xpath);
         if (element) {
           console.log(`[XPathDetector] Found ${fieldName} via generic XPath: ${xpath}`);
+          this.fieldCache.set(fieldName, element);
           return element;
         }
       }
     }
 
+    // Fallback to CSS
     const cssElement = this.detectFieldByCSS(fieldName);
     if (cssElement) {
       console.log(`[XPathDetector] Found ${fieldName} via CSS fallback`);
-      return cssElement;
+      this.fieldCache.set(fieldName, cssElement);
     }
-
-    return null;
+    
+    return cssElement;
   }
 
+  /**
+   * Detect field using CSS selectors as fallback
+   * @param {string} fieldName 
+   * @returns {HTMLElement|null}
+   */
   detectFieldByCSS(fieldName) {
     const selectors = {
-      email: ['input[type="email"]', 'input[name*="email"]', 'input[id*="email"]'],
-      phone: ['input[type="tel"]', 'input[name*="phone"]', 'input[id*="phone"]'],
-      first_name: ['input[name*="first"]', 'input[id*="first"]', 'input[name="firstName"]'],
-      last_name: ['input[name*="last"]', 'input[id*="last"]', 'input[name="lastName"]'],
-      full_name: ['input[name*="name"]', 'input[id*="name"]', 'input[placeholder*="name"]'],
-      resume: ['input[type="file"][name*="resume"]', 'input[type="file"][id*="resume"]', 'input[type="file"]'],
-      cover_letter: ['textarea[name*="cover"]', 'textarea[id*="cover"]'],
-      linkedin: ['input[name*="linkedin"]', 'input[id*="linkedin"]']
+      email: ['input[type="email"]', 'input[name*="email" i]', 'input[id*="email" i]'],
+      phone: ['input[type="tel"]', 'input[name*="phone" i]', 'input[id*="phone" i]', 'input[name*="mobile" i]'],
+      first_name: ['input[name*="first" i]', 'input[id*="first" i]', 'input[name="firstName"]'],
+      last_name: ['input[name*="last" i]', 'input[id*="last" i]', 'input[name="lastName"]'],
+      full_name: ['input[name*="fullname" i]', 'input[name*="full_name" i]', 'input[name="name"]', 'input[id*="fullname" i]', 'input[placeholder*="full name" i]'],
+      resume: ['input[type="file"][name*="resume" i]', 'input[type="file"][id*="resume" i]', 'input[type="file"][accept*="pdf"]'],
+      cover_letter: ['textarea[name*="cover" i]', 'textarea[id*="cover" i]', 'textarea[placeholder*="cover" i]'],
+      linkedin: ['input[name*="linkedin" i]', 'input[id*="linkedin" i]', 'input[placeholder*="linkedin" i]']
     };
 
     const fieldSelectors = selectors[fieldName] || [];
     for (const selector of fieldSelectors) {
-      const element = document.querySelector(selector);
-      if (element) return element;
+      try {
+        const element = document.querySelector(selector);
+        if (element && element.offsetParent !== null) { // Check if visible
+          return element;
+        }
+      } catch (error) {
+        console.error(`[XPathDetector] CSS selector error: ${selector}`, error);
+      }
     }
     return null;
   }
 
+  /**
+   * Get all common form fields
+   * @returns {Object}
+   */
   getAllFormFields() {
     const fields = {};
     const fieldTypes = ['email', 'phone', 'first_name', 'last_name', 'full_name', 'resume', 'cover_letter', 'linkedin'];
@@ -196,6 +320,10 @@ class XPathDetector {
     return fields;
   }
 
+  /**
+   * Check if application was successfully submitted
+   * @returns {boolean}
+   */
   checkSubmissionSuccess() {
     if (!this.initialized || !this.currentATS || !this.atsConfig.atsConfigurations[this.currentATS]) {
       return this.genericSuccessCheck();
@@ -206,7 +334,7 @@ class XPathDetector {
 
     for (const xpath of successPaths) {
       const element = this.evaluateXPath(xpath);
-      if (element) {
+      if (element && element.offsetParent !== null) { // Check if visible
         console.log(`[XPathDetector] Application success detected via XPath: ${xpath}`);
         return true;
       }
@@ -215,7 +343,13 @@ class XPathDetector {
     return this.genericSuccessCheck();
   }
 
+  /**
+   * Generic success check using keywords
+   * @returns {boolean}
+   */
   genericSuccessCheck() {
+    if (!document.body) return false;
+
     const successKeywords = [
       'application submitted',
       'thank you for applying',
@@ -223,13 +357,19 @@ class XPathDetector {
       'successfully submitted',
       'application sent',
       'we got your application',
-      'application complete'
+      'we received your application',
+      'application complete',
+      'submission successful'
     ];
 
     const bodyText = document.body.innerText.toLowerCase();
     return successKeywords.some(keyword => bodyText.includes(keyword));
   }
 
+  /**
+   * Get the main form container
+   * @returns {HTMLElement|null}
+   */
   getFormContainer() {
     if (!this.initialized || !this.currentATS || !this.atsConfig.atsConfigurations[this.currentATS]) {
       return document.querySelector('form');
@@ -249,48 +389,102 @@ class XPathDetector {
     return document.querySelector('form');
   }
 
+  /**
+   * Detect all input fields in a container
+   * @param {HTMLElement} container 
+   * @returns {Array<Object>}
+   */
   detectAllInputFields(container = document) {
     const inputs = [];
     const inputElements = container.querySelectorAll('input, textarea, select');
     
     inputElements.forEach(input => {
-      if (input.type !== 'hidden' && input.type !== 'submit' && input.type !== 'button') {
-        const label = this.getFieldLabel(input);
-        inputs.push({
-          element: input,
-          type: input.type || input.tagName.toLowerCase(),
-          name: input.name,
-          id: input.id,
-          label: label,
-          placeholder: input.placeholder
-        });
+      // Skip hidden, submit, button, and image inputs
+      if (input.type === 'hidden' || input.type === 'submit' || 
+          input.type === 'button' || input.type === 'image') {
+        return;
       }
+
+      // Skip if not visible
+      if (input.offsetParent === null) {
+        return;
+      }
+
+      const label = this.getFieldLabel(input);
+      inputs.push({
+        element: input,
+        type: input.type || input.tagName.toLowerCase(),
+        name: input.name || '',
+        id: input.id || '',
+        label: label,
+        placeholder: input.placeholder || '',
+        required: input.required || input.hasAttribute('required')
+      });
     });
 
     return inputs;
   }
 
+  /**
+   * Get label text for an input field
+   * @param {HTMLElement} input 
+   * @returns {string}
+   */
   getFieldLabel(input) {
+    // Try HTMLInputElement.labels property
     if (input.labels && input.labels.length > 0) {
       return input.labels[0].textContent.trim();
     }
 
-    const labelElement = document.querySelector(`label[for="${input.id}"]`);
-    if (labelElement) {
-      return labelElement.textContent.trim();
+    // Try label[for] selector
+    if (input.id) {
+      const labelElement = document.querySelector(`label[for="${CSS.escape(input.id)}"]`);
+      if (labelElement) {
+        return labelElement.textContent.trim();
+      }
     }
 
+    // Try closest label (wrapping label)
     const closestLabel = input.closest('label');
     if (closestLabel) {
-      return closestLabel.textContent.trim();
+      // Clone and remove the input to get just label text
+      const clone = closestLabel.cloneNode(true);
+      const inputClone = clone.querySelector('input, textarea, select');
+      if (inputClone) inputClone.remove();
+      return clone.textContent.trim();
     }
 
+    // Try previous sibling
     const prevElement = input.previousElementSibling;
     if (prevElement && (prevElement.tagName === 'LABEL' || prevElement.tagName === 'SPAN')) {
       return prevElement.textContent.trim();
     }
 
+    // Try aria-label
+    if (input.hasAttribute('aria-label')) {
+      return input.getAttribute('aria-label');
+    }
+
+    // Fallback to placeholder, name, or empty string
     return input.placeholder || input.name || '';
+  }
+
+  /**
+   * Clear all caches
+   */
+  clearCache() {
+    this.fieldCache.clear();
+    this.xpathCache.clear();
+    console.log('[XPathDetector] Cache cleared');
+  }
+
+  /**
+   * Re-detect current ATS (useful after navigation)
+   */
+  refresh() {
+    this.clearCache();
+    this.detectCurrentATS();
+    console.log('[XPathDetector] Refreshed, current ATS:', this.currentATS || 'Generic');
   }
 }
 
@@ -315,6 +509,8 @@ class XPathDetector {
   detector.initialize().then((success) => {
     if (success) {
       console.log('[XPathDetector] ✅ Async initialization successful');
+      // Dispatch custom event for other scripts to listen to
+      window.dispatchEvent(new CustomEvent('xpathDetectorReady', { detail: { detector } }));
     } else {
       console.warn('[XPathDetector] ⚠️ Initialization failed, using fallback mode');
     }
