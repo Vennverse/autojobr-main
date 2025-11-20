@@ -992,9 +992,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/track-application', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { jobTitle, company, location, jobUrl, status, source, platform, appliedDate } = req.body;
+      let { jobTitle, company, location, jobUrl, status, source, platform, appliedDate } = req.body;
 
-      console.log('[EXTENSION TRACKING] Received application:', {
+      // Apply smart defaults for missing fields
+      if (!jobUrl || jobUrl === 'Unknown URL') {
+        jobUrl = 'https://extension-tracked-application.com';
+      }
+      
+      // Extract company from URL if missing
+      if (!company || company === 'Unknown Company') {
+        try {
+          const urlObj = new URL(jobUrl);
+          const hostname = urlObj.hostname.replace(/^www\./, '');
+          const domainParts = hostname.split('.');
+          company = domainParts[0].charAt(0).toUpperCase() + domainParts[0].slice(1);
+        } catch (e) {
+          company = 'Unknown Company';
+        }
+      }
+      
+      // Use company name in job title if missing
+      if (!jobTitle) {
+        jobTitle = `Application at ${company}`;
+      }
+
+      console.log('[EXTENSION TRACKING] Tracking application with defaults:', {
         userId,
         jobTitle,
         company,
@@ -1002,15 +1024,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         source,
         platform
       });
-
-      // Validate required fields
-      if (!jobTitle || !company) {
-        console.error('[EXTENSION TRACKING] Missing required fields:', { jobTitle, company });
-        return res.status(400).json({ 
-          success: false, 
-          error: 'Job title and company are required' 
-        });
-      }
 
       // Check for duplicate applications (same job URL or title+company combination)
       const existingApp = await db

@@ -41,7 +41,7 @@ class AutoJobrContentScript {
     this.buttonInjectionAttempts = 0;
     this.maxButtonInjectionAttempts = 20; // ~3 seconds with 150ms intervals
     this.autoDismissedDialogs = new Set(); // Track dismissed dialogs
-    
+
     // LinkedIn SPA listener tracking
     this.linkedInSPAListenersActive = false;
     this.originalPushState = null;
@@ -151,41 +151,41 @@ class AutoJobrContentScript {
   // Setup fast LinkedIn SPA navigation detection
   setupLinkedInSPAListeners() {
     console.log('🚀 [LinkedIn Optimization] Setting up fast SPA navigation listeners');
-    
+
     // Prevent duplicate setup
     if (this.linkedInSPAListenersActive) {
       console.log('⚠️ [LinkedIn SPA] Listeners already active, skipping setup');
       return;
     }
     this.linkedInSPAListenersActive = true;
-    
+
     // Store original History API methods for restoration during cleanup
     this.originalPushState = history.pushState;
     this.originalReplaceState = history.replaceState;
-    
+
     // Bind to class instance to preserve 'this' context
     const handleNavigation = () => {
       console.log('🔄 [LinkedIn SPA] Navigation detected, fast button injection starting');
       this.fastInjectLinkedInButton();
     };
-    
+
     // Wrap history methods with navigation detection
     history.pushState = function(...args) {
       const result = this.originalPushState.apply(this, args);
       handleNavigation();
       return result;
     }.bind(this);
-    
+
     history.replaceState = function(...args) {
       const result = this.originalReplaceState.apply(this, args);
       handleNavigation();
       return result;
     }.bind(this);
-    
+
     // Store bound handler for cleanup
     this.popstateHandler = handleNavigation;
     window.addEventListener('popstate', this.popstateHandler);
-    
+
     // Focused MutationObserver on job topcard for SPA job swaps
     const topCardObserver = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
@@ -195,7 +195,7 @@ class AutoJobrContentScript {
           this.fastInjectLinkedInButton();
           break;
         }
-        
+
         // Check if new job card container was added
         if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
           for (const node of mutation.addedNodes) {
@@ -211,7 +211,7 @@ class AutoJobrContentScript {
         }
       }
     });
-    
+
     // Observe the main content area and top card
     const mainContent = document.querySelector('#main-content');
     if (mainContent) {
@@ -223,7 +223,7 @@ class AutoJobrContentScript {
       });
       this.observers.push(topCardObserver);
     }
-    
+
     // Initial fast injection
     setTimeout(() => this.fastInjectLinkedInButton(), 100);
   }
@@ -231,56 +231,56 @@ class AutoJobrContentScript {
   // Fast button injection using requestAnimationFrame and short polling
   fastInjectLinkedInButton() {
     const currentJobUrn = this.getCurrentJobUrn();
-    
+
     // Check if we've already injected for this job
     if (currentJobUrn && currentJobUrn === this.lastInjectedJobUrn) {
       console.log('✅ [Fast Injection] Button already injected for job:', currentJobUrn);
       return;
     }
-    
+
     console.log('⚡ [Fast Injection] Starting fast button injection for job:', currentJobUrn || 'pending detection');
-    
+
     // Phase 1: requestAnimationFrame burst for first 500ms
     const startTime = Date.now();
     this.buttonInjectionAttempts = 0;
-    
+
     const attemptInjection = () => {
       const elapsed = Date.now() - startTime;
-      
+
       // Try to inject
       const saveButton = document.querySelector('[aria-label*="Save"]') ||
                         document.querySelector('button.jobs-save-button') ||
                         document.querySelector('[data-control-name*="save"]');
-      
+
       if (saveButton) {
         console.log('✅ [Fast Injection] Save button found, injecting Auto Apply button');
         this.injectLinkedInButtons(null); // Mount button without score
         this.lastInjectedJobUrn = currentJobUrn;
-        
+
         // Schedule analysis update in background
         setTimeout(() => {
           this.debouncedAnalysis?.();
         }, 500);
         return true;
       }
-      
+
       // Phase 1: requestAnimationFrame for first 500ms
       if (elapsed < 500) {
         requestAnimationFrame(attemptInjection);
         return false;
       }
-      
+
       // Phase 2: Short polling with 150ms intervals for up to 3 seconds
       if (this.buttonInjectionAttempts < this.maxButtonInjectionAttempts) {
         this.buttonInjectionAttempts++;
         setTimeout(attemptInjection, 150);
         return false;
       }
-      
+
       console.warn('⚠️ [Fast Injection] Save button not found after 3 seconds, button injection aborted');
       return false;
     };
-    
+
     attemptInjection();
   }
 
@@ -290,7 +290,7 @@ class AutoJobrContentScript {
     if (jobIdElement) {
       return jobIdElement.getAttribute('data-job-id');
     }
-    
+
     // Fallback: extract from URL
     const urlMatch = window.location.href.match(/currentJobId=(\d+)/);
     return urlMatch ? urlMatch[1] : null;
@@ -299,15 +299,15 @@ class AutoJobrContentScript {
   // Cleanup LinkedIn SPA listeners (called on extension unload/navigation)
   cleanupLinkedInSPAListeners() {
     if (!this.linkedInSPAListenersActive) return;
-    
+
     console.log('🧹 [LinkedIn SPA] Cleaning up listeners');
-    
+
     // Remove popstate listener
     if (this.popstateHandler) {
       window.removeEventListener('popstate', this.popstateHandler);
       this.popstateHandler = null;
     }
-    
+
     // CRITICAL: Restore original history methods to prevent wrapper stacking
     if (this.originalPushState) {
       history.pushState = this.originalPushState;
@@ -317,14 +317,14 @@ class AutoJobrContentScript {
       history.replaceState = this.originalReplaceState;
       this.originalReplaceState = null;
     }
-    
+
     this.linkedInSPAListenersActive = false;
   }
 
   // Setup modal auto-dismiss for "Save this application?" dialog
   setupModalAutoDismiss() {
     console.log('🎯 [Auto-Dismiss] Setting up auto-dismiss for post-application dialogs');
-    
+
     const modalObserver = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
@@ -336,30 +336,30 @@ class AutoJobrContentScript {
             )) {
               // Check if this is the "Save this application?" dialog
               const dialogText = node.textContent || '';
-              if (dialogText.includes('Save this application') || 
+              if (dialogText.includes('Save this application') ||
                   dialogText.includes('Save to return to this application')) {
-                
+
                 const dialogId = node.id || `modal-${Date.now()}`;
-                
+
                 // Ensure we haven't already dismissed this dialog
                 if (!this.autoDismissedDialogs.has(dialogId)) {
                   this.autoDismissedDialogs.add(dialogId);
                   console.log('🚫 [Auto-Dismiss] "Save application" dialog detected, auto-clicking Discard');
-                  
+
                   // Wait a moment for dialog to fully render
                   setTimeout(() => {
                     // Find and click the Discard button
                     const discardButton = node.querySelector('button[aria-label="Discard"]') ||
                                          node.querySelector('button[data-control-name="discard_application"]') ||
                                          node.querySelector('button[data-control-name*="discard"]') ||
-                                         Array.from(node.querySelectorAll('button')).find(btn => 
+                                         Array.from(node.querySelectorAll('button')).find(btn =>
                                            btn.textContent.trim().toLowerCase() === 'discard'
                                          );
-                    
+
                     if (discardButton && !discardButton.disabled) {
                       console.log('✅ [Auto-Dismiss] Clicking Discard button');
                       discardButton.click();
-                      
+
                       // Clean up old dialog IDs to prevent memory leak
                       // More aggressive pruning: keep only last 10 entries
                       if (this.autoDismissedDialogs.size > 10) {
@@ -378,13 +378,13 @@ class AutoJobrContentScript {
         }
       }
     });
-    
+
     // Observe the entire body for modal additions
     modalObserver.observe(document.body, {
       childList: true,
       subtree: true
     });
-    
+
     this.observers.push(modalObserver);
     console.log('✅ [Auto-Dismiss] Modal observer active');
   }
@@ -3903,13 +3903,13 @@ class AutoJobrContentScript {
     // Helper to reset tracking state (critical for re-arming)
     const resetTrackingState = (success = true) => {
       pendingSubmission = false;
-      
+
       // If tracking failed, remove from tracked set so retry is allowed
       if (!success && currentUrl) {
         trackedApplications.delete(currentUrl);
         console.log('[App Tracking] ⚠️ Tracking FAILED - URL removed from cache, retry allowed');
       }
-      
+
       console.log(`[App Tracking] ♻️ Tracking state reset (${success ? 'SUCCESS' : 'FAILURE'}) - ready for next submission`);
     };
 
@@ -3924,7 +3924,7 @@ class AutoJobrContentScript {
 
       if (this.isJobApplicationForm(form)) {
         if (!shouldTrack()) return;
-        
+
         console.log('[App Tracking] ✅ Job application form identified');
         markAsTracked();
 
@@ -3948,7 +3948,7 @@ class AutoJobrContentScript {
     document.addEventListener('click', async (e) => {
       const target = e.target;
       const button = target.closest('button, input[type="submit"], a[role="button"]');
-      
+
       if (button && this.isSubmissionButton(button)) {
         console.log('[App Tracking] 🖱️ SUBMIT BUTTON clicked:', {
           text: button.textContent?.substring(0, 50),
@@ -3990,7 +3990,7 @@ class AutoJobrContentScript {
           for (const node of mutation.addedNodes) {
             if (node.nodeType === 1) {
               const text = node.textContent?.toLowerCase() || '';
-              
+
               // Check for success confirmation messages
               const successPatterns = [
                 'application submitted',
@@ -4003,10 +4003,10 @@ class AutoJobrContentScript {
               ];
 
               const hasSuccessMessage = successPatterns.some(pattern => text.includes(pattern));
-              
+
               if (hasSuccessMessage) {
                 console.log('[App Tracking] 🎉 SUCCESS MESSAGE detected:', text.substring(0, 100));
-                
+
                 // Use XPath detector if available for more precise confirmation
                 if (this.xpathDetector) {
                   const xpathSuccess = this.xpathDetector.checkSubmissionSuccess();
@@ -4046,7 +4046,7 @@ class AutoJobrContentScript {
     const urlCheckInterval = setInterval(() => {
       if (window.location.href !== previousUrl) {
         const newUrl = window.location.href.toLowerCase();
-        
+
         // Check if redirected to confirmation page
         const confirmationUrls = [
           'confirmation',
@@ -4057,10 +4057,10 @@ class AutoJobrContentScript {
         ];
 
         const isConfirmationUrl = confirmationUrls.some(pattern => newUrl.includes(pattern));
-        
+
         if (isConfirmationUrl && pendingSubmission) {
           console.log('[App Tracking] 🔄 URL CHANGED to confirmation page:', newUrl);
-          
+
           setTimeout(async () => {
             console.log('[App Tracking] Executing delayed tracking from URL CHANGE...');
             let success = false;
@@ -4075,7 +4075,7 @@ class AutoJobrContentScript {
             }
           }, 1500);
         }
-        
+
         previousUrl = window.location.href;
       }
     }, 1000);
@@ -4083,7 +4083,7 @@ class AutoJobrContentScript {
     // LAYER 5: LinkedIn Easy Apply specific tracking
     if (window.location.hostname.includes('linkedin.com')) {
       console.log('[App Tracking] 🔵 LinkedIn detected - setting up Easy Apply tracking');
-      
+
       // Watch for Easy Apply modal success
       const linkedInObserver = new MutationObserver((mutations) => {
         for (const mutation of mutations) {
@@ -4091,11 +4091,11 @@ class AutoJobrContentScript {
             for (const node of mutation.addedNodes) {
               if (node.nodeType === 1 && node.classList?.contains('artdeco-modal')) {
                 const modalText = node.textContent?.toLowerCase() || '';
-                
-                if (modalText.includes('application was sent') || 
+
+                if (modalText.includes('application was sent') ||
                     modalText.includes('your application was sent to')) {
                   console.log('[App Tracking] ✅ LinkedIn Easy Apply SUCCESS detected');
-                  
+
                   if (shouldTrack()) {
                     markAsTracked();
                     setTimeout(async () => {
@@ -4340,12 +4340,14 @@ class AutoJobrContentScript {
   detectPlatform(hostname) {
     const platformMap = {
       'linkedin.com': 'LinkedIn',
-      'myworkdayjobs.com': 'Workday',
       'indeed.com': 'Indeed',
       'glassdoor.com': 'Glassdoor',
-      'lever.co': 'Lever',
+      'ziprecruiter.com': 'ZipRecruiter',
+      'monster.com': 'Monster',
       'greenhouse.io': 'Greenhouse',
-      'ashbyhq.com': 'AshbyHQ'
+      'lever.co': 'Lever',
+      'workday.com': 'Workday',
+      'myworkdayjobs.com': 'Workday'
     };
 
     for (const [domain, platform] of Object.entries(platformMap)) {
@@ -4353,8 +4355,30 @@ class AutoJobrContentScript {
         return platform;
       }
     }
-    return 'Unknown';
+
+    return 'Other';
   }
+
+  extractCompanyFromUrl(url) {
+    try {
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname.replace(/^www\./, '');
+      const domainParts = hostname.split('.');
+      let company = domainParts[0];
+
+      // Exclude common job boards
+      const jobBoards = ['linkedin', 'indeed', 'glassdoor', 'monster', 'ziprecruiter', 'greenhouse', 'lever', 'workday'];
+      if (jobBoards.includes(company.toLowerCase())) {
+        return null;
+      }
+
+      // Capitalize first letter
+      return company.charAt(0).toUpperCase() + company.slice(1);
+    } catch (e) {
+      return null;
+    }
+  }
+
 
   // Create floating button that opens extension popup
   createFloatingButton() {
@@ -4664,7 +4688,7 @@ class AutoJobrContentScript {
     else {
       jobData.title = document.querySelector('h1, .job-title, [class*="title"]')?.textContent?.trim() || '';
       jobData.company = document.querySelector('.company, [class*="company"]')?.textContent?.trim() || '';
-      jobData.description = document.querySelector('.description, .job-description, [class*="description"]')?.textContent?.trim() || '';
+      jobData.description = document.querySelector('.description, .job-desc, [class*="description"]')?.textContent?.trim() || '';
     }
 
     return jobData.title ? jobData : null;

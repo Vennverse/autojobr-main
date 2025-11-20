@@ -27,15 +27,15 @@ function encryptApiKey(apiKey: string): string {
   if (!validateEncryptionKey()) {
     throw new Error('ENCRYPTION_KEY not configured or invalid - BYOK features disabled');
   }
-  
+
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(ENCRYPTION_KEY, 'hex'), iv);
-  
+
   let encrypted = cipher.update(apiKey, 'utf8', 'hex');
   encrypted += cipher.final('hex');
-  
+
   const authTag = cipher.getAuthTag();
-  
+
   return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
 }
 
@@ -43,22 +43,22 @@ function decryptApiKey(encryptedData: string): string {
   if (!validateEncryptionKey()) {
     throw new Error('ENCRYPTION_KEY not configured or invalid - cannot decrypt BYOK keys');
   }
-  
+
   const parts = encryptedData.split(':');
   if (parts.length !== 3) {
     throw new Error('Invalid encrypted data format');
   }
-  
+
   const iv = Buffer.from(parts[0], 'hex');
   const authTag = Buffer.from(parts[1], 'hex');
   const encrypted = parts[2];
-  
+
   const decipher = crypto.createDecipheriv('aes-256-gcm', Buffer.from(ENCRYPTION_KEY, 'hex'), iv);
   decipher.setAuthTag(authTag);
-  
+
   let decrypted = decipher.update(encrypted, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
-  
+
   return decrypted;
 }
 
@@ -77,15 +77,15 @@ const createTaskSchema = z.object({
 router.get('/tasks', isAuthenticatedExtension, async (req: any, res) => {
   try {
     const userId = req.user.id;
-    
+
     // Validate and sanitize limit with NaN/negative guards
     const limitParam = parseInt(req.query.limit as string);
     const limit = Math.min(isNaN(limitParam) || limitParam < 0 ? 50 : limitParam, 100);
-    
+
     // Validate and sanitize offset with NaN/negative guards and ceiling (max 10000)
     const offsetParam = parseInt(req.query.offset as string);
     const offset = Math.min(Math.max(isNaN(offsetParam) || offsetParam < 0 ? 0 : offsetParam, 0), 10000);
-    
+
     // Normalize and sanitize status (only allow known enum values)
     const validStatuses = ['pending', 'in_progress', 'completed', 'overdue', 'cancelled'];
     let status = null;
@@ -93,14 +93,14 @@ router.get('/tasks', isAuthenticatedExtension, async (req: any, res) => {
       const statusLower = (req.query.status as string).toLowerCase().replace(/[^a-z_]/g, '');
       status = validStatuses.includes(statusLower) ? statusLower : null;
     }
-    
+
     // Build where conditions properly with case-insensitive status matching
     const whereConditions = [eq(tasks.userId, userId)];
     if (status) {
       // Use SQL LOWER() for case-insensitive status matching
       whereConditions.push(sql`LOWER(${tasks.status}) = ${status.toLowerCase()}`);
     }
-    
+
     const userTasks = await db
       .select()
       .from(tasks)
@@ -108,9 +108,9 @@ router.get('/tasks', isAuthenticatedExtension, async (req: any, res) => {
       .orderBy(desc(tasks.createdAt))
       .limit(limit)
       .offset(offset);
-    
+
     console.log(`[Extension API] Fetched ${userTasks.length} tasks for user ${userId}${status ? ` with status=${status}` : ''}`);
-    
+
     res.json({ success: true, tasks: userTasks });
   } catch (error) {
     console.error('Error fetching tasks:', error);
@@ -122,9 +122,9 @@ router.get('/tasks', isAuthenticatedExtension, async (req: any, res) => {
 router.post('/tasks', isAuthenticatedExtension, async (req: any, res) => {
   try {
     const userId = req.user.id;
-    
+
     const validatedData = createTaskSchema.parse(req.body);
-    
+
     const [newTask] = await db.insert(tasks).values({
       userId,
       title: validatedData.title,
@@ -137,7 +137,7 @@ router.post('/tasks', isAuthenticatedExtension, async (req: any, res) => {
       reminderEnabled: validatedData.reminderEnabled ?? (!!validatedData.dueDateTime || !!validatedData.reminderAt),
       status: 'pending'
     }).returning();
-    
+
     res.json({ success: true, task: newTask });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -154,11 +154,11 @@ router.patch('/tasks/:id/status', isAuthenticatedExtension, async (req: any, res
     const userId = req.user.id;
     const taskId = parseInt(req.params.id);
     const { status } = req.body;
-    
+
     if (!status || !['pending', 'in_progress', 'completed', 'cancelled'].includes(status)) {
       return res.status(400).json({ success: false, error: 'Invalid status' });
     }
-    
+
     const [updatedTask] = await db
       .update(tasks)
       .set({
@@ -168,11 +168,11 @@ router.patch('/tasks/:id/status', isAuthenticatedExtension, async (req: any, res
       })
       .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
       .returning();
-    
+
     if (!updatedTask) {
       return res.status(404).json({ success: false, error: 'Task not found' });
     }
-    
+
     res.json({ success: true, task: updatedTask });
   } catch (error) {
     console.error('Error updating task status:', error);
@@ -186,7 +186,7 @@ router.patch('/tasks/:id', isAuthenticatedExtension, async (req: any, res) => {
     const userId = req.user.id;
     const taskId = parseInt(req.params.id);
     const { completed } = req.body;
-    
+
     const [updatedTask] = await db
       .update(tasks)
       .set({
@@ -196,7 +196,7 @@ router.patch('/tasks/:id', isAuthenticatedExtension, async (req: any, res) => {
       })
       .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
       .returning();
-    
+
     res.json({ success: true, task: updatedTask });
   } catch (error) {
     console.error('Error updating task:', error);
@@ -209,11 +209,11 @@ router.delete('/tasks/:id', isAuthenticatedExtension, async (req: any, res) => {
   try {
     const userId = req.user.id;
     const taskId = parseInt(req.params.id);
-    
+
     await db
       .delete(tasks)
       .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)));
-    
+
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting task:', error);
@@ -225,7 +225,7 @@ router.delete('/tasks/:id', isAuthenticatedExtension, async (req: any, res) => {
 router.get('/user/settings', isAuthenticatedExtension, async (req: any, res) => {
   try {
     const userId = req.user.id;
-    
+
     const integration = await db
       .select()
       .from(userIntegrations)
@@ -234,7 +234,7 @@ router.get('/user/settings', isAuthenticatedExtension, async (req: any, res) => 
         eq(userIntegrations.integrationId, 'groq')
       ))
       .limit(1);
-    
+
     res.json({
       success: true,
       settings: {
@@ -253,18 +253,18 @@ router.post('/user/settings', isAuthenticatedExtension, async (req: any, res) =>
   try {
     const userId = req.user.id;
     const { groqApiKey } = req.body;
-    
+
     if (!groqApiKey || typeof groqApiKey !== 'string' || groqApiKey.length < 10) {
       return res.status(400).json({ success: false, error: 'Valid API key is required' });
     }
-    
+
     if (!validateEncryptionKey()) {
       return res.status(503).json({ 
         success: false, 
         error: 'BYOK features are temporarily unavailable. Please contact support to enable encryption.' 
       });
     }
-    
+
     let encryptedKey: string;
     try {
       encryptedKey = encryptApiKey(groqApiKey);
@@ -272,7 +272,7 @@ router.post('/user/settings', isAuthenticatedExtension, async (req: any, res) =>
       console.error('Error encrypting API key:', encryptError);
       return res.status(500).json({ success: false, error: 'Failed to encrypt API key' });
     }
-    
+
     const existing = await db
       .select()
       .from(userIntegrations)
@@ -281,7 +281,7 @@ router.post('/user/settings', isAuthenticatedExtension, async (req: any, res) =>
         eq(userIntegrations.integrationId, 'groq')
       ))
       .limit(1);
-    
+
     if (existing.length > 0) {
       await db
         .update(userIntegrations)
@@ -299,7 +299,7 @@ router.post('/user/settings', isAuthenticatedExtension, async (req: any, res) =>
         isEnabled: true
       });
     }
-    
+
     res.json({ success: true });
   } catch (error) {
     console.error('Error saving settings:', error);
@@ -311,14 +311,14 @@ router.post('/user/settings', isAuthenticatedExtension, async (req: any, res) =>
 router.post('/chat', async (req: any, res) => {
   try {
     const { message, useExtensionKey } = req.body;
-    
+
     if (!message || typeof message !== 'string' || message.length > 10000) {
       return res.status(400).json({ success: false, error: 'Valid message is required (max 10000 chars)' });
     }
-    
+
     let customApiKey: string | undefined;
     let userId = req.user?.id;
-    
+
     // If authenticated, try to get user's stored BYOK key
     if (userId) {
       const integration = await db
@@ -330,9 +330,9 @@ router.post('/chat', async (req: any, res) => {
           eq(userIntegrations.isEnabled, true)
         ))
         .limit(1);
-      
+
       const hasValidByokKey = integration.length > 0 && integration[0].apiKey && integration[0].isEnabled;
-      
+
       if (hasValidByokKey && validateEncryptionKey()) {
         try {
           customApiKey = decryptApiKey(integration[0].apiKey!);
@@ -341,13 +341,13 @@ router.post('/chat', async (req: any, res) => {
         }
       }
     }
-    
+
     // Use AI service (will handle both custom keys and fallback to system keys)
     const reply = await aiService.chatWithContext(message, {
       userId: userId || 'anonymous',
       customApiKey
     });
-    
+
     res.json({ success: true, reply });
   } catch (error) {
     console.error('Error in chat:', error);
@@ -360,7 +360,7 @@ router.post('/resume/generate', isAuthenticatedExtension, async (req: any, res) 
   try {
     const userId = req.user.id;
     const { jobDescription, additionalRequirements } = req.body;
-    
+
     if (!jobDescription || typeof jobDescription !== 'string' || jobDescription.length < 50) {
       return res.status(400).json({ 
         success: false, 
@@ -374,7 +374,7 @@ router.post('/resume/generate', isAuthenticatedExtension, async (req: any, res) 
         error: 'Job description is too long (maximum 20000 characters)' 
       });
     }
-    
+
     // Check user's premium status
     const user = await db.query.users.findFirst({
       where: eq(users.id, userId),
@@ -386,7 +386,7 @@ router.post('/resume/generate', isAuthenticatedExtension, async (req: any, res) 
     }
 
     const isPremium = user.planType === 'premium' || user.planType === 'enterprise' || user.planType === 'ultra_premium';
-    
+
     // Check for BYOK key
     const integration = await db
       .select()
@@ -397,7 +397,7 @@ router.post('/resume/generate', isAuthenticatedExtension, async (req: any, res) 
         eq(userIntegrations.isEnabled, true)
       ))
       .limit(1);
-    
+
     const hasValidByokKey = integration.length > 0 && integration[0].apiKey && integration[0].isEnabled;
 
     // Enforce premium or BYOK requirement
@@ -407,7 +407,7 @@ router.post('/resume/generate', isAuthenticatedExtension, async (req: any, res) 
         error: 'Resume generation requires a premium subscription or your own Groq API key. Please upgrade to premium or add your API key in Settings.' 
       });
     }
-    
+
     let decryptedKey: string | undefined;
     if (hasValidByokKey) {
       if (!validateEncryptionKey()) {
@@ -447,7 +447,7 @@ Generate a complete, professional resume in plain text format.`;
       userId,
       customApiKey: decryptedKey
     });
-    
+
     if (!resume) {
       return res.status(500).json({ 
         success: false, 
@@ -466,7 +466,7 @@ Generate a complete, professional resume in plain text format.`;
 router.get('/applications/pending-reminders', isAuthenticatedExtension, async (req: any, res) => {
   try {
     const userId = req.user.id;
-    
+
     // Get tasks with reminders that are due
     const now = new Date();
     const reminderTasks = await db
@@ -481,7 +481,7 @@ router.get('/applications/pending-reminders', isAuthenticatedExtension, async (r
         )
       )
       .limit(10);
-    
+
     res.json({
       success: true,
       reminders: reminderTasks.map(task => ({
@@ -496,6 +496,76 @@ router.get('/applications/pending-reminders', isAuthenticatedExtension, async (r
     console.error('Error fetching reminders:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch reminders' });
   }
-}
+});
+
+// Add trackApplication endpoint to handle application tracking from the extension
+router.post('/track-application', isAuthenticatedExtension, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const data = req.body;
+
+    // Extract job URL with fallback
+    const jobUrl = data.jobUrl || window?.location?.href || 'Unknown URL';
+
+    // Extract company from URL if not provided
+    let company = data.company || 'Unknown Company';
+    if (!data.company && jobUrl && jobUrl !== 'Unknown URL') {
+      const urlMatch = jobUrl.match(/(?:\/\/|www\.)([^/.:]+)/);
+      if (urlMatch && urlMatch[1]) {
+        company = urlMatch[1].replace(/\.(com|io|co|net|org)$/i, '');
+        company = company.charAt(0).toUpperCase() + company.slice(1);
+      }
+    }
+
+    // Job title fallback
+    const jobTitle = data.jobTitle || `Application at ${company}`;
+
+    console.log('[TRACK APP] Starting application tracking:', {
+      jobTitle,
+      company,
+      location: data.location || 'Remote',
+      jobUrl,
+      platform: data.platform || 'extension'
+    });
+
+    const requestBody = {
+      jobTitle,
+      company,
+      location: data.location || 'Remote',
+      jobUrl,
+      status: data.status || 'applied',
+      source: 'extension',
+      platform: data.platform || 'extension',
+      appliedDate: data.appliedDate || new Date().toISOString(),
+      jobType: data.jobType || null,
+      workMode: data.workMode || null
+    };
+
+    console.log('[TRACK APP] Request body:', requestBody);
+
+    // Save the application data to the database
+    await db.insert(jobApplications).values({
+      userId,
+      jobTitle: requestBody.jobTitle,
+      company: requestBody.company,
+      location: requestBody.location,
+      jobUrl: requestBody.jobUrl,
+      status: requestBody.status,
+      source: requestBody.source,
+      platform: requestBody.platform,
+      appliedDate: new Date(requestBody.appliedDate),
+      jobType: requestBody.jobType,
+      workMode: requestBody.workMode,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    res.json({ success: true, message: 'Application tracked successfully' });
+  } catch (error) {
+    console.error('Error tracking application:', error);
+    res.status(500).json({ success: false, error: 'Failed to track application' });
+  }
+});
+
 
 export default router;

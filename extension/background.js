@@ -1219,12 +1219,71 @@ class AutoJobrBackground {
 
   async trackApplication(data) {
     try {
-      console.log('[TRACK APP] Starting application tracking:', {
-        jobTitle: data.jobTitle,
-        company: data.company,
-        location: data.location,
-        jobUrl: data.jobUrl,
-        platform: data.platform
+      // Extract job URL with fallback to current tab URL
+      let jobUrl = data.jobUrl || '';
+      if (!jobUrl) {
+        try {
+          const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+          jobUrl = activeTab?.url || 'Unknown URL';
+        } catch (e) {
+          jobUrl = 'Unknown URL';
+        }
+      }
+      
+      // Extract company from URL if not provided
+      let company = data.company || '';
+      if (!company && jobUrl !== 'Unknown URL') {
+        // Try to extract domain name as company
+        try {
+          const urlObj = new URL(jobUrl);
+          const hostname = urlObj.hostname.replace(/^www\./, '');
+          const domainParts = hostname.split('.');
+          company = domainParts[0].charAt(0).toUpperCase() + domainParts[0].slice(1);
+          
+          // Remove common job board names
+          if (['linkedin', 'indeed', 'glassdoor', 'monster'].includes(domainParts[0].toLowerCase())) {
+            company = 'Unknown Company';
+          }
+        } catch (e) {
+          company = 'Unknown Company';
+        }
+      }
+      if (!company) company = 'Unknown Company';
+      
+      // Job title with intelligent fallback
+      let jobTitle = data.jobTitle || '';
+      if (!jobTitle) {
+        // Try to extract from document title
+        try {
+          const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+          const tabTitle = activeTab?.title || '';
+          if (tabTitle && !tabTitle.toLowerCase().includes('login') && !tabTitle.toLowerCase().includes('sign in')) {
+            jobTitle = tabTitle.substring(0, 100); // Limit length
+          }
+        } catch (e) {
+          // Ignore
+        }
+      }
+      if (!jobTitle) jobTitle = `Application at ${company}`;
+      
+      // Platform detection from URL
+      let platform = data.platform || 'extension';
+      if (jobUrl !== 'Unknown URL') {
+        const urlLower = jobUrl.toLowerCase();
+        if (urlLower.includes('linkedin')) platform = 'LinkedIn';
+        else if (urlLower.includes('indeed')) platform = 'Indeed';
+        else if (urlLower.includes('glassdoor')) platform = 'Glassdoor';
+        else if (urlLower.includes('greenhouse')) platform = 'Greenhouse';
+        else if (urlLower.includes('lever')) platform = 'Lever';
+        else if (urlLower.includes('workday')) platform = 'Workday';
+      }
+      
+      console.log('[TRACK APP] Starting application tracking with defaults:', {
+        jobTitle,
+        company,
+        location: data.location || 'Remote',
+        jobUrl,
+        platform
       });
 
       // Use session-based authentication instead of Bearer tokens
@@ -1233,13 +1292,13 @@ class AutoJobrBackground {
       };
 
       const requestBody = {
-        jobTitle: data.jobTitle,
-        company: data.company,
-        location: data.location || '',
-        jobUrl: data.jobUrl || window.location?.href || '',
+        jobTitle,
+        company,
+        location: data.location || 'Remote',
+        jobUrl,
         status: data.status || 'applied',
         source: 'extension',
-        platform: data.platform || 'extension',
+        platform,
         appliedDate: data.appliedDate || new Date().toISOString(),
         jobType: data.jobType || null,
         workMode: data.workMode || null
