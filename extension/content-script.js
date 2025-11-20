@@ -5012,6 +5012,16 @@ class AutoJobrContentScript {
 
   // Show Interview Prep Modal
   showInterviewPrepModal(prep) {
+    // Ensure questions is always an array
+    const questions = Array.isArray(prep.questions) ? prep.questions : 
+                     (prep.questions ? [prep.questions] : [
+                       'Tell me about yourself',
+                       'Why do you want to work here?',
+                       'Describe a challenging situation',
+                       'What are your strengths and weaknesses?',
+                       'Do you have any questions for the interviewer?'
+                     ]);
+
     const modal = document.createElement('div');
     modal.className = 'autojobr-modal-overlay';
     modal.innerHTML = `
@@ -5028,7 +5038,7 @@ class AutoJobrContentScript {
           <div class="prep-section">
             <h4>Common Interview Questions</h4>
             <ul class="prep-questions">
-              ${(prep.questions || []).map(q => `<li>${q}</li>`).join('')}
+              ${questions.map(q => `<li>${String(q)}</li>`).join('')}
             </ul>
           </div>
           <div class="prep-section">

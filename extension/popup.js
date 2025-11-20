@@ -1176,7 +1176,10 @@ class AutoJobrPopup {
         })
       });
 
-      if (response && !response.error && response.success) {
+      console.log('Interview prep response:', response);
+
+      if (response && !response.error) {
+        // Response structure: { success: true, companyInsights, tips, questions }
         this.showInterviewPrepModal(response);
         this.showNotification('✅ Interview prep generated!', 'success');
       } else {
@@ -1268,6 +1271,16 @@ class AutoJobrPopup {
   }
 
   showInterviewPrepModal(prep) {
+    // Ensure questions is always an array
+    const questions = Array.isArray(prep.questions) ? prep.questions : 
+                     (prep.questions ? [prep.questions] : [
+                       'Tell me about yourself',
+                       'Why do you want to work here?',
+                       'Describe a challenging situation',
+                       'What are your strengths and weaknesses?',
+                       'Do you have any questions for the interviewer?'
+                     ]);
+
     const modal = document.createElement('div');
     modal.className = 'modal-overlay show';
     modal.innerHTML = `
@@ -1284,9 +1297,9 @@ class AutoJobrPopup {
           <div style="margin-bottom: 20px;">
             <h4 style="color: #3b82f6; margin-bottom: 10px;">Common Interview Questions</h4>
             <ul style="list-style: none; padding: 0;">
-              ${(prep.questions || []).map(q => `
+              ${questions.map(q => `
                 <li style="padding: 10px; background: #f8fafc; border-radius: 8px; margin-bottom: 8px; font-size: 14px;">
-                  ${q}
+                  ${this.escapeHtml(String(q))}
                 </li>
               `).join('')}
             </ul>
