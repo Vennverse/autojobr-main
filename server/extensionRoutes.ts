@@ -462,53 +462,6 @@ Generate a complete, professional resume in plain text format.`;
   }
 });
 
-// Track application submission from extension (already authenticated)
-router.post('/applications/track-submission', isAuthenticatedExtension, async (req: any, res) => {
-  try {
-    const userId = req.user.id;
-    const { url, timestamp, statusCode } = req.body;
-    
-    console.log('[AutoJobr] Application submission tracked:', {
-      userId,
-      url,
-      statusCode,
-      timestamp
-    });
-    
-    // Update or create application record
-    // Extract job info from URL if possible
-    const jobInfo = extractJobInfoFromUrl(url);
-    
-    // Log to database - check if application already exists
-    const existingApp = await db
-      .select()
-      .from(jobApplications)
-      .where(
-        and(
-          eq(jobApplications.userId, userId),
-          eq(jobApplications.company, jobInfo.company || 'Unknown')
-        )
-      )
-      .limit(1);
-
-    if (existingApp.length > 0) {
-      // Update existing application
-      await db
-        .update(jobApplications)
-        .set({
-          status: 'submitted',
-          lastUpdated: new Date(timestamp)
-        })
-        .where(eq(jobApplications.id, existingApp[0].id));
-    }
-    
-    res.json({ success: true, message: 'Submission tracked successfully' });
-  } catch (error) {
-    console.error('Error tracking submission:', error);
-    res.status(500).json({ success: false, error: 'Failed to track submission' });
-  }
-});
-
 // Get pending application reminders (already authenticated)
 router.get('/applications/pending-reminders', isAuthenticatedExtension, async (req: any, res) => {
   try {
@@ -542,43 +495,6 @@ router.get('/applications/pending-reminders', isAuthenticatedExtension, async (r
   } catch (error) {
     console.error('Error fetching reminders:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch reminders' });
-  }
-});
-
-// Helper function to extract job info from URL
-function extractJobInfoFromUrl(url: string): { company: string | null; jobId: string | null; platform: string | null } {
-  try {
-    const urlObj = new URL(url);
-    const hostname = urlObj.hostname;
-    const pathname = urlObj.pathname;
-    
-    // Extract company from different ATS platforms
-    if (hostname.includes('greenhouse.io')) {
-      const match = pathname.match(/\/([^/]+)\/jobs/);
-      return {
-        company: match ? match[1] : null,
-        jobId: pathname.split('/').pop() || null,
-        platform: 'Greenhouse'
-      };
-    } else if (hostname.includes('lever.co')) {
-      const match = pathname.match(/\/([^/]+)\//);
-      return {
-        company: match ? match[1] : null,
-        jobId: pathname.split('/').pop() || null,
-        platform: 'Lever'
-      };
-    } else if (hostname.includes('myworkdayjobs.com')) {
-      const match = hostname.match(/([^.]+)\.myworkdayjobs\.com/);
-      return {
-        company: match ? match[1] : null,
-        jobId: pathname.split('/').pop() || null,
-        platform: 'Workday'
-      };
-    }
-    
-    return { company: null, jobId: null, platform: 'Unknown' };
-  } catch (error) {
-    return { company: null, jobId: null, platform: null };
   }
 }
 
