@@ -102,19 +102,32 @@ class AutoJobrContentScript {
   async loadXPathDetector() {
     return new Promise((resolve) => {
       try {
+        // Check if already loaded
+        if (window.xpathDetector) {
+          console.log('[AutoJobr] XPath detector already loaded');
+          this.xpathDetector = window.xpathDetector;
+          resolve(true);
+          return;
+        }
+
         const script = document.createElement('script');
         script.src = chrome.runtime.getURL('xpath-detector.js');
         script.type = 'text/javascript';
+        script.async = false; // Ensure synchronous execution
 
         script.onload = async () => {
+          console.log('[AutoJobr] XPath detector script loaded, waiting for initialization...');
+          
           // Wait for script execution with retries
           let retries = 0;
-          const maxRetries = 10;
+          const maxRetries = 20; // Increased retries
+          const retryDelay = 100; // Increased delay
 
           while (retries < maxRetries) {
-            await new Promise(r => setTimeout(r, 50));
+            await new Promise(r => setTimeout(r, retryDelay));
 
             if (window.xpathDetector) {
+              console.log('[AutoJobr] ✅ window.xpathDetector found, initializing...');
               try {
                 await window.xpathDetector.initialize();
                 this.xpathDetector = window.xpathDetector;
@@ -131,7 +144,7 @@ class AutoJobrContentScript {
             retries++;
           }
 
-          console.warn('[AutoJobr] ⚠️ window.xpathDetector not available after script load');
+          console.warn('[AutoJobr] ⚠️ window.xpathDetector not available after', maxRetries * retryDelay, 'ms');
           resolve(false);
         };
 
@@ -140,7 +153,15 @@ class AutoJobrContentScript {
           resolve(false);
         };
 
-        (document.head || document.documentElement).appendChild(script);
+        // Append to head first, then documentElement as fallback
+        const target = document.head || document.documentElement;
+        if (target) {
+          target.appendChild(script);
+          console.log('[AutoJobr] XPath detector script injected into', target.tagName);
+        } else {
+          console.error('[AutoJobr] ❌ No injection target available');
+          resolve(false);
+        }
       } catch (error) {
         console.error('[AutoJobr] ❌ Exception loading XPath detector:', error);
         resolve(false);

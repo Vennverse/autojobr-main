@@ -7,24 +7,40 @@ class XPathDetector {
   constructor() {
     this.atsConfig = null;
     this.currentATS = null;
+    this.initialized = false;
     console.log('[XPathDetector] Constructor called');
   }
 
   async initialize() {
+    // Prevent duplicate initialization
+    if (this.initialized) {
+      console.log('[XPathDetector] Already initialized, skipping');
+      return;
+    }
+
     try {
       console.log('[XPathDetector] Initializing...');
-      const response = await fetch(chrome.runtime.getURL('ats-config.json'));
+      const configUrl = chrome.runtime.getURL('ats-config.json');
+      console.log('[XPathDetector] Loading config from:', configUrl);
+      
+      const response = await fetch(configUrl);
       if (!response.ok) {
         throw new Error(`Failed to load config: ${response.status}`);
       }
+      
       this.atsConfig = await response.json();
-      console.log('[XPathDetector] Config loaded:', Object.keys(this.atsConfig));
+      console.log('[XPathDetector] Config loaded successfully');
+      console.log('[XPathDetector] Available ATS platforms:', Object.keys(this.atsConfig.atsConfigurations || {}));
+      
       this.detectCurrentATS();
-      console.log('[XPathDetector] Initialization complete. Current ATS:', this.currentATS || 'None detected');
+      this.initialized = true;
+      
+      console.log('[XPathDetector] ✅ Initialization complete. Current ATS:', this.currentATS || 'Generic (CSS fallback)');
     } catch (error) {
-      console.error('[XPathDetector] Initialization failed:', error);
+      console.error('[XPathDetector] ❌ Initialization failed:', error);
       // Set a minimal config to prevent errors
       this.atsConfig = { atsConfigurations: {}, fieldDetectionPatterns: {} };
+      this.initialized = true; // Mark as initialized even on error to prevent retry loops
     }
   }
 
@@ -256,4 +272,22 @@ class XPathDetector {
   }
 }
 
-window.xpathDetector = new XPathDetector();
+// Create and expose XPath detector globally IMMEDIATELY
+(function() {
+  'use strict';
+  
+  console.log('[XPathDetector] Creating global instance...');
+  
+  // Create the detector instance
+  const detector = new XPathDetector();
+  
+  // Make it globally available immediately
+  window.xpathDetector = detector;
+  
+  // Also expose on document for additional safety
+  if (typeof document !== 'undefined') {
+    document.xpathDetector = detector;
+  }
+  
+  console.log('[XPathDetector] ✅ Global instance created and exposed');
+})();
