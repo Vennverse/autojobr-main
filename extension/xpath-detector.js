@@ -1,3 +1,4 @@
+
 /**
  * XPath-based Field Detection Engine
  * Inspired by Simplify extension's configuration-driven approach
@@ -15,7 +16,7 @@ class XPathDetector {
     // Prevent duplicate initialization
     if (this.initialized) {
       console.log('[XPathDetector] Already initialized, skipping');
-      return;
+      return true;
     }
 
     try {
@@ -36,22 +37,32 @@ class XPathDetector {
       this.initialized = true;
       
       console.log('[XPathDetector] ✅ Initialization complete. Current ATS:', this.currentATS || 'Generic (CSS fallback)');
+      return true;
     } catch (error) {
       console.error('[XPathDetector] ❌ Initialization failed:', error);
       // Set a minimal config to prevent errors
       this.atsConfig = { atsConfigurations: {}, fieldDetectionPatterns: {} };
       this.initialized = true; // Mark as initialized even on error to prevent retry loops
+      return false;
     }
   }
 
   detectCurrentATS() {
     const currentUrl = window.location.href;
     
+    if (!this.atsConfig || !this.atsConfig.atsConfigurations) {
+      console.log('[XPathDetector] No ATS config available');
+      this.currentATS = null;
+      return null;
+    }
+    
     for (const [atsName, config] of Object.entries(this.atsConfig.atsConfigurations)) {
+      if (!config.urls) continue;
+      
       for (const urlPattern of config.urls) {
         if (this.matchesPattern(currentUrl, urlPattern)) {
           this.currentATS = atsName;
-          console.log(`[AutoJobr] Detected ATS: ${atsName}`);
+          console.log(`[XPathDetector] Detected ATS: ${atsName}`);
           return atsName;
         }
       }
@@ -62,11 +73,16 @@ class XPathDetector {
   }
 
   matchesPattern(url, pattern) {
-    const regex = pattern
-      .replace(/\*/g, '.*')
-      .replace(/\?/g, '\\?')
-      .replace(/\./g, '\\.');
-    return new RegExp('^' + regex + '$').test(url);
+    try {
+      const regex = pattern
+        .replace(/\*/g, '.*')
+        .replace(/\?/g, '\\?')
+        .replace(/\./g, '\\.');
+      return new RegExp('^' + regex + '$').test(url);
+    } catch (error) {
+      console.error('[XPathDetector] Pattern matching error:', error);
+      return false;
+    }
   }
 
   evaluateXPath(xpath, contextNode = document) {
@@ -80,7 +96,7 @@ class XPathDetector {
       );
       return result.singleNodeValue;
     } catch (error) {
-      console.error(`[AutoJobr] XPath evaluation error: ${xpath}`, error);
+      console.error(`[XPathDetector] XPath evaluation error: ${xpath}`, error);
       return null;
     }
   }
@@ -100,12 +116,17 @@ class XPathDetector {
       }
       return nodes;
     } catch (error) {
-      console.error(`[AutoJobr] XPath evaluation error: ${xpath}`, error);
+      console.error(`[XPathDetector] XPath evaluation error: ${xpath}`, error);
       return [];
     }
   }
 
   detectField(fieldName) {
+    if (!this.initialized) {
+      console.warn('[XPathDetector] Not initialized yet, using CSS fallback');
+      return this.detectFieldByCSS(fieldName);
+    }
+
     if (this.currentATS && this.atsConfig.atsConfigurations[this.currentATS]) {
       const atsConfig = this.atsConfig.atsConfigurations[this.currentATS];
       const fieldMappings = atsConfig.fieldMappings;
@@ -114,7 +135,7 @@ class XPathDetector {
         for (const xpath of fieldMappings[fieldName]) {
           const element = this.evaluateXPath(xpath);
           if (element) {
-            console.log(`[AutoJobr] Found ${fieldName} via ATS-specific XPath: ${xpath}`);
+            console.log(`[XPathDetector] Found ${fieldName} via ATS-specific XPath: ${xpath}`);
             return element;
           }
         }
@@ -126,7 +147,7 @@ class XPathDetector {
       for (const xpath of genericPatterns.xpaths) {
         const element = this.evaluateXPath(xpath);
         if (element) {
-          console.log(`[AutoJobr] Found ${fieldName} via generic XPath: ${xpath}`);
+          console.log(`[XPathDetector] Found ${fieldName} via generic XPath: ${xpath}`);
           return element;
         }
       }
@@ -134,7 +155,7 @@ class XPathDetector {
 
     const cssElement = this.detectFieldByCSS(fieldName);
     if (cssElement) {
-      console.log(`[AutoJobr] Found ${fieldName} via CSS fallback`);
+      console.log(`[XPathDetector] Found ${fieldName} via CSS fallback`);
       return cssElement;
     }
 
@@ -147,6 +168,7 @@ class XPathDetector {
       phone: ['input[type="tel"]', 'input[name*="phone"]', 'input[id*="phone"]'],
       first_name: ['input[name*="first"]', 'input[id*="first"]', 'input[name="firstName"]'],
       last_name: ['input[name*="last"]', 'input[id*="last"]', 'input[name="lastName"]'],
+      full_name: ['input[name*="name"]', 'input[id*="name"]', 'input[placeholder*="name"]'],
       resume: ['input[type="file"][name*="resume"]', 'input[type="file"][id*="resume"]', 'input[type="file"]'],
       cover_letter: ['textarea[name*="cover"]', 'textarea[id*="cover"]'],
       linkedin: ['input[name*="linkedin"]', 'input[id*="linkedin"]']
@@ -162,7 +184,7 @@ class XPathDetector {
 
   getAllFormFields() {
     const fields = {};
-    const fieldTypes = ['email', 'phone', 'first_name', 'last_name', 'resume', 'cover_letter', 'linkedin', 'full_name'];
+    const fieldTypes = ['email', 'phone', 'first_name', 'last_name', 'full_name', 'resume', 'cover_letter', 'linkedin'];
     
     for (const fieldType of fieldTypes) {
       const element = this.detectField(fieldType);
@@ -175,7 +197,7 @@ class XPathDetector {
   }
 
   checkSubmissionSuccess() {
-    if (!this.currentATS || !this.atsConfig.atsConfigurations[this.currentATS]) {
+    if (!this.initialized || !this.currentATS || !this.atsConfig.atsConfigurations[this.currentATS]) {
       return this.genericSuccessCheck();
     }
 
@@ -185,7 +207,7 @@ class XPathDetector {
     for (const xpath of successPaths) {
       const element = this.evaluateXPath(xpath);
       if (element) {
-        console.log(`[AutoJobr] Application success detected via XPath: ${xpath}`);
+        console.log(`[XPathDetector] Application success detected via XPath: ${xpath}`);
         return true;
       }
     }
@@ -209,7 +231,7 @@ class XPathDetector {
   }
 
   getFormContainer() {
-    if (!this.currentATS || !this.atsConfig.atsConfigurations[this.currentATS]) {
+    if (!this.initialized || !this.currentATS || !this.atsConfig.atsConfigurations[this.currentATS]) {
       return document.querySelector('form');
     }
 
@@ -219,7 +241,7 @@ class XPathDetector {
     for (const xpath of containerPaths) {
       const container = this.evaluateXPath(xpath);
       if (container) {
-        console.log(`[AutoJobr] Found form container via XPath: ${xpath}`);
+        console.log(`[XPathDetector] Found form container via XPath: ${xpath}`);
         return container;
       }
     }
@@ -272,22 +294,31 @@ class XPathDetector {
   }
 }
 
-// Create and expose XPath detector globally IMMEDIATELY
+// Create and expose XPath detector globally with proper initialization
 (function() {
   'use strict';
   
-  console.log('[XPathDetector] Creating global instance...');
+  console.log('[XPathDetector] Creating and initializing global instance...');
   
   // Create the detector instance
   const detector = new XPathDetector();
   
-  // Make it globally available immediately
+  // Make it globally available immediately (even before initialization completes)
   window.xpathDetector = detector;
-  
-  // Also expose on document for additional safety
   if (typeof document !== 'undefined') {
     document.xpathDetector = detector;
   }
   
   console.log('[XPathDetector] ✅ Global instance created and exposed');
+  
+  // Initialize asynchronously but don't block script loading
+  detector.initialize().then((success) => {
+    if (success) {
+      console.log('[XPathDetector] ✅ Async initialization successful');
+    } else {
+      console.warn('[XPathDetector] ⚠️ Initialization failed, using fallback mode');
+    }
+  }).catch((error) => {
+    console.error('[XPathDetector] ❌ Initialization error:', error);
+  });
 })();
