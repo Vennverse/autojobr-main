@@ -56,6 +56,10 @@ class AutoJobrPopup {
       // Check connection and authentication
       await this.checkConnection();
       await this.loadUserProfile();
+      
+      // Try to get current analysis from content script first
+      await this.syncAnalysisFromContentScript();
+      
       await this.analyzeCurrentPage();
       await this.loadTasks();
 
@@ -68,6 +72,30 @@ class AutoJobrPopup {
       console.error('Popup initialization error:', error);
       this.showError('Failed to initialize extension');
       this.showLoading(false);
+    }
+  }
+
+  async syncAnalysisFromContentScript() {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const response = await chrome.tabs.sendMessage(tab.id, { action: 'getCurrentAnalysis' }).catch(() => null);
+
+      if (response && response.success && response.analysis) {
+        console.log('[Popup] Syncing analysis from content script:', response.analysis);
+        this.currentAnalysis = response.analysis;
+        this.jobData = response.jobData;
+        
+        // Display the synced analysis immediately
+        if (response.jobData && response.jobData.title) {
+          this.updateJobInfo(response.jobData);
+        }
+        
+        if (response.analysis.matchScore) {
+          this.displayUnifiedAnalysis(response.analysis, response.jobData);
+        }
+      }
+    } catch (error) {
+      console.log('[Popup] No analysis data from content script:', error.message);
     }
   }
 
@@ -190,13 +218,19 @@ class AutoJobrPopup {
         throw new Error('Server not reachable');
       }
 
-      // Check authentication
-      const authResponse = await this.makeApiRequest('/api/user', {
+      this.isConnected = true;
+
+      // Check authentication using extension-specific endpoint
+      const authResponse = await this.makeApiRequest('/api/extension/profile', {
         method: 'GET'
       });
 
-      this.isConnected = !!healthResponse;
       this.isAuthenticated = !!authResponse && !authResponse.error;
+
+      console.log('[Auth] Connection status:', { 
+        connected: this.isConnected, 
+        authenticated: this.isAuthenticated 
+      });
 
       this.updateConnectionStatus(this.isConnected, this.isAuthenticated);
 
@@ -1435,17 +1469,34 @@ class AutoJobrPopup {
   }
 
   async loadTasks() {
-    if (!this.isAuthenticated) return;
+    if (!this.isAuthenticated) {
+      console.log('[Tasks] Not authenticated, skipping task load');
+      return;
+    }
 
     try {
+      console.log('[Tasks] Loading user tasks...');
       const data = await this.makeApiRequest('/api/tasks?limit=5&status=pending');
 
+      console.log('[Tasks] API response:', data);
+
       if (data && data.success) {
+        this.displayTasks(data.tasks || []);
+        this.updateTasksCount((data.tasks || []).length);
+      } else if (data && data.tasks) {
+        // Handle case where success flag might be missing
         this.displayTasks(data.tasks);
         this.updateTasksCount(data.tasks.length);
+      } else {
+        console.warn('[Tasks] No tasks data received');
+        this.displayTasks([]);
+        this.updateTasksCount(0);
       }
     } catch (error) {
-      console.error('Failed to load tasks:', error);
+      console.error('[Tasks] Failed to load tasks:', error);
+      // Show empty state instead of error
+      this.displayTasks([]);
+      this.updateTasksCount(0);
     }
   }
 
@@ -1464,13 +1515,20 @@ class AutoJobrPopup {
     // Always show the tasks section (even if empty)
     tasksSection.style.display = 'block';
 
-    if (!tasks || tasks.length === 0) {
+    // Ensure tasks is an array
+    const taskArray = Array.isArray(tasks) ? tasks : [];
+
+    if (taskArray.length === 0) {
       tasksCount.textContent = '0';
-      tasksList.innerHTML = '<div class="no-tasks">No tasks yet. Click + Add Task to create one.</div>';
+      tasksList.innerHTML = `
+        <div class="no-tasks" style="padding: 12px; text-align: center; color: #9ca3af;">
+          ${this.isAuthenticated ? 'No tasks yet. Click + Add Task to create one.' : 'Sign in to view your tasks'}
+        </div>
+      `;
       return;
     }
 
-    tasksCount.textContent = tasks.length;
+    tasksCount.textContent = taskArray.length;
 
     // Filter and display pending tasks (non-completed)
     const pendingTasks = tasks.filter(task => task.status !== 'completed');

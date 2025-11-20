@@ -1177,6 +1177,15 @@ class AutoJobrContentScript {
   setupMessageListener() {
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       switch (message.action) {
+        case 'getCurrentAnalysis':
+          // Return the current analysis data stored in content script
+          sendResponse({
+            success: true,
+            analysis: this.currentAnalysis,
+            jobData: this.currentJobData
+          });
+          return true;
+
         case 'extractJobDetails':
           this.extractJobDetails().then(sendResponse);
           return true;
