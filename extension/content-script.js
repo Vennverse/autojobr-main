@@ -139,6 +139,90 @@ class AutoJobrContentScript {
       findFieldByPlaceholder(placeholder) {
         const xpath = `//input[contains(translate(@placeholder, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '${placeholder.toLowerCase()}')]`;
         return this.evaluateXPath(xpath)[0];
+      },
+      
+      // CRITICAL FIX: Add getAllFormFields() method that content-script.js expects
+      getAllFormFields() {
+        const fields = {};
+        const fieldTypes = ['email', 'phone', 'first_name', 'last_name', 'full_name', 'resume', 'cover_letter', 'linkedin'];
+        
+        for (const fieldType of fieldTypes) {
+          const element = this.detectField(fieldType);
+          if (element) {
+            fields[fieldType] = element;
+          }
+        }
+        
+        return fields;
+      },
+      
+      // Detect individual field types using smart XPath patterns
+      detectField(fieldType) {
+        const patterns = {
+          email: [
+            '//input[@type="email"]',
+            '//input[contains(@name, "email") or contains(@id, "email")]'
+          ],
+          phone: [
+            '//input[@type="tel"]',
+            '//input[contains(@name, "phone") or contains(@id, "phone")]'
+          ],
+          first_name: [
+            '//input[@name="first_name" or @id="first_name"]',
+            '//input[contains(@name, "firstName") or contains(@id, "firstName")]'
+          ],
+          last_name: [
+            '//input[@name="last_name" or @id="last_name"]',
+            '//input[contains(@name, "lastName") or contains(@id, "lastName")]'
+          ],
+          full_name: [
+            '//input[@name="name" or @id="name"]',
+            '//input[contains(@name, "fullName") or contains(@id, "fullName")]'
+          ],
+          resume: [
+            '//input[@type="file" and (contains(@name, "resume") or contains(@id, "resume"))]',
+            '//input[@type="file"][1]' // First file input as fallback
+          ],
+          cover_letter: [
+            '//textarea[contains(@name, "cover") or contains(@id, "cover")]',
+            '//textarea[contains(@name, "letter") or contains(@id, "letter")]'
+          ],
+          linkedin: [
+            '//input[contains(@name, "linkedin") or contains(@id, "linkedin")]',
+            '//input[contains(@placeholder, "linkedin")]'
+          ]
+        };
+        
+        const xpaths = patterns[fieldType] || [];
+        for (const xpath of xpaths) {
+          const nodes = this.evaluateXPath(xpath);
+          if (nodes.length > 0) {
+            return nodes[0]; // Return first match
+          }
+        }
+        
+        return null;
+      },
+      
+      // Check if submission was successful
+      checkSubmissionSuccess() {
+        // Generic success indicators
+        const successXPaths = [
+          '//h1[contains(translate(., "SUCCESS", "success"), "success")]',
+          '//h2[contains(translate(., "SUCCESS", "success"), "success")]',
+          '//div[contains(translate(., "APPLICATION RECEIVED", "application received"), "application received")]',
+          '//div[contains(translate(., "THANK YOU", "thank you"), "thank you")]',
+          '//*[contains(@class, "success") or contains(@class, "confirmation")]'
+        ];
+        
+        for (const xpath of successXPaths) {
+          const nodes = this.evaluateXPath(xpath);
+          if (nodes.length > 0) {
+            return true;
+          }
+        }
+        
+        return false;
       }
     };
     
