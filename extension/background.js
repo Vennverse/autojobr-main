@@ -1461,7 +1461,7 @@ class AutoJobrBackground {
         'Content-Type': 'application/json'
       };
 
-      const response = await fetch(`${this.apiUrl}/api/interview-prep`, {
+      const response = await fetch(`${this.apiUrl}/api/ai/interview-prep`, {
         method: 'POST',
         headers,
         credentials: 'include',
@@ -1470,12 +1470,15 @@ class AutoJobrBackground {
           jobTitle: jobData.title,
           company: jobData.company,
           jobDescription: jobData.description,
-          requestedAt: new Date().toISOString()
+          location: jobData.location || '',
+          skills: jobData.skills || []
         })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get interview prep');
+        const errorText = await response.text();
+        console.error('Interview prep API error:', response.status, errorText);
+        throw new Error(`Failed to get interview prep: ${response.status} ${response.statusText}`);
       }
 
       const prep = await response.json();
