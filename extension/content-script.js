@@ -1000,6 +1000,13 @@ class AutoJobrContentScript {
                 <span>Find Referrals</span>
               </button>
             </div>
+
+            <div class="action-row" style="margin-top: 8px;">
+              <button class="autojobr-btn secondary" id="autojobr-generate-resume" style="grid-column: 1 / -1;">
+                <span class="btn-icon">📋</span>
+                <span>Generate Resume As Per Job Description</span>
+              </button>
+            </div>
           </div>
 
           <div class="autojobr-features">
@@ -1131,6 +1138,10 @@ class AutoJobrContentScript {
         case 'autojobr-referral-finder':
           e.preventDefault();
           this.handleReferralFinder();
+          break;
+        case 'autojobr-generate-resume':
+          e.preventDefault();
+          this.handleGenerateResume();
           break;
       }
     };
