@@ -134,6 +134,7 @@ class AutoJobrPopup {
     document.getElementById('interviewPrepBtn')?.addEventListener('click', () => this.handleInterviewPrep());
     document.getElementById('salaryInsightsBtn')?.addEventListener('click', () => this.handleSalaryInsights());
     document.getElementById('referralFinderBtn')?.addEventListener('click', () => this.handleReferralFinder());
+    document.getElementById('generateResumeBtn')?.addEventListener('click', () => this.handleGenerateResume());
     document.getElementById('linkedinAutoApplyBtn')?.addEventListener('click', () => this.handleLinkedInAutoApply());
 
     // Quick action buttons
@@ -1241,6 +1242,32 @@ class AutoJobrPopup {
     } catch (error) {
       console.error('Referral finder error:', error);
       this.showError('Failed to open referral marketplace. Please try again.');
+    }
+  }
+
+  async handleGenerateResume() {
+    try {
+      if (!this.isAuthenticated) {
+        this.showError('Please sign in to access Premium AI Tools');
+        // Open login page
+        chrome.tabs.create({
+          url: `${API_BASE_URL}/login`,
+          active: true
+        });
+        return;
+      }
+
+      // Navigate to premium AI tools page with generate-resume tab
+      const premiumUrl = `${API_BASE_URL}/premium-ai-tools?tab=generate-resume`;
+      chrome.tabs.create({
+        url: premiumUrl,
+        active: true
+      });
+
+      this.showNotification('Opening Premium Resume Generator...', 'success');
+    } catch (error) {
+      console.error('Generate Resume error:', error);
+      this.showError('Failed to open Premium AI Tools. Please try again.');
     }
   }
 
