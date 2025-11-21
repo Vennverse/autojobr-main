@@ -590,7 +590,7 @@ export function ContextualSidebar() {
         {
           label: "Tools & Resources",
           items: [
-            { name: "Resume & ATS Score", href: "/resume", icon: FileText, current: location === "/resume", description: "Upload and analyze your resume with ATS scoring" },
+            { name: "Resume & ATS Score", href: "/resumes", icon: FileText, current: location === "/resumes", description: "Upload and analyze your resume with ATS scoring" },
             { name: "LinkedIn Optimizer", href: "/linkedin-optimizer", icon: TrendingUp, current: location === "/linkedin-optimizer", description: "AI-powered LinkedIn profile optimization for maximum recruiter visibility" },
             { name: "Premium AI Tools", href: "/premium-ai-tools", icon: Zap, current: location === "/premium-ai-tools", premium: true, description: "Access all premium AI-powered career tools" },
             { name: "Chrome Extension", href: "/chrome-extension", icon: Chrome, current: location === "/chrome-extension", description: "Auto-apply to jobs across LinkedIn, Indeed, and 50+ job boards" },
