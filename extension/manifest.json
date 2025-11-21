@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "AutoJobr Autopilot",
   "version": "2.2.0",
-  "description": "AI-powered job autopilot: auto-apply in bulk, optimize resumes, and find referrals across 100+ job boards. Securely analyzes your profile for better matches.",
+  "description": "AI job autopilot: auto-apply, optimize resumes, find referrals across 100+ job boards.",
   "permissions": [
     "storage",
     "activeTab",
