@@ -3639,7 +3639,8 @@ class AutoJobrContentScript {
   }
 
   async handleCoverLetter() {
-    if (!this.isAuthenticated()) {
+    const authenticated = await this.isAuthenticated();
+    if (!authenticated) {
       this.showNotification('Please log in to generate cover letters', 'warning');
       return;
     }
@@ -3776,10 +3777,24 @@ class AutoJobrContentScript {
   // Check if user is authenticated
   async isAuthenticated() {
     try {
+      // First check cache for quick response
+      if (this.cachedProfile && Date.now() - this.cachedProfile.timestamp < 300000) {
+        return this.cachedProfile.data && this.cachedProfile.data.authenticated;
+      }
+
+      // Then fetch fresh profile
       const profile = await this.getUserProfile();
-      return profile && profile.authenticated;
+      
+      // If profile exists and has authenticated flag, use it
+      if (profile) {
+        return profile.authenticated === true;
+      }
+
+      // If profile is null, user is not authenticated (graceful response)
+      return false;
     } catch (error) {
-      console.error('Authentication check error:', error);
+      // On actual errors, log but don't block - treat as not authenticated
+      console.log('Authentication check failed, treating as unauthenticated:', error.message);
       return false;
     }
   }
