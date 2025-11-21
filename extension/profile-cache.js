@@ -102,7 +102,11 @@ class ProfileCache {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch profile');
+        if (response.status === 401 || response.status === 403) {
+          console.log('📭 User not authenticated');
+          return null;
+        }
+        throw new Error(`Failed to fetch profile: ${response.status} ${response.statusText}`);
       }
 
       const profile = await response.json();

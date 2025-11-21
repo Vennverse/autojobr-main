@@ -52,40 +52,58 @@ class XPathDetector {
     try {
       console.log('[XPathDetector] Initializing...');
       
-      // Check if chrome.runtime is available
-      if (typeof chrome === 'undefined' || !chrome.runtime) {
-        throw new Error('Chrome runtime not available');
+      // Try to load config from window.XPATH_CONFIG if provided by content script
+      if (window.XPATH_CONFIG) {
+        console.log('[XPathDetector] Using config provided by content script');
+        this.atsConfig = window.XPATH_CONFIG;
+        this.detectCurrentATS();
+        this.initialized = true;
+        console.log('[XPathDetector] ✅ Initialization complete. Current ATS:', this.currentATS || 'Generic (CSS fallback)');
+        return true;
       }
 
-      const configUrl = chrome.runtime.getURL('ats-config.json');
-      console.log('[XPathDetector] Loading config from:', configUrl);
-      
-      const response = await fetch(configUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to load config: ${response.status} ${response.statusText}`);
-      }
-      
-      const configText = await response.text();
-      if (!configText || configText.trim() === '') {
-        throw new Error('Config file is empty');
-      }
+      // Fallback: Try to use chrome.runtime if available (content script context)
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
+        try {
+          const configUrl = chrome.runtime.getURL('ats-config.json');
+          console.log('[XPathDetector] Loading config from:', configUrl);
+          
+          const response = await fetch(configUrl);
+          if (!response.ok) {
+            throw new Error(`Failed to load config: ${response.status} ${response.statusText}`);
+          }
+          
+          const configText = await response.text();
+          if (!configText || configText.trim() === '') {
+            throw new Error('Config file is empty');
+          }
 
-      this.atsConfig = JSON.parse(configText);
-      
-      // Validate config structure
-      if (!this.atsConfig.atsConfigurations || typeof this.atsConfig.atsConfigurations !== 'object') {
-        console.warn('[XPathDetector] Invalid config structure, using empty config');
-        this.atsConfig = { atsConfigurations: {}, fieldDetectionPatterns: {} };
+          this.atsConfig = JSON.parse(configText);
+          
+          // Validate config structure
+          if (!this.atsConfig.atsConfigurations || typeof this.atsConfig.atsConfigurations !== 'object') {
+            console.warn('[XPathDetector] Invalid config structure, using empty config');
+            this.atsConfig = { atsConfigurations: {}, fieldDetectionPatterns: {} };
+          }
+          
+          console.log('[XPathDetector] Config loaded successfully');
+          console.log('[XPathDetector] Available ATS platforms:', Object.keys(this.atsConfig.atsConfigurations));
+          
+          this.detectCurrentATS();
+          this.initialized = true;
+          
+          console.log('[XPathDetector] ✅ Initialization complete. Current ATS:', this.currentATS || 'Generic (CSS fallback)');
+          return true;
+        } catch (fetchError) {
+          console.warn('[XPathDetector] ⚠️ Initialization failed, using fallback mode:', fetchError.message);
+        }
       }
       
-      console.log('[XPathDetector] Config loaded successfully');
-      console.log('[XPathDetector] Available ATS platforms:', Object.keys(this.atsConfig.atsConfigurations));
-      
-      this.detectCurrentATS();
+      // Final fallback: Use empty config (CSS selectors will still work)
+      console.log('[XPathDetector] ⚠️ Initialization failed, using fallback mode');
+      this.atsConfig = { atsConfigurations: {}, fieldDetectionPatterns: {} };
       this.initialized = true;
-      
-      console.log('[XPathDetector] ✅ Initialization complete. Current ATS:', this.currentATS || 'Generic (CSS fallback)');
-      return true;
+      return false;
     } catch (error) {
       console.error('[XPathDetector] ❌ Initialization failed:', error);
       // Set a minimal config to prevent errors

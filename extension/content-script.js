@@ -100,7 +100,7 @@ class AutoJobrContentScript {
   }
 
   async loadXPathDetector() {
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
       try {
         // Check if already loaded
         if (window.xpathDetector) {
@@ -108,6 +108,24 @@ class AutoJobrContentScript {
           this.xpathDetector = window.xpathDetector;
           resolve(true);
           return;
+        }
+
+        // Pre-load the config and inject it into window for the page script
+        try {
+          const configUrl = chrome.runtime.getURL('ats-config.json');
+          const response = await fetch(configUrl);
+          if (response.ok) {
+            const config = await response.json();
+            // Make config available to page script
+            const configScript = document.createElement('script');
+            configScript.textContent = `window.XPATH_CONFIG = ${JSON.stringify(config)};`;
+            (document.head || document.documentElement).appendChild(configScript);
+            console.log('[AutoJobr] ✅ XPath config injected into page');
+          } else {
+            console.warn('[AutoJobr] ⚠️ Failed to load XPath config, will use fallback');
+          }
+        } catch (configError) {
+          console.warn('[AutoJobr] ⚠️ Config load error:', configError.message);
         }
 
         const script = document.createElement('script');
