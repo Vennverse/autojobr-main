@@ -100,91 +100,69 @@ class AutoJobrContentScript {
   }
 
   async loadXPathDetector() {
-    return new Promise(async (resolve) => {
-      try {
-        // Check if already loaded
-        if (window.xpathDetector) {
-          console.log('[AutoJobr] XPath detector already loaded');
-          this.xpathDetector = window.xpathDetector;
-          resolve(true);
-          return;
-        }
-
-        // Pre-load the config and inject it into window for the page script
+    console.log('[AutoJobr] Loading simplified XPath detector');
+    
+    // Simplified XPath detection - no external script needed
+    this.xpathDetector = {
+      currentATS: this.detectATS(),
+      initialized: true,
+      
+      // Simple XPath evaluation
+      evaluateXPath(xpath, contextNode = document) {
         try {
-          const configUrl = chrome.runtime.getURL('ats-config.json');
-          const response = await fetch(configUrl);
-          if (response.ok) {
-            const config = await response.json();
-            // Make config available to page script
-            const configScript = document.createElement('script');
-            configScript.textContent = `window.XPATH_CONFIG = ${JSON.stringify(config)};`;
-            (document.head || document.documentElement).appendChild(configScript);
-            console.log('[AutoJobr] ✅ XPath config injected into page');
-          } else {
-            console.warn('[AutoJobr] ⚠️ Failed to load XPath config, will use fallback');
-          }
-        } catch (configError) {
-          console.warn('[AutoJobr] ⚠️ Config load error:', configError.message);
-        }
-
-        const script = document.createElement('script');
-        script.src = chrome.runtime.getURL('xpath-detector.js');
-        script.type = 'text/javascript';
-        script.async = false; // Ensure synchronous execution
-
-        script.onload = async () => {
-          console.log('[AutoJobr] XPath detector script loaded, waiting for initialization...');
+          const result = document.evaluate(
+            xpath,
+            contextNode,
+            null,
+            XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+            null
+          );
           
-          // Wait for script execution with retries
-          let retries = 0;
-          const maxRetries = 20; // Increased retries
-          const retryDelay = 100; // Increased delay
-
-          while (retries < maxRetries) {
-            await new Promise(r => setTimeout(r, retryDelay));
-
-            if (window.xpathDetector) {
-              console.log('[AutoJobr] ✅ window.xpathDetector found, initializing...');
-              try {
-                await window.xpathDetector.initialize();
-                this.xpathDetector = window.xpathDetector;
-                console.log('[AutoJobr] ✅ XPath detector loaded and initialized');
-                console.log('[AutoJobr] Current ATS:', this.xpathDetector.currentATS || 'Generic');
-                resolve(true);
-                return;
-              } catch (initError) {
-                console.error('[AutoJobr] XPath detector initialization failed:', initError);
-                resolve(false);
-                return;
-              }
-            }
-            retries++;
+          const nodes = [];
+          for (let i = 0; i < result.snapshotLength; i++) {
+            nodes.push(result.snapshotItem(i));
           }
-
-          console.warn('[AutoJobr] ⚠️ window.xpathDetector not available after', maxRetries * retryDelay, 'ms');
-          resolve(false);
-        };
-
-        script.onerror = (error) => {
-          console.error('[AutoJobr] ❌ Failed to load XPath detector script:', error);
-          resolve(false);
-        };
-
-        // Append to head first, then documentElement as fallback
-        const target = document.head || document.documentElement;
-        if (target) {
-          target.appendChild(script);
-          console.log('[AutoJobr] XPath detector script injected into', target.tagName);
-        } else {
-          console.error('[AutoJobr] ❌ No injection target available');
-          resolve(false);
+          return nodes;
+        } catch (error) {
+          console.warn('[XPath] Evaluation failed:', error);
+          return [];
         }
-      } catch (error) {
-        console.error('[AutoJobr] ❌ Exception loading XPath detector:', error);
-        resolve(false);
+      },
+      
+      // Find input fields by label text
+      findFieldByLabel(labelText) {
+        const xpath = `//label[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '${labelText.toLowerCase()}')]/following-sibling::input | //label[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '${labelText.toLowerCase()}')]//input`;
+        return this.evaluateXPath(xpath)[0];
+      },
+      
+      // Find input by placeholder
+      findFieldByPlaceholder(placeholder) {
+        const xpath = `//input[contains(translate(@placeholder, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '${placeholder.toLowerCase()}')]`;
+        return this.evaluateXPath(xpath)[0];
       }
-    });
+    };
+    
+    console.log('[AutoJobr] ✅ Simplified XPath detector loaded, ATS:', this.xpathDetector.currentATS);
+    return true;
+  }
+  
+  // Detect ATS platform
+  detectATS() {
+    const url = window.location.href;
+    const hostname = window.location.hostname;
+    
+    if (hostname.includes('greenhouse.io') || hostname.includes('boards.greenhouse.io')) return 'Greenhouse';
+    if (hostname.includes('lever.co') || hostname.includes('jobs.lever.co')) return 'Lever';
+    if (hostname.includes('workday.com') || hostname.includes('myworkdayjobs.com')) return 'Workday';
+    if (hostname.includes('taleo.net')) return 'Taleo';
+    if (hostname.includes('icims.com')) return 'iCIMS';
+    if (hostname.includes('linkedin.com')) return 'LinkedIn';
+    if (hostname.includes('indeed.com')) return 'Indeed';
+    if (hostname.includes('glassdoor.com')) return 'Glassdoor';
+    if (hostname.includes('ashbyhq.com')) return 'Ashby';
+    if (hostname.includes('smartrecruiters.com')) return 'SmartRecruiters';
+    
+    return 'Generic';
   }
 
   // Setup fast LinkedIn SPA navigation detection
@@ -1000,23 +978,81 @@ class AutoJobrContentScript {
     `;
 
     document.body.appendChild(overlay);
-    this.attachEnhancedUIEventListeners();
-    this.makeWidgetDraggable();
-
-    // Load user tasks when widget is displayed
-    this.loadUserTasks();
+    
+    // CRITICAL FIX: Wait for DOM to be fully ready before attaching listeners
+    // This fixes the issue where widget buttons don't respond to clicks
+    setTimeout(() => {
+      this.attachEnhancedUIEventListeners();
+      this.makeWidgetDraggable();
+      // Load user tasks when widget is displayed
+      this.loadUserTasks();
+      console.log('[AutoJobr] ✅ Widget fully initialized with event listeners');
+    }, 0);
   }
 
   attachEnhancedUIEventListeners() {
-    // Main action buttons
-    document.getElementById('autojobr-autofill')?.addEventListener('click', () => this.handleSmartAutofill());
-    document.getElementById('autojobr-analyze')?.addEventListener('click', () => this.handleAnalyze());
-    document.getElementById('autojobr-save-job')?.addEventListener('click', () => this.handleSaveJob());
-    document.getElementById('autojobr-cover-letter')?.addEventListener('click', () => this.handleCoverLetter());
-    document.getElementById('autojobr-upload-resume')?.addEventListener('click', () => this.handleResumeUpload());
-    document.getElementById('autojobr-interview-prep')?.addEventListener('click', () => this.handleInterviewPrep());
-    document.getElementById('autojobr-salary-insights')?.addEventListener('click', () => this.handleSalaryInsights());
-    document.getElementById('autojobr-referral-finder')?.addEventListener('click', () => this.handleReferralFinder());
+    console.log('[AutoJobr] Attaching event listeners to widget buttons...');
+    
+    // IMPROVED: Use event delegation like Simplify extension
+    // This is more reliable and survives DOM updates
+    const overlay = document.getElementById('autojobr-overlay');
+    if (!overlay) {
+      console.error('[AutoJobr] ❌ Overlay not found, cannot attach listeners');
+      return;
+    }
+    
+    // Remove old listener if exists to prevent duplicates
+    if (this.widgetClickHandler) {
+      overlay.removeEventListener('click', this.widgetClickHandler);
+    }
+    
+    // Event delegation - listen on parent and handle all button clicks
+    this.widgetClickHandler = (e) => {
+      const target = e.target.closest('button');
+      if (!target) return;
+      
+      const buttonId = target.id;
+      console.log('[AutoJobr] Button clicked:', buttonId);
+      
+      switch(buttonId) {
+        case 'autojobr-autofill':
+          e.preventDefault();
+          this.handleSmartAutofill();
+          break;
+        case 'autojobr-analyze':
+          e.preventDefault();
+          this.handleAnalyze();
+          break;
+        case 'autojobr-save-job':
+          e.preventDefault();
+          this.handleSaveJob();
+          break;
+        case 'autojobr-cover-letter':
+          e.preventDefault();
+          console.log('[AutoJobr] 🔥 Cover Letter button CLICKED via delegation!');
+          this.handleCoverLetter();
+          break;
+        case 'autojobr-upload-resume':
+          e.preventDefault();
+          this.handleResumeUpload();
+          break;
+        case 'autojobr-interview-prep':
+          e.preventDefault();
+          this.handleInterviewPrep();
+          break;
+        case 'autojobr-salary-insights':
+          e.preventDefault();
+          this.handleSalaryInsights();
+          break;
+        case 'autojobr-referral-finder':
+          e.preventDefault();
+          this.handleReferralFinder();
+          break;
+      }
+    };
+    
+    overlay.addEventListener('click', this.widgetClickHandler);
+    console.log('[AutoJobr] ✅ Event delegation setup complete on overlay');
 
     // Widget controls
     // Enhanced close button with better event handling
@@ -3639,15 +3675,23 @@ class AutoJobrContentScript {
   }
 
   async handleCoverLetter() {
-    const authenticated = await this.isAuthenticated();
-    if (!authenticated) {
-      this.showNotification('Please log in to generate cover letters', 'warning');
-      return;
-    }
-
+    console.log('[handleCoverLetter] Button clicked! Starting cover letter generation...');
+    
     try {
+      const authenticated = await this.isAuthenticated();
+      console.log('[handleCoverLetter] Authentication check result:', authenticated);
+      
+      if (!authenticated) {
+        console.log('[handleCoverLetter] User not authenticated, showing warning');
+        this.showNotification('Please log in to generate cover letters', 'warning');
+        return;
+      }
+
+      console.log('[handleCoverLetter] User authenticated, proceeding with generation');
+      
       // Use current job data if available, otherwise extract
       let jobData = this.currentJobData;
+      console.log('[handleCoverLetter] Current job data:', jobData ? 'exists' : 'null');
 
       if (!jobData || !jobData.description) {
         jobData = await this.extractJobDetails();
@@ -3689,7 +3733,7 @@ class AutoJobrContentScript {
         throw new Error(response?.error || 'Failed to generate cover letter');
       }
     } catch (error) {
-      console.error('Cover letter generation error:', error);
+      console.error('[handleCoverLetter] Error during cover letter generation:', error);
       this.showNotification(`Error: ${error.message}`, 'error');
     }
   }
@@ -3774,27 +3818,32 @@ class AutoJobrContentScript {
     return await this.handleSaveJob();
   }
 
-  // Check if user is authenticated
+  // Check if user is authenticated - unified cache structure: { profile, timestamp }
   async isAuthenticated() {
     try {
       // First check cache for quick response
       if (this.cachedProfile && Date.now() - this.cachedProfile.timestamp < 300000) {
-        return this.cachedProfile.data && this.cachedProfile.data.authenticated;
+        const isAuth = this.cachedProfile.profile?.authenticated === true;
+        console.log('[isAuthenticated] Using cached auth state:', isAuth);
+        return isAuth;
       }
 
-      // Then fetch fresh profile
+      // Cache expired or missing - fetch fresh profile
+      console.log('[isAuthenticated] Cache stale, fetching fresh profile');
       const profile = await this.getUserProfile();
       
       // If profile exists and has authenticated flag, use it
-      if (profile) {
-        return profile.authenticated === true;
+      if (profile && profile.authenticated === true) {
+        console.log('[isAuthenticated] Fresh profile authenticated');
+        return true;
       }
 
-      // If profile is null, user is not authenticated (graceful response)
+      // If profile is null or not authenticated, user is not logged in
+      console.log('[isAuthenticated] Not authenticated');
       return false;
     } catch (error) {
       // On actual errors, log but don't block - treat as not authenticated
-      console.log('Authentication check failed, treating as unauthenticated:', error.message);
+      console.log('[isAuthenticated] Auth check failed, treating as unauthenticated:', error.message);
       return false;
     }
   }
@@ -3803,29 +3852,32 @@ class AutoJobrContentScript {
     try {
       // Check cache first to prevent excessive requests
       if (this.cachedProfile && Date.now() - this.cachedProfile.timestamp < 300000) { // 5 minutes
-        return this.cachedProfile.data;
+        console.log('[getUserProfile] Returning cached profile');
+        return this.cachedProfile.profile;
       }
 
+      console.log('[getUserProfile] Fetching fresh profile from background');
       const result = await chrome.runtime.sendMessage({
         action: 'getUserProfile'
       });
 
       if (result.success && result.profile) {
-        console.log('Extension received user profile:', {
+        console.log('[getUserProfile] Received profile:', {
           firstName: result.profile.firstName,
           lastName: result.profile.lastName,
           fullName: result.profile.fullName,
-          skillsCount: result.profile.skills?.length || 0
+          skillsCount: result.profile.skills?.length || 0,
+          authenticated: result.profile.authenticated
         });
 
-        // Cache successful profile
-        this.cachedProfile = { data: result.profile, timestamp: Date.now() };
+        // Cache successful profile - UNIFIED STRUCTURE: { profile, timestamp }
+        this.cachedProfile = { profile: result.profile, timestamp: Date.now() };
         return result.profile;
       }
 
       // Handle authentication errors gracefully
       if (result.error && result.error.includes('401')) {
-        console.log('User not authenticated - skipping profile fetch');
+        console.log('[getUserProfile] User not authenticated - clearing cache');
         return null;
       }
 
