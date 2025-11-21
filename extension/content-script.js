@@ -940,26 +940,6 @@ class AutoJobrContentScript {
             </div>
           </div>
 
-          <div class="autojobr-ai-features">
-            <h4>🤖 AI Features</h4>
-            <div class="ai-feature-row">
-              <button class="autojobr-btn ai" id="autojobr-resume-gen">
-                <span class="btn-icon">📄</span>
-                <span>Generate Resume</span>
-              </button>
-              <button class="autojobr-btn ai" id="autojobr-ask-ai">
-                <span class="btn-icon">💬</span>
-                <span>Ask AI</span>
-              </button>
-            </div>
-            <div class="feature-toggle">
-              <input type="checkbox" id="auto-resume-upload" checked> <label for="auto-resume-upload">Auto Resume Upload</label>
-            </div>
-            <div class="feature-toggle">
-              <input type="checkbox" id="auto-fill-premium-ai"> <label for="auto-fill-premium-ai">Use Premium AI (Your Key)</label>
-            </div>
-          </div>
-
           <div class="autojobr-features">
             <div class="feature-toggle">
               <input type="checkbox" id="smart-fill" checked> <label for="smart-fill">Smart Fill Mode</label>
@@ -1038,11 +1018,6 @@ class AutoJobrContentScript {
     document.getElementById('autojobr-salary-insights')?.addEventListener('click', () => this.handleSalaryInsights());
     document.getElementById('autojobr-referral-finder')?.addEventListener('click', () => this.handleReferralFinder());
 
-    // AI Feature Buttons
-    document.getElementById('autojobr-resume-gen')?.addEventListener('click', () => this.handleResumeGeneration());
-    // Updated listener for Ask AI button to toggle the AI chat widget
-    document.getElementById('autojobr-ask-ai')?.addEventListener('click', () => this.handleAskAI());
-
     // Widget controls
     // Enhanced close button with better event handling
     const closeBtn = document.querySelector('.autojobr-close');
@@ -1084,43 +1059,10 @@ class AutoJobrContentScript {
       chrome.storage.sync.set({ autoSubmitMode: e.target.checked });
     });
 
-    document.getElementById('auto-resume-upload')?.addEventListener('change', (e) => {
-      chrome.storage.sync.set({ autoResumeMode: e.target.checked });
-    });
-
-    document.getElementById('auto-fill-premium-ai')?.addEventListener('change', async (e) => {
-      const apiKey = await this.getUserApiKey();
-      if (e.target.checked && !apiKey) {
-        this.showNotification('Please add your API key in extension settings to use premium AI features.', 'warning');
-        e.target.checked = false; // Revert checkbox
-        return;
-      }
-      chrome.storage.sync.set({ premiumFeaturesEnabled: e.target.checked });
-    });
-
     // Retrieve and set initial state for toggles
-    chrome.storage.sync.get(['smartFillMode', 'autoSubmitMode', 'autoResumeMode', 'premiumFeaturesEnabled', 'userApiKey'], (result) => {
+    chrome.storage.sync.get(['smartFillMode', 'autoSubmitMode'], (result) => {
       document.getElementById('smart-fill').checked = result.smartFillMode !== false;
       document.getElementById('auto-submit').checked = result.autoSubmitMode === true;
-      document.getElementById('auto-resume-upload').checked = result.autoResumeMode !== false;
-      const premiumCheckbox = document.getElementById('auto-fill-premium-ai');
-      premiumCheckbox.checked = result.premiumFeaturesEnabled === true;
-      if (premiumCheckbox.checked && !result.userApiKey) {
-         premiumCheckbox.checked = false; // Uncheck if API key is missing
-         this.showNotification('API key missing for Premium AI. Please add it in extension settings.', 'warning');
-      }
-    });
-
-    // AI Chat Widget Event Listeners
-    document.querySelector('.ai-chat-close-btn')?.addEventListener('click', () => {
-      document.getElementById('aiChatWidget').style.display = 'none';
-    });
-
-    document.getElementById('ai-send-btn')?.addEventListener('click', () => this.sendMessageToAI());
-    document.getElementById('ai-question')?.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        this.sendMessageToAI();
-      }
     });
   }
 
@@ -3831,6 +3773,17 @@ class AutoJobrContentScript {
     return await this.handleSaveJob();
   }
 
+  // Check if user is authenticated
+  async isAuthenticated() {
+    try {
+      const profile = await this.getUserProfile();
+      return profile && profile.authenticated;
+    } catch (error) {
+      console.error('Authentication check error:', error);
+      return false;
+    }
+  }
+
   async getUserProfile() {
     try {
       // Check cache first to prevent excessive requests
@@ -5095,6 +5048,13 @@ class AutoJobrContentScript {
 
   // Show Salary Insights Modal
   showSalaryInsightsModal(insights) {
+    // Handle both old and new API response formats
+    const estimatedSalary = insights.totalCompensation || insights.estimatedSalary || 0;
+    const minSalary = insights.salaryRange?.min || 0;
+    const maxSalary = insights.salaryRange?.max || insights.salaryRange?.median || 0;
+    const currency = insights.currency || 'USD';
+    const currencySymbol = currency === 'USD' ? '$' : currency === 'INR' ? '₹' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
+
     const modal = document.createElement('div');
     modal.className = 'autojobr-modal-overlay';
     modal.innerHTML = `
@@ -5105,14 +5065,14 @@ class AutoJobrContentScript {
         </div>
         <div class="autojobr-modal-content">
           <div class="salary-highlight">
-            <div class="salary-amount">$${insights.estimatedSalary?.toLocaleString() || 'N/A'}</div>
+            <div class="salary-amount">${currencySymbol}${estimatedSalary?.toLocaleString()}</div>
             <div class="salary-label">Estimated Annual Salary</div>
           </div>
           <div class="prep-section">
             <h4>Salary Range</h4>
             <div class="salary-range">
-              <span>Min: $${insights.salaryRange?.min?.toLocaleString() || 'N/A'}</span>
-              <span>Max: $${insights.salaryRange?.max?.toLocaleString() || 'N/A'}</span>
+              <span>Min: ${currencySymbol}${minSalary?.toLocaleString()}</span>
+              <span>Max: ${currencySymbol}${maxSalary?.toLocaleString()}</span>
             </div>
           </div>
           <div class="prep-section">
