@@ -46,7 +46,4 @@ export default defineConfig({
       deny: ["**/.*"],
     },
   },
-  optimizeDeps: {
-    force: true,
-  },
 });
