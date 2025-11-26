@@ -10,8 +10,20 @@ import { eq } from "drizzle-orm";
 export class UserRoleService {
   static async assignUserRole(email, preferredRole = 'job_seeker') {
     try {
-      // Auto-detect role based on email domain or other criteria
+      // POLICY: .edu and educational emails are ALWAYS job seekers - no exceptions
+      // This check cannot be bypassed by user preference
+      if (this.isEducationalEmail(email)) {
+        console.log(`🎓 Educational email detected (${email}) - enforcing job_seeker role`);
+        return {
+          userType: 'job_seeker',
+          currentRole: 'job_seeker'
+        };
+      }
+
+      // For non-educational emails, auto-detect role based on email domain
       const detectedRole = this.detectUserRole(email);
+      
+      // Only allow recruiter preference for non-educational corporate emails
       const finalRole = preferredRole === 'recruiter' ? 'recruiter' : detectedRole;
 
       return {
@@ -25,6 +37,34 @@ export class UserRoleService {
         currentRole: 'job_seeker'
       };
     }
+  }
+
+  static isEducationalEmail(email) {
+    const emailLower = email.toLowerCase();
+    const emailDomain = emailLower.split('@')[1] || '';
+    
+    // Educational domains: .edu, .ac.in, .edu.*, .ac.*, and global university patterns
+    return (
+      emailDomain.endsWith('.edu') ||
+      emailDomain.endsWith('.ac.in') ||
+      emailDomain.endsWith('.ac.uk') ||
+      emailDomain.endsWith('.edu.au') ||
+      emailDomain.endsWith('.edu.cn') ||
+      emailDomain.endsWith('.edu.sg') ||
+      emailDomain.endsWith('.edu.hk') ||
+      emailDomain.endsWith('.edu.my') ||
+      emailDomain.endsWith('.edu.ph') ||
+      emailDomain.endsWith('.edu.pk') ||
+      emailDomain.endsWith('.edu.br') ||
+      emailDomain.endsWith('.edu.mx') ||
+      emailDomain.endsWith('.edu.co') ||
+      emailDomain.endsWith('.ac.jp') ||
+      emailDomain.endsWith('.ac.kr') ||
+      emailDomain.endsWith('.ac.nz') ||
+      emailDomain.endsWith('.ac.za') ||
+      emailDomain.includes('.edu.') ||
+      emailDomain.includes('.ac.')
+    );
   }
 
   static detectUserRole(email) {

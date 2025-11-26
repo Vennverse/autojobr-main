@@ -10563,6 +10563,39 @@ Return ONLY the JSON object, no additional text.`;
         return res.status(404).json({ message: "User not found" });
       }
 
+      // POLICY: Block .edu and educational emails from becoming recruiters
+      const userEmail = currentUser.email?.toLowerCase() || '';
+      const emailDomain = userEmail.split('@')[1] || '';
+      
+      const isEducationalEmail = (
+        emailDomain.endsWith('.edu') ||
+        emailDomain.endsWith('.ac.in') ||
+        emailDomain.endsWith('.ac.uk') ||
+        emailDomain.endsWith('.edu.au') ||
+        emailDomain.endsWith('.edu.cn') ||
+        emailDomain.endsWith('.edu.sg') ||
+        emailDomain.endsWith('.edu.hk') ||
+        emailDomain.endsWith('.edu.my') ||
+        emailDomain.endsWith('.edu.ph') ||
+        emailDomain.endsWith('.edu.pk') ||
+        emailDomain.endsWith('.edu.br') ||
+        emailDomain.endsWith('.edu.mx') ||
+        emailDomain.endsWith('.edu.co') ||
+        emailDomain.endsWith('.ac.jp') ||
+        emailDomain.endsWith('.ac.kr') ||
+        emailDomain.endsWith('.ac.nz') ||
+        emailDomain.endsWith('.ac.za') ||
+        emailDomain.includes('.edu.') ||
+        emailDomain.includes('.ac.')
+      );
+
+      if (isEducationalEmail) {
+        console.log(`🚫 Blocked recruiter access for educational email: ${userEmail}`);
+        return res.status(403).json({ 
+          message: "Educational institution emails (.edu, .ac.*, etc.) are not eligible for recruiter accounts. Please use a corporate email address to register as a recruiter." 
+        });
+      }
+
       // Update user to recruiter type with company info
       // The database trigger will automatically sync currentRole to match userType
       await storage.upsertUser({
