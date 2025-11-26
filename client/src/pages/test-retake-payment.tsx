@@ -451,44 +451,27 @@ export default function TestRetakePayment() {
                   <Separator className="my-4" />
 
                   <div className="space-y-3">
-                    <h4 className="font-medium text-sm">Step 1: View Company Post</h4>
-                    <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg border border-yellow-200">
-                      <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium mb-2">
-                        📌 Company Post URL (to be added)
+                    <h4 className="font-medium text-sm">Step 1: View & Engage with Our Post</h4>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200">
+                      <p className="text-sm text-blue-800 dark:text-blue-200 font-medium mb-2">
+                        📌 AutoJobr LinkedIn Post
                       </p>
-                      <Input
-                        type="url"
-                        placeholder="Company LinkedIn post URL will be added here"
-                        value="[COMPANY_POST_URL_PLACEHOLDER]"
-                        disabled
-                        className="w-full bg-white dark:bg-gray-800"
-                        data-testid="input-company-post-url"
-                      />
-                      <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-2">
-                        Note: The company will add their LinkedIn post URL here soon
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                        Click the button below to visit our post. Like the post and leave a meaningful comment to unlock your free retake!
                       </p>
                     </div>
                     <Button
                       onClick={() => {
-                        const companyPostUrl = '[COMPANY_POST_URL_PLACEHOLDER]';
-                        if (companyPostUrl && companyPostUrl !== '[COMPANY_POST_URL_PLACEHOLDER]') {
-                          window.open(companyPostUrl, '_blank');
-                        } else {
-                          toast({
-                            title: "Coming Soon",
-                            description: "Company post URL will be added shortly",
-                            variant: "default",
-                          });
-                        }
+                        window.open('https://www.linkedin.com/posts/autojobr_autojobr-ai-recruitmenttech-activity-7397982472216502272-9PEn?utm_source=share&utm_medium=member_desktop&rcm=ACoAACy2vZ4BzqZqbVKOV8GfxfamJ5bAWGCUfpk', '_blank');
                       }}
                       className="w-full bg-[#0077B5] hover:bg-[#006399] text-white"
                       data-testid="button-view-company-post"
                     >
                       <SiLinkedin className="w-4 h-4 mr-2" />
-                      View Company Post
+                      View AutoJobr Post on LinkedIn
                       <ExternalLink className="w-4 h-4 ml-2" />
                     </Button>
-                    <p className="text-xs text-gray-500 text-center">Opens company LinkedIn post in a new window</p>
+                    <p className="text-xs text-gray-500 text-center">Opens our LinkedIn post - Like and comment to get a free retake!</p>
                   </div>
 
                   <div className="space-y-3">
