@@ -189,6 +189,7 @@ interface FilterState {
   source_platform?: string;
   date_posted?: number;
   remote_only?: boolean;
+  easy_apply_only?: boolean;
   sort?: string;
   page?: number;
   size?: number;
@@ -367,7 +368,8 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     source_platform: searchParams.get('source_platform') || undefined,
     date_posted: searchParams.get('date_posted') ? parseInt(searchParams.get('date_posted')!) : undefined,
     remote_only: searchParams.get('remote_only') === 'true',
-    sort: searchParams.get('sort') || 'relevance',
+    easy_apply_only: searchParams.get('easy_apply_only') === 'true',
+    sort: searchParams.get('sort') || 'date',
     page: parseInt(searchParams.get('page') || '1'),
     size: parseInt(searchParams.get('size') || '15')
   }), [searchParams, routeBasedFilters]);
@@ -518,8 +520,9 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     return div.textContent || div.innerText || '';
   };
 
-  // Combine scraped and platform jobs (scraped jobs are already filtered by API)
-  // Platform jobs only show on page 1 to avoid duplication across pages
+  // Combine scraped and platform jobs with intelligent mixing
+  // Platform jobs (Easy Apply) are interleaved with scraped jobs
+  // Newer jobs are prioritized, with platform jobs having slight boost
   const allJobs = useMemo(() => {
     const scrapedJobsWithMeta = jobs.map((job: any) => ({
       ...job,
@@ -530,25 +533,66 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       responsibilities: stripHtml(job.responsibilities),
       applyType: 'external' as const,
       priority: 2,
-      source: 'scraped'
+      source: 'scraped',
+      // Parse dates for sorting
+      parsedDate: new Date(job.createdAt || job.created_at || job.postedAt || job.posted_at || 0).getTime()
     }));
 
-    // Only include platform jobs on page 1
-    if (filters.page === 1) {
-      const platformJobsWithMeta = platformJobs.map((job: any) => ({
-        ...job,
-        company: job.companyName || job.company_name || job.company,
-        companyName: job.companyName || job.company_name || job.company,
-        applyType: 'easy' as const,
-        priority: 1,
-        source: 'platform'
-      }));
+    const platformJobsWithMeta = platformJobs.map((job: any) => ({
+      ...job,
+      company: job.companyName || job.company_name || job.company,
+      companyName: job.companyName || job.company_name || job.company,
+      applyType: 'easy' as const,
+      priority: 1,
+      source: 'platform',
+      parsedDate: new Date(job.createdAt || job.created_at || 0).getTime()
+    }));
+    
+    // Combine all jobs
+    let combinedJobs = [...platformJobsWithMeta, ...scrapedJobsWithMeta];
+    
+    // Apply Easy Apply filter if enabled
+    if (filters.easy_apply_only) {
+      combinedJobs = combinedJobs.filter(job => job.applyType === 'easy' || job.source === 'platform');
+    }
+    
+    // Sort based on filter setting
+    if (filters.sort === 'date') {
+      // Newest first, with platform jobs getting slight boost for freshness
+      combinedJobs.sort((a, b) => {
+        const dateA = a.parsedDate || 0;
+        const dateB = b.parsedDate || 0;
+        // Platform jobs get 1 hour boost to appear slightly higher
+        const boostA = a.source === 'platform' ? 3600000 : 0;
+        const boostB = b.source === 'platform' ? 3600000 : 0;
+        return (dateB + boostB) - (dateA + boostA);
+      });
+    } else if (filters.sort === 'relevance' || filters.sort === 'match') {
+      // Interleave: 1 platform job for every 3 scraped jobs
+      const platform = combinedJobs.filter(j => j.source === 'platform');
+      const scraped = combinedJobs.filter(j => j.source === 'scraped');
+      combinedJobs = [];
       
-      return [...platformJobsWithMeta, ...scrapedJobsWithMeta];
+      let pIdx = 0, sIdx = 0;
+      while (pIdx < platform.length || sIdx < scraped.length) {
+        // Add 1 platform job
+        if (pIdx < platform.length) {
+          combinedJobs.push(platform[pIdx++]);
+        }
+        // Add up to 3 scraped jobs
+        for (let i = 0; i < 3 && sIdx < scraped.length; i++) {
+          combinedJobs.push(scraped[sIdx++]);
+        }
+      }
+    }
+    
+    // Only show platform jobs on page 1 to avoid duplication
+    if (filters.page !== 1) {
+      return combinedJobs.filter(job => job.source !== 'platform');
     }
 
-    return scrapedJobsWithMeta;
-  }, [jobs, platformJobs, filters.page]);
+    return combinedJobs;
+  }, [jobs, platformJobs, filters.page, filters.easy_apply_only, filters.sort]);
 
   // Get user profile for compatibility scoring
   const { data: userProfile } = useQuery<UserProfile>({
@@ -636,6 +680,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     if (filters.source_platform) count++;
     if (filters.date_posted) count++;
     if (filters.remote_only) count++;
+    if (filters.easy_apply_only) count++;
     return count;
   }, [filters]);
 
@@ -1340,6 +1385,9 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     if (filters.remote_only) {
       tags.push({ key: 'remote_only', label: 'Remote Only', value: 'true' });
     }
+    if (filters.easy_apply_only) {
+      tags.push({ key: 'easy_apply_only', label: 'Easy Apply Only', value: 'true' });
+    }
     if (filters.salary_min || filters.salary_max) {
       const min = filters.salary_min ? `${getCurrentCurrencySymbol()}${filters.salary_min.toLocaleString()}` : '0';
       const max = filters.salary_max ? `${getCurrentCurrencySymbol()}${filters.salary_max.toLocaleString()}` : '∞';
@@ -1643,7 +1691,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     return [baseStructuredData, breadcrumbList, itemList];
   }, [structuredData, seoMetadata.breadcrumbs, allJobs, pagination.total]);
 
-  return jobsLoading ? <LoadingSkeleton /> : (
+  return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <SEOHead
         title={seoMetadata.title}
@@ -1737,9 +1785,9 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
               </p>
             </div>
 
-            {/* Enhanced Search and Sort with Suggestions */}
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
+            {/* Enhanced Search and Sort with Easy Apply Filter */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
                   placeholder="Search by title, company, skills..."
@@ -1748,6 +1796,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                   onFocus={() => setSearchInputFocused(true)}
                   onBlur={() => setTimeout(() => setSearchInputFocused(false), 200)}
                   className="pl-8 h-9 text-sm border-gray-200 dark:border-gray-700"
+                  data-testid="input-job-search"
                 />
                 {!searchInput && searchInputFocused && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 z-50">
@@ -1770,12 +1819,36 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                   </div>
                 )}
               </div>
+              
+              {/* Easy Apply Filter Button */}
+              <Button
+                variant={filters.easy_apply_only ? "default" : "outline"}
+                size="sm"
+                onClick={() => updateFilters({ easy_apply_only: !filters.easy_apply_only })}
+                className={`h-9 text-sm whitespace-nowrap ${
+                  filters.easy_apply_only 
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0' 
+                    : 'border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-400'
+                }`}
+                data-testid="button-easy-apply-filter"
+              >
+                <Zap className={`w-4 h-4 mr-1 ${filters.easy_apply_only ? 'text-white' : 'text-green-600'}`} />
+                Easy Apply
+                {filters.easy_apply_only && <CheckCircle className="w-3 h-3 ml-1" />}
+              </Button>
+              
               <Select value={filters.sort} onValueChange={(v) => updateFilters({ sort: v })}>
-                <SelectTrigger className="w-32 h-9 text-sm">
+                <SelectTrigger className="w-32 h-9 text-sm" data-testid="select-sort">
                   <SortDesc className="w-4 h-4 mr-2" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="date">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      Latest
+                    </div>
+                  </SelectItem>
                   <SelectItem value="relevance">
                     <div className="flex items-center gap-2">
                       <Target className="w-4 h-4" />
@@ -1786,12 +1859,6 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                     <div className="flex items-center gap-2">
                       <Sparkles className="w-4 h-4" />
                       Best Match
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="date">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      Latest
                     </div>
                   </SelectItem>
                   <SelectItem value="salary">
