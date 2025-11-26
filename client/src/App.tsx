@@ -113,12 +113,21 @@ import Blog from "@/pages/blog";
 import ChromeExtension from "@/pages/chrome-extension";
 import ATSOptimizer from "@/pages/ats-optimizer";
 import PrivacyPolicy from "@/pages/privacy-policy";
+import SalaryCalculator from "@/pages/salary-calculator";
 
 // Blog Articles
 import BeatATSGuide from "@/pages/blog/beat-ats-systems-2025-guide";
 import LinkedInAutomationGuide from "@/pages/blog/linkedin-automation-guide";
 import AICoverLettersGuide from "@/pages/blog/ai-cover-letters-guide";
 import RemoteJobSearch2025 from "@/pages/blog/remote-job-search-2025";
+
+// Company Hiring Guides
+import HowToGetHiredAtGoogle from "@/pages/blog/how-to-get-hired-at-google";
+import HowToGetHiredAtAmazon from "@/pages/blog/how-to-get-hired-at-amazon";
+import HowToGetHiredAtMeta from "@/pages/blog/how-to-get-hired-at-meta";
+import HowToGetHiredAtMicrosoft from "@/pages/blog/how-to-get-hired-at-microsoft";
+import HowToGetHiredAtApple from "@/pages/blog/how-to-get-hired-at-apple";
+import HowToGetHiredAtNetflix from "@/pages/blog/how-to-get-hired-at-netflix";
 import JobAlertsPage from "@/pages/job-alerts";
 import CompanyCareerPage from "@/pages/company-career-page";
 
@@ -263,8 +272,15 @@ function Router() {
       <Route path="/blog/linkedin-automation-guide" component={LinkedInAutomationGuide} />
       <Route path="/blog/ai-cover-letters-guide" component={AICoverLettersGuide} />
       <Route path="/blog/remote-job-search-2025" component={RemoteJobSearch2025} />
+      <Route path="/blog/how-to-get-hired-at-google" component={HowToGetHiredAtGoogle} />
+      <Route path="/blog/how-to-get-hired-at-amazon" component={HowToGetHiredAtAmazon} />
+      <Route path="/blog/how-to-get-hired-at-meta" component={HowToGetHiredAtMeta} />
+      <Route path="/blog/how-to-get-hired-at-microsoft" component={HowToGetHiredAtMicrosoft} />
+      <Route path="/blog/how-to-get-hired-at-apple" component={HowToGetHiredAtApple} />
+      <Route path="/blog/how-to-get-hired-at-netflix" component={HowToGetHiredAtNetflix} />
       <Route path="/chrome-extension" component={ChromeExtension} />
       <Route path="/ats-optimizer" component={ATSOptimizer} />
+      <Route path="/salary-calculator" component={SalaryCalculator} />
       <Route path="/employer-features" component={EmployerFeaturesPage} />
       <Route path="/for-recruiters" component={EmployerFeaturesPage} />
       <Route path="/recruiters" component={EmployerFeaturesPage} />

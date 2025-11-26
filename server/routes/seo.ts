@@ -193,6 +193,7 @@ router.get("/sitemap.xml", async (req, res) => {
       { path: '/blog', priority: '0.8', changefreq: 'weekly' },
       { path: '/chrome-extension', priority: '0.9', changefreq: 'weekly' },
       { path: '/ats-optimizer', priority: '0.9', changefreq: 'weekly' },
+      { path: '/salary-calculator', priority: '0.9', changefreq: 'weekly' },
       { path: '/free-job-application-automation', priority: '0.95', changefreq: 'daily' },
       { path: '/beat-ats-systems-free', priority: '0.95', changefreq: 'daily' },
       { path: '/auto-apply-1000-jobs-daily', priority: '0.95', changefreq: 'daily' },
@@ -202,7 +203,19 @@ router.get("/sitemap.xml", async (req, res) => {
       { path: '/remote-jobs-students-2025', priority: '0.9', changefreq: 'daily' },
       { path: '/1-click-apply-jobs', priority: '0.9', changefreq: 'daily' },
       { path: '/job-application-autofill-extension', priority: '0.85', changefreq: 'weekly' },
-      { path: '/privacy-policy', priority: '0.5', changefreq: 'monthly' }
+      { path: '/privacy-policy', priority: '0.5', changefreq: 'monthly' },
+      // Company Hiring Guides
+      { path: '/blog/how-to-get-hired-at-google', priority: '0.9', changefreq: 'weekly' },
+      { path: '/blog/how-to-get-hired-at-amazon', priority: '0.9', changefreq: 'weekly' },
+      { path: '/blog/how-to-get-hired-at-meta', priority: '0.9', changefreq: 'weekly' },
+      { path: '/blog/how-to-get-hired-at-microsoft', priority: '0.9', changefreq: 'weekly' },
+      { path: '/blog/how-to-get-hired-at-apple', priority: '0.9', changefreq: 'weekly' },
+      { path: '/blog/how-to-get-hired-at-netflix', priority: '0.9', changefreq: 'weekly' },
+      // Blog Articles
+      { path: '/blog/beat-ats-systems-2025-guide', priority: '0.85', changefreq: 'weekly' },
+      { path: '/blog/linkedin-automation-guide', priority: '0.85', changefreq: 'weekly' },
+      { path: '/blog/ai-cover-letters-guide', priority: '0.85', changefreq: 'weekly' },
+      { path: '/blog/remote-job-search-2025', priority: '0.85', changefreq: 'weekly' }
     ];
 
     staticPages.forEach(page => {
@@ -388,11 +401,20 @@ Allow: /features
 Allow: /pricing
 Allow: /chrome-extension
 Allow: /ats-optimizer
+Allow: /salary-calculator
 Allow: /free-job-application-automation
 Allow: /beat-ats-systems-free
 Allow: /auto-apply-1000-jobs-daily
 Allow: /linkedin-auto-apply-bot
 Allow: /indeed-auto-apply-tool
+
+# Company Hiring Guides
+Allow: /blog/how-to-get-hired-at-google
+Allow: /blog/how-to-get-hired-at-amazon
+Allow: /blog/how-to-get-hired-at-meta
+Allow: /blog/how-to-get-hired-at-microsoft
+Allow: /blog/how-to-get-hired-at-apple
+Allow: /blog/how-to-get-hired-at-netflix
 
 # Block only truly private/sensitive areas
 Disallow: /admin/

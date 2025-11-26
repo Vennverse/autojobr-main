@@ -93,16 +93,123 @@ const LOCATION_MAPPINGS = [
 ];
 
 const SALARY_DATABASE: Record<string, RoleData> = {
+  // Engineering Roles
   'software engineer': { base: 95000, locations: { us: 1.0, india: 0.25, europe: 0.85, uk: 0.90, canada: 0.85, singapore: 0.75, australia: 0.80, uae: 0.70 }, category: 'engineering' },
   'senior software engineer': { base: 135000, locations: { us: 1.0, india: 0.30, europe: 0.88, uk: 0.92, canada: 0.87, singapore: 0.78, australia: 0.83, uae: 0.73 }, category: 'engineering' },
+  'staff engineer': { base: 175000, locations: { us: 1.0, india: 0.32, europe: 0.90, uk: 0.94, canada: 0.89, singapore: 0.80, australia: 0.85, uae: 0.75 }, category: 'engineering' },
+  'principal engineer': { base: 210000, locations: { us: 1.0, india: 0.35, europe: 0.92, uk: 0.96, canada: 0.91, singapore: 0.82, australia: 0.87, uae: 0.77 }, category: 'engineering' },
+  'frontend developer': { base: 90000, locations: { us: 1.0, india: 0.24, europe: 0.83, uk: 0.88, canada: 0.83, singapore: 0.73, australia: 0.78, uae: 0.68 }, category: 'engineering' },
+  'backend developer': { base: 95000, locations: { us: 1.0, india: 0.25, europe: 0.85, uk: 0.90, canada: 0.85, singapore: 0.75, australia: 0.80, uae: 0.70 }, category: 'engineering' },
+  'full stack developer': { base: 100000, locations: { us: 1.0, india: 0.26, europe: 0.86, uk: 0.91, canada: 0.86, singapore: 0.76, australia: 0.81, uae: 0.71 }, category: 'engineering' },
+  'devops engineer': { base: 115000, locations: { us: 1.0, india: 0.27, europe: 0.87, uk: 0.92, canada: 0.87, singapore: 0.77, australia: 0.82, uae: 0.72 }, category: 'engineering' },
+  'cloud engineer': { base: 120000, locations: { us: 1.0, india: 0.28, europe: 0.88, uk: 0.93, canada: 0.88, singapore: 0.78, australia: 0.83, uae: 0.73 }, category: 'engineering' },
+  'site reliability engineer': { base: 130000, locations: { us: 1.0, india: 0.29, europe: 0.89, uk: 0.94, canada: 0.89, singapore: 0.79, australia: 0.84, uae: 0.74 }, category: 'engineering' },
+  'mobile developer': { base: 100000, locations: { us: 1.0, india: 0.25, europe: 0.85, uk: 0.90, canada: 0.85, singapore: 0.75, australia: 0.80, uae: 0.70 }, category: 'engineering' },
+  'ios developer': { base: 105000, locations: { us: 1.0, india: 0.26, europe: 0.86, uk: 0.91, canada: 0.86, singapore: 0.76, australia: 0.81, uae: 0.71 }, category: 'engineering' },
+  'android developer': { base: 100000, locations: { us: 1.0, india: 0.25, europe: 0.85, uk: 0.90, canada: 0.85, singapore: 0.75, australia: 0.80, uae: 0.70 }, category: 'engineering' },
+  'qa engineer': { base: 80000, locations: { us: 1.0, india: 0.22, europe: 0.80, uk: 0.85, canada: 0.80, singapore: 0.70, australia: 0.75, uae: 0.65 }, category: 'engineering' },
+  'sdet': { base: 95000, locations: { us: 1.0, india: 0.24, europe: 0.83, uk: 0.88, canada: 0.83, singapore: 0.73, australia: 0.78, uae: 0.68 }, category: 'engineering' },
+  'security engineer': { base: 125000, locations: { us: 1.0, india: 0.28, europe: 0.88, uk: 0.93, canada: 0.88, singapore: 0.78, australia: 0.83, uae: 0.73 }, category: 'engineering' },
+  'embedded engineer': { base: 105000, locations: { us: 1.0, india: 0.26, europe: 0.86, uk: 0.91, canada: 0.86, singapore: 0.76, australia: 0.81, uae: 0.71 }, category: 'engineering' },
+  'systems engineer': { base: 100000, locations: { us: 1.0, india: 0.25, europe: 0.85, uk: 0.90, canada: 0.85, singapore: 0.75, australia: 0.80, uae: 0.70 }, category: 'engineering' },
+  
+  // AI/ML Roles
   'ai engineer': { base: 145000, locations: { us: 1.0, india: 0.28, europe: 0.87, uk: 0.91, canada: 0.86, singapore: 0.77, australia: 0.82, uae: 0.72 }, category: 'engineering' },
+  'machine learning engineer': { base: 140000, locations: { us: 1.0, india: 0.28, europe: 0.87, uk: 0.91, canada: 0.86, singapore: 0.77, australia: 0.82, uae: 0.72 }, category: 'engineering' },
+  'nlp engineer': { base: 145000, locations: { us: 1.0, india: 0.28, europe: 0.87, uk: 0.91, canada: 0.86, singapore: 0.77, australia: 0.82, uae: 0.72 }, category: 'engineering' },
+  'computer vision engineer': { base: 140000, locations: { us: 1.0, india: 0.28, europe: 0.87, uk: 0.91, canada: 0.86, singapore: 0.77, australia: 0.82, uae: 0.72 }, category: 'engineering' },
+  'research scientist': { base: 160000, locations: { us: 1.0, india: 0.30, europe: 0.89, uk: 0.93, canada: 0.88, singapore: 0.79, australia: 0.84, uae: 0.74 }, category: 'engineering' },
+  
+  // Data Roles
   'data scientist': { base: 120000, locations: { us: 1.0, india: 0.26, europe: 0.86, uk: 0.90, canada: 0.85, singapore: 0.76, australia: 0.81, uae: 0.71 }, category: 'data' },
-  'product manager': { base: 125000, locations: { us: 1.0, india: 0.30, europe: 0.88, uk: 0.92, canada: 0.87, singapore: 0.78, australia: 0.83, uae: 0.73 }, category: 'product' }
+  'senior data scientist': { base: 155000, locations: { us: 1.0, india: 0.30, europe: 0.88, uk: 0.92, canada: 0.87, singapore: 0.78, australia: 0.83, uae: 0.73 }, category: 'data' },
+  'data analyst': { base: 75000, locations: { us: 1.0, india: 0.22, europe: 0.80, uk: 0.85, canada: 0.80, singapore: 0.70, australia: 0.75, uae: 0.65 }, category: 'data' },
+  'senior data analyst': { base: 100000, locations: { us: 1.0, india: 0.25, europe: 0.85, uk: 0.90, canada: 0.85, singapore: 0.75, australia: 0.80, uae: 0.70 }, category: 'data' },
+  'data engineer': { base: 115000, locations: { us: 1.0, india: 0.26, europe: 0.86, uk: 0.90, canada: 0.85, singapore: 0.76, australia: 0.81, uae: 0.71 }, category: 'data' },
+  'business analyst': { base: 80000, locations: { us: 1.0, india: 0.23, europe: 0.82, uk: 0.87, canada: 0.82, singapore: 0.72, australia: 0.77, uae: 0.67 }, category: 'data' },
+  'business intelligence analyst': { base: 85000, locations: { us: 1.0, india: 0.24, europe: 0.83, uk: 0.88, canada: 0.83, singapore: 0.73, australia: 0.78, uae: 0.68 }, category: 'data' },
+  
+  // Product Roles
+  'product manager': { base: 125000, locations: { us: 1.0, india: 0.30, europe: 0.88, uk: 0.92, canada: 0.87, singapore: 0.78, australia: 0.83, uae: 0.73 }, category: 'product' },
+  'senior product manager': { base: 160000, locations: { us: 1.0, india: 0.32, europe: 0.90, uk: 0.94, canada: 0.89, singapore: 0.80, australia: 0.85, uae: 0.75 }, category: 'product' },
+  'product owner': { base: 110000, locations: { us: 1.0, india: 0.28, europe: 0.86, uk: 0.90, canada: 0.85, singapore: 0.76, australia: 0.81, uae: 0.71 }, category: 'product' },
+  'technical product manager': { base: 135000, locations: { us: 1.0, india: 0.30, europe: 0.88, uk: 0.92, canada: 0.87, singapore: 0.78, australia: 0.83, uae: 0.73 }, category: 'product' },
+  'group product manager': { base: 185000, locations: { us: 1.0, india: 0.33, europe: 0.91, uk: 0.95, canada: 0.90, singapore: 0.81, australia: 0.86, uae: 0.76 }, category: 'product' },
+  'director of product': { base: 220000, locations: { us: 1.0, india: 0.35, europe: 0.92, uk: 0.96, canada: 0.91, singapore: 0.82, australia: 0.87, uae: 0.77 }, category: 'product' },
+  'vp of product': { base: 280000, locations: { us: 1.0, india: 0.38, europe: 0.93, uk: 0.97, canada: 0.92, singapore: 0.83, australia: 0.88, uae: 0.78 }, category: 'product' },
+  
+  // Design Roles
+  'ux designer': { base: 90000, locations: { us: 1.0, india: 0.24, europe: 0.83, uk: 0.88, canada: 0.83, singapore: 0.73, australia: 0.78, uae: 0.68 }, category: 'design' },
+  'senior ux designer': { base: 120000, locations: { us: 1.0, india: 0.28, europe: 0.87, uk: 0.92, canada: 0.87, singapore: 0.77, australia: 0.82, uae: 0.72 }, category: 'design' },
+  'ui designer': { base: 85000, locations: { us: 1.0, india: 0.23, europe: 0.82, uk: 0.87, canada: 0.82, singapore: 0.72, australia: 0.77, uae: 0.67 }, category: 'design' },
+  'product designer': { base: 105000, locations: { us: 1.0, india: 0.26, europe: 0.85, uk: 0.90, canada: 0.85, singapore: 0.75, australia: 0.80, uae: 0.70 }, category: 'design' },
+  'senior product designer': { base: 140000, locations: { us: 1.0, india: 0.30, europe: 0.88, uk: 0.93, canada: 0.88, singapore: 0.78, australia: 0.83, uae: 0.73 }, category: 'design' },
+  'design lead': { base: 155000, locations: { us: 1.0, india: 0.32, europe: 0.89, uk: 0.94, canada: 0.89, singapore: 0.79, australia: 0.84, uae: 0.74 }, category: 'design' },
+  'ux researcher': { base: 95000, locations: { us: 1.0, india: 0.25, europe: 0.84, uk: 0.89, canada: 0.84, singapore: 0.74, australia: 0.79, uae: 0.69 }, category: 'design' },
+  
+  // Management Roles
+  'engineering manager': { base: 165000, locations: { us: 1.0, india: 0.32, europe: 0.90, uk: 0.94, canada: 0.89, singapore: 0.80, australia: 0.85, uae: 0.75 }, category: 'management' },
+  'senior engineering manager': { base: 195000, locations: { us: 1.0, india: 0.34, europe: 0.91, uk: 0.95, canada: 0.90, singapore: 0.81, australia: 0.86, uae: 0.76 }, category: 'management' },
+  'director of engineering': { base: 230000, locations: { us: 1.0, india: 0.36, europe: 0.92, uk: 0.96, canada: 0.91, singapore: 0.82, australia: 0.87, uae: 0.77 }, category: 'management' },
+  'vp of engineering': { base: 300000, locations: { us: 1.0, india: 0.40, europe: 0.93, uk: 0.97, canada: 0.92, singapore: 0.83, australia: 0.88, uae: 0.78 }, category: 'management' },
+  'cto': { base: 350000, locations: { us: 1.0, india: 0.42, europe: 0.94, uk: 0.98, canada: 0.93, singapore: 0.84, australia: 0.89, uae: 0.79 }, category: 'executive' },
+  'technical lead': { base: 145000, locations: { us: 1.0, india: 0.30, europe: 0.88, uk: 0.92, canada: 0.87, singapore: 0.78, australia: 0.83, uae: 0.73 }, category: 'management' },
+  'project manager': { base: 95000, locations: { us: 1.0, india: 0.26, europe: 0.85, uk: 0.90, canada: 0.85, singapore: 0.75, australia: 0.80, uae: 0.70 }, category: 'management' },
+  'program manager': { base: 115000, locations: { us: 1.0, india: 0.28, europe: 0.87, uk: 0.92, canada: 0.87, singapore: 0.77, australia: 0.82, uae: 0.72 }, category: 'management' },
+  'scrum master': { base: 100000, locations: { us: 1.0, india: 0.26, europe: 0.85, uk: 0.90, canada: 0.85, singapore: 0.75, australia: 0.80, uae: 0.70 }, category: 'management' },
+  
+  // Marketing Roles
+  'marketing manager': { base: 90000, locations: { us: 1.0, india: 0.24, europe: 0.82, uk: 0.87, canada: 0.82, singapore: 0.72, australia: 0.77, uae: 0.67 }, category: 'marketing' },
+  'digital marketing manager': { base: 85000, locations: { us: 1.0, india: 0.23, europe: 0.81, uk: 0.86, canada: 0.81, singapore: 0.71, australia: 0.76, uae: 0.66 }, category: 'marketing' },
+  'growth marketing manager': { base: 105000, locations: { us: 1.0, india: 0.26, europe: 0.84, uk: 0.89, canada: 0.84, singapore: 0.74, australia: 0.79, uae: 0.69 }, category: 'marketing' },
+  'content marketing manager': { base: 80000, locations: { us: 1.0, india: 0.22, europe: 0.80, uk: 0.85, canada: 0.80, singapore: 0.70, australia: 0.75, uae: 0.65 }, category: 'marketing' },
+  'seo specialist': { base: 70000, locations: { us: 1.0, india: 0.20, europe: 0.78, uk: 0.83, canada: 0.78, singapore: 0.68, australia: 0.73, uae: 0.63 }, category: 'marketing' },
+  'product marketing manager': { base: 115000, locations: { us: 1.0, india: 0.27, europe: 0.86, uk: 0.91, canada: 0.86, singapore: 0.76, australia: 0.81, uae: 0.71 }, category: 'marketing' },
+  
+  // Sales Roles
+  'sales representative': { base: 65000, locations: { us: 1.0, india: 0.18, europe: 0.75, uk: 0.80, canada: 0.75, singapore: 0.65, australia: 0.70, uae: 0.60 }, category: 'sales' },
+  'account executive': { base: 85000, locations: { us: 1.0, india: 0.22, europe: 0.80, uk: 0.85, canada: 0.80, singapore: 0.70, australia: 0.75, uae: 0.65 }, category: 'sales' },
+  'sales manager': { base: 110000, locations: { us: 1.0, india: 0.26, europe: 0.84, uk: 0.89, canada: 0.84, singapore: 0.74, australia: 0.79, uae: 0.69 }, category: 'sales' },
+  'sales engineer': { base: 120000, locations: { us: 1.0, india: 0.27, europe: 0.85, uk: 0.90, canada: 0.85, singapore: 0.75, australia: 0.80, uae: 0.70 }, category: 'sales' },
+  'customer success manager': { base: 80000, locations: { us: 1.0, india: 0.22, europe: 0.80, uk: 0.85, canada: 0.80, singapore: 0.70, australia: 0.75, uae: 0.65 }, category: 'sales' },
+  
+  // HR Roles
+  'hr manager': { base: 85000, locations: { us: 1.0, india: 0.22, europe: 0.80, uk: 0.85, canada: 0.80, singapore: 0.70, australia: 0.75, uae: 0.65 }, category: 'hr' },
+  'recruiter': { base: 65000, locations: { us: 1.0, india: 0.18, europe: 0.75, uk: 0.80, canada: 0.75, singapore: 0.65, australia: 0.70, uae: 0.60 }, category: 'hr' },
+  'technical recruiter': { base: 80000, locations: { us: 1.0, india: 0.22, europe: 0.80, uk: 0.85, canada: 0.80, singapore: 0.70, australia: 0.75, uae: 0.65 }, category: 'hr' },
+  
+  // Finance Roles
+  'financial analyst': { base: 75000, locations: { us: 1.0, india: 0.20, europe: 0.78, uk: 0.83, canada: 0.78, singapore: 0.68, australia: 0.73, uae: 0.63 }, category: 'finance' },
+  'senior financial analyst': { base: 100000, locations: { us: 1.0, india: 0.25, europe: 0.83, uk: 0.88, canada: 0.83, singapore: 0.73, australia: 0.78, uae: 0.68 }, category: 'finance' },
+  'accountant': { base: 65000, locations: { us: 1.0, india: 0.18, europe: 0.75, uk: 0.80, canada: 0.75, singapore: 0.65, australia: 0.70, uae: 0.60 }, category: 'finance' },
+  'cfo': { base: 320000, locations: { us: 1.0, india: 0.40, europe: 0.93, uk: 0.97, canada: 0.92, singapore: 0.83, australia: 0.88, uae: 0.78 }, category: 'executive' },
+  
+  // Operations Roles
+  'operations manager': { base: 85000, locations: { us: 1.0, india: 0.22, europe: 0.80, uk: 0.85, canada: 0.80, singapore: 0.70, australia: 0.75, uae: 0.65 }, category: 'operations' },
+  'business operations manager': { base: 95000, locations: { us: 1.0, india: 0.24, europe: 0.82, uk: 0.87, canada: 0.82, singapore: 0.72, australia: 0.77, uae: 0.67 }, category: 'operations' },
+  'coo': { base: 300000, locations: { us: 1.0, india: 0.40, europe: 0.93, uk: 0.97, canada: 0.92, singapore: 0.83, australia: 0.88, uae: 0.78 }, category: 'executive' },
+  
+  // Consulting Roles
+  'consultant': { base: 95000, locations: { us: 1.0, india: 0.25, europe: 0.85, uk: 0.90, canada: 0.85, singapore: 0.75, australia: 0.80, uae: 0.70 }, category: 'consulting' },
+  'senior consultant': { base: 130000, locations: { us: 1.0, india: 0.30, europe: 0.88, uk: 0.93, canada: 0.88, singapore: 0.78, australia: 0.83, uae: 0.73 }, category: 'consulting' },
+  'management consultant': { base: 140000, locations: { us: 1.0, india: 0.32, europe: 0.89, uk: 0.94, canada: 0.89, singapore: 0.79, australia: 0.84, uae: 0.74 }, category: 'consulting' },
+  
+  // Executive Roles
+  'ceo': { base: 400000, locations: { us: 1.0, india: 0.45, europe: 0.95, uk: 0.99, canada: 0.94, singapore: 0.85, australia: 0.90, uae: 0.80 }, category: 'executive' }
 };
 
 const CAREER_PATHS: Record<string, string[]> = {
   'software engineer': ['Senior Software Engineer', 'Staff Engineer', 'Principal Engineer', 'Engineering Manager'],
-  'data scientist': ['Senior Data Scientist', 'Lead Data Scientist', 'Principal Data Scientist', 'Director of Data Science']
+  'senior software engineer': ['Staff Engineer', 'Principal Engineer', 'Engineering Manager', 'Director of Engineering'],
+  'data scientist': ['Senior Data Scientist', 'Lead Data Scientist', 'Principal Data Scientist', 'Director of Data Science'],
+  'data analyst': ['Senior Data Analyst', 'Data Scientist', 'Analytics Manager', 'Director of Analytics'],
+  'product manager': ['Senior Product Manager', 'Group Product Manager', 'Director of Product', 'VP of Product'],
+  'ux designer': ['Senior UX Designer', 'Design Lead', 'Head of Design', 'VP of Design'],
+  'frontend developer': ['Senior Frontend Developer', 'Lead Frontend Developer', 'Frontend Architect', 'Engineering Manager'],
+  'backend developer': ['Senior Backend Developer', 'Lead Backend Developer', 'Backend Architect', 'Engineering Manager'],
+  'devops engineer': ['Senior DevOps Engineer', 'Staff DevOps Engineer', 'Platform Lead', 'VP of Infrastructure'],
+  'machine learning engineer': ['Senior ML Engineer', 'Staff ML Engineer', 'ML Platform Lead', 'Head of AI'],
+  'ai engineer': ['Senior AI Engineer', 'Staff AI Engineer', 'AI Platform Lead', 'Head of AI']
 };
 
 export class SalaryInsightsService {

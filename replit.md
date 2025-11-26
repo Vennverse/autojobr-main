@@ -69,6 +69,31 @@ The project employs a monolithic architecture, combining the frontend and backen
   - Generate with: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
   - BYOK features disabled if ENCRYPTION_KEY not configured
 
+## SEO/AEO/GEO Content Marketing
+
+### Public Tools (No Login Required)
+- **Salary Calculator** (`/salary-calculator`): Free salary estimation tool supporting 60+ job roles across engineering, product, design, data, management, marketing, sales, HR, finance, operations, and executive categories. Uses real market data with location-based adjustments for US, UK, Europe, Canada, India, Singapore, Australia, and UAE.
+  - API: `POST /api/public/salary-calculator` (rate limited: 30/min)
+  - Service: `server/salaryInsightsService.ts`
+
+### Company Hiring Guides
+- "How to Get Hired at [Company]" blog posts with SEO-optimized content:
+  - `/blog/how-to-get-hired-at-google`
+  - `/blog/how-to-get-hired-at-amazon`
+  - `/blog/how-to-get-hired-at-meta`
+  - `/blog/how-to-get-hired-at-microsoft`
+  - `/blog/how-to-get-hired-at-apple`
+  - `/blog/how-to-get-hired-at-netflix`
+- Each guide includes: interview process, salary ranges, required skills, tips, and FAQ sections
+- Template component: `client/src/pages/blog/company-hiring-guide.tsx`
+
+### Structured Data for AI Engines
+- Article schema for blog posts
+- FAQPage schema for common questions
+- HowTo schema for interview processes
+- All pages included in dynamic sitemap (`/sitemap.xml`)
+- robots.txt configured for AI crawlers (GPTBot, Claude-Web, PerplexityBot)
+
 ## External Dependencies
 -   **Databases**: PostgreSQL (via Neon/Replit Database)
 -   **ORM**: Drizzle ORM

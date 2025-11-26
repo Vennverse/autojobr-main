@@ -2,10 +2,55 @@ import SEOHead from "@/components/seo-head";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User, ArrowRight, TrendingUp, Target, Briefcase } from "lucide-react";
+import { Calendar, User, ArrowRight, TrendingUp, Target, Briefcase, Building2, DollarSign } from "lucide-react";
 import { Link } from "wouter";
 
 export default function Blog() {
+  const companyHiringGuides = [
+    {
+      company: "Google",
+      slug: "google",
+      description: "Learn about Google's interview process, salary ranges, and tips to get hired.",
+      employees: "180,000+",
+      salaryRange: "$150K - $300K+"
+    },
+    {
+      company: "Amazon",
+      slug: "amazon",
+      description: "Master Amazon's Leadership Principles and ace the interview loop.",
+      employees: "1,500,000+",
+      salaryRange: "$130K - $350K+"
+    },
+    {
+      company: "Meta",
+      slug: "meta",
+      description: "Get insider tips on Meta's coding interviews and culture fit assessment.",
+      employees: "70,000+",
+      salaryRange: "$150K - $400K+"
+    },
+    {
+      company: "Microsoft",
+      slug: "microsoft",
+      description: "Understand Microsoft's growth mindset culture and interview process.",
+      employees: "220,000+",
+      salaryRange: "$110K - $280K+"
+    },
+    {
+      company: "Apple",
+      slug: "apple",
+      description: "Discover how to stand out in Apple's selective hiring process.",
+      employees: "160,000+",
+      salaryRange: "$140K - $300K+"
+    },
+    {
+      company: "Netflix",
+      slug: "netflix",
+      description: "Learn about Netflix's unique culture and top-of-market compensation.",
+      employees: "12,000+",
+      salaryRange: "$300K - $450K+"
+    }
+  ];
+
   const blogPosts = [
     {
       id: 1,
@@ -155,6 +200,42 @@ export default function Blog() {
               </div>
             </div>
           </Card>
+
+          {/* Company Hiring Guides Section */}
+          <div className="mb-16">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-3xl font-bold">How to Get Hired at Top Companies</h2>
+              <Link href="/salary-calculator">
+                <Button variant="outline" className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4" />
+                  Salary Calculator
+                </Button>
+              </Link>
+            </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {companyHiringGuides.map((guide) => (
+                <Link key={guide.slug} href={`/blog/how-to-get-hired-at-${guide.slug}`}>
+                  <Card className="border-0 shadow-lg hover:shadow-xl transition-all cursor-pointer h-full">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Building2 className="w-5 h-5 text-blue-600" />
+                        <CardTitle className="text-lg">
+                          How to Get Hired at {guide.company}
+                        </CardTitle>
+                      </div>
+                      <CardDescription>{guide.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between text-sm">
+                        <Badge variant="secondary">{guide.employees}</Badge>
+                        <span className="text-green-600 font-medium">{guide.salaryRange}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
 
           {/* Blog Posts Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">

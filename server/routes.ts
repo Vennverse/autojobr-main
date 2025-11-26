@@ -5230,6 +5230,30 @@ Return only the improved job description text, no additional formatting or expla
     }
   });
 
+  // PUBLIC Salary Calculator API - No Authentication Required (SEO Tool)
+  app.post('/api/public/salary-calculator', rateLimitMiddleware(30, 60), async (req: any, res) => {
+    try {
+      const validationResult = salaryInsightsSchema.safeParse(req.body);
+
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: 'Invalid request data', 
+          errors: validationResult.error.errors 
+        });
+      }
+
+      const insights = await salaryInsightsService.generateInsights(validationResult.data);
+
+      res.json(insights);
+    } catch (error) {
+      console.error('Public salary calculator error:', error);
+      res.status(500).json({ 
+        message: 'Failed to calculate salary',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Cover Letter Generation API - Generate personalized cover letters
   // Free users get 2 per day, premium users get unlimited
   app.post('/api/generate-cover-letter', isAuthenticated, async (req: any, res) => {
