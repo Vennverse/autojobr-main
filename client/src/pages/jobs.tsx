@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { useLocationDetection } from "@/hooks/use-location";
 import { useForm } from "react-hook-form";
 import { Navbar } from "@/components/navbar";
 import SEOHead from "@/components/seo-head";
@@ -268,6 +269,10 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
   const { user, isAuthenticated } = useAuth();
   const [_, setLocation] = useLocation();
   const queryClient = useQueryClient();
+  
+  // Location detection for auto-filtering by user's country
+  const { location: detectedLocation, loading: locationLoading } = useLocationDetection();
+  const [locationAutoApplied, setLocationAutoApplied] = useState(false);
 
   // URL and state management
   const [searchParams, setSearchParams] = useState<URLSearchParams>(() => {
@@ -319,6 +324,37 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       }, 100);
     }
   }, [salaryInsightsData]);
+
+  // Auto-apply location filter based on user's detected country (only on first load with no existing filters)
+  useEffect(() => {
+    // Skip if already applied, still loading, or no location detected
+    if (locationAutoApplied || locationLoading || !detectedLocation) return;
+    
+    // Check if user already has any filters set (indicating intentional browsing)
+    const hasExistingFilters = searchParams.get('country') || 
+                               searchParams.get('city') || 
+                               searchParams.get('q') ||
+                               country || // Route-based country
+                               location;  // Route-based location
+    
+    // Only auto-apply if no existing location filters and we have a valid country code
+    if (!hasExistingFilters && detectedLocation.countryCode) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set('country', detectedLocation.countryCode);
+      newParams.set('page', '1');
+      setSearchParams(newParams);
+      window.history.replaceState(null, '', `${window.location.pathname}?${newParams.toString()}`);
+      
+      // Show a subtle toast to inform user
+      toast({
+        title: `Showing jobs in ${detectedLocation.country}`,
+        description: "Based on your location. You can change this anytime.",
+        duration: 3000,
+      });
+    }
+    
+    setLocationAutoApplied(true);
+  }, [detectedLocation, locationLoading, locationAutoApplied, searchParams, country, location, toast]);
 
   // Convert route-based parameters to filter format
   const routeBasedFilters = useMemo(() => {
@@ -1064,10 +1100,34 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       <div className="space-y-6">
         {/* Location Filters */}
         <div className="space-y-3">
-          <h3 className="font-semibold text-sm flex items-center">
-            <MapPin className="w-4 h-4 mr-2" />
-            Location
-          </h3>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="font-semibold text-sm flex items-center">
+              <MapPin className="w-4 h-4 mr-2" />
+              Location
+            </h3>
+            {detectedLocation && detectedLocation.countryCode && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  updateFilters({ 
+                    country: detectedLocation.countryCode,
+                    city: detectedLocation.city && detectedLocation.city !== 'Unknown' ? detectedLocation.city : undefined
+                  });
+                  toast({
+                    title: `Location updated`,
+                    description: `Showing jobs in ${detectedLocation.city && detectedLocation.city !== 'Unknown' ? detectedLocation.city + ', ' : ''}${detectedLocation.country}`,
+                    duration: 2000,
+                  });
+                }}
+                className="text-xs h-7"
+                data-testid="button-use-my-location"
+              >
+                <Target className="w-3 h-3 mr-1" />
+                Use my location
+              </Button>
+            )}
+          </div>
           <div className="space-y-2">
             <Select value={filters.country || ''} onValueChange={(value) => updateFilters({ country: value || undefined })}>
               <SelectTrigger data-testid="filter-country">
