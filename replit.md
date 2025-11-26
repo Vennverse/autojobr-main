@@ -18,7 +18,7 @@ The project employs a monolithic architecture, combining the frontend and backen
 -   **Real-time Communication**: Utilizes WebSockets (`ws`) for features like real-time chat.
 -   **UI/UX Decisions**: Employs a modern design approach using Tailwind CSS and shadcn/ui components for a consistent and responsive user interface, including an auto-rotating hero slider for key features. SEO optimization is integrated across landing pages.
 -   **Feature Specifications**:
-    -   Job Search & Auto-Apply with automated submission.
+    -   Job Search & Auto-Apply with automated submission, Easy Apply filter, and intelligent job mixing (platform jobs interleaved with scraped jobs at 1:3 ratio with freshness bias).
     -   ATS Resume Optimization for AI-powered analysis.
     -   Personalized Cover Letter Generation.
     -   AI-powered Interview Preparation with feedback.
