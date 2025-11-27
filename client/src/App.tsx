@@ -114,6 +114,7 @@ import ChromeExtension from "@/pages/chrome-extension";
 import ATSOptimizer from "@/pages/ats-optimizer";
 import PrivacyPolicy from "@/pages/privacy-policy";
 import SalaryCalculator from "@/pages/salary-calculator";
+import UniversityPartnership from "@/pages/university-partnership";
 
 // Blog Articles
 import BeatATSGuide from "@/pages/blog/beat-ats-systems-2025-guide";
@@ -281,6 +282,9 @@ function Router() {
       <Route path="/chrome-extension" component={ChromeExtension} />
       <Route path="/ats-optimizer" component={ATSOptimizer} />
       <Route path="/salary-calculator" component={SalaryCalculator} />
+      <Route path="/university-partnership" component={UniversityPartnership} />
+      <Route path="/universities" component={UniversityPartnership} />
+      <Route path="/campus-partnership" component={UniversityPartnership} />
       <Route path="/employer-features" component={EmployerFeaturesPage} />
       <Route path="/for-recruiters" component={EmployerFeaturesPage} />
       <Route path="/recruiters" component={EmployerFeaturesPage} />
