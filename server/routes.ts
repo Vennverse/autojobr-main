@@ -8764,6 +8764,162 @@ Return ONLY the JSON object, no additional text.`;
     }
   });
 
+  // Career Coaching Chat - Personalized Q&A with daily limits (Free: 2, Premium: 10)
+  app.get('/api/career-coaching/usage', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      const isPremium = user?.planType === 'premium' || user?.subscriptionStatus === 'active';
+      const dailyLimit = isPremium ? 10 : 2;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const todayCount = await db.select({ count: count() })
+        .from(schema.careerCoachingChats)
+        .where(and(
+          eq(schema.careerCoachingChats.userId, userId),
+          gte(schema.careerCoachingChats.createdAt, today)
+        ));
+
+      const questionsUsed = todayCount[0]?.count || 0;
+
+      res.json({
+        questionsUsed,
+        dailyLimit,
+        remaining: Math.max(0, dailyLimit - questionsUsed),
+        isPremium
+      });
+    } catch (error) {
+      console.error("Error fetching coaching usage:", error);
+      res.status(500).json({ message: "Failed to fetch usage" });
+    }
+  });
+
+  app.get('/api/career-coaching/history', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const limit = parseInt(req.query.limit as string) || 20;
+
+      const chats = await db.select()
+        .from(schema.careerCoachingChats)
+        .where(eq(schema.careerCoachingChats.userId, userId))
+        .orderBy(desc(schema.careerCoachingChats.createdAt))
+        .limit(limit);
+
+      res.json(chats);
+    } catch (error) {
+      console.error("Error fetching chat history:", error);
+      res.status(500).json({ message: "Failed to fetch history" });
+    }
+  });
+
+  app.post('/api/career-coaching/ask', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { question } = req.body;
+
+      if (!question || question.trim().length === 0) {
+        return res.status(400).json({ message: "Question is required" });
+      }
+
+      const user = await storage.getUser(userId);
+      const isPremium = user?.planType === 'premium' || user?.subscriptionStatus === 'active';
+      const dailyLimit = isPremium ? 10 : 2;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const todayCount = await db.select({ count: count() })
+        .from(schema.careerCoachingChats)
+        .where(and(
+          eq(schema.careerCoachingChats.userId, userId),
+          gte(schema.careerCoachingChats.createdAt, today)
+        ));
+
+      const questionsUsed = todayCount[0]?.count || 0;
+
+      if (questionsUsed >= dailyLimit) {
+        return res.status(429).json({ 
+          message: isPremium 
+            ? "Daily limit reached. You've used all 10 premium questions today." 
+            : "Daily limit reached. Upgrade to Premium for 10 questions/day.",
+          remaining: 0,
+          dailyLimit,
+          isPremium
+        });
+      }
+
+      const userProfile = await db.query.userProfiles.findFirst({
+        where: eq(schema.userProfiles.userId, userId)
+      });
+
+      const userSkills = await db.select()
+        .from(schema.userSkills)
+        .where(eq(schema.userSkills.userId, userId));
+
+      const activeResume = await db.query.resumes.findFirst({
+        where: and(
+          eq(schema.resumes.userId, userId),
+          eq(schema.resumes.isActive, true)
+        )
+      });
+
+      const prompt = `You are a personalized AI career coach. The user is asking for advice to improve their career. Use their profile data to give specific, actionable advice.
+
+USER PROFILE:
+- Name: ${userProfile?.fullName || user?.firstName || 'Not provided'}
+- Title: ${userProfile?.professionalTitle || 'Not specified'}
+- Experience: ${userProfile?.yearsExperience || 0} years
+- Location: ${userProfile?.location || 'Not specified'}
+- Career Goals: ${userProfile?.careerGoals || 'Not specified'}
+
+SKILLS: ${userSkills.map(s => s.skillName).join(', ') || 'None listed'}
+
+RESUME HIGHLIGHTS: ${activeResume?.resumeText?.slice(0, 500) || 'No resume uploaded'}
+
+USER QUESTION: ${question}
+
+Provide a helpful, personalized response that:
+1. References their specific profile/skills when relevant
+2. Gives concrete, actionable advice
+3. Is encouraging but realistic
+4. Keeps the response concise (2-3 paragraphs max)
+
+Respond directly without any JSON formatting.`;
+
+      const aiResponse = await aiService.createChatCompletion([
+        { role: 'system', content: 'You are an expert career coach providing personalized advice. Be helpful, specific, and encouraging.' },
+        { role: 'user', content: prompt }
+      ], {
+        temperature: 0.7,
+        max_tokens: 800,
+        user: req.user
+      });
+
+      const answer = aiResponse.choices[0]?.message?.content || "I apologize, but I couldn't generate a response. Please try again.";
+
+      const [savedChat] = await db.insert(schema.careerCoachingChats).values({
+        userId,
+        question: question.trim(),
+        answer
+      }).returning();
+
+      res.json({
+        id: savedChat.id,
+        question: savedChat.question,
+        answer: savedChat.answer,
+        createdAt: savedChat.createdAt,
+        remaining: dailyLimit - questionsUsed - 1,
+        dailyLimit,
+        isPremium
+      });
+    } catch (error) {
+      console.error("Error processing coaching question:", error);
+      res.status(500).json({ message: "Failed to process question" });
+    }
+  });
+
   // MISSING PREMIUM API ENDPOINTS - CRITICAL FOR FRONTEND
 
   // 1. Usage Monitoring Endpoint

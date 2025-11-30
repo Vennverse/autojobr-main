@@ -5072,6 +5072,26 @@ export type InsertPodActivity = z.infer<typeof insertPodActivitySchema>;
 export type MarketplaceMission = typeof marketplaceMissions.$inferSelect;
 export type InsertMarketplaceMission = z.infer<typeof insertMarketplaceMissionSchema>;
 
+// Career Coaching Chat - Space optimized (Q&A in one row, daily usage counted from createdAt)
+export const careerCoachingChats = pgTable("career_coaching_chats", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  question: text("question").notNull(),
+  answer: text("answer").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_career_coaching_user").on(table.userId),
+  index("idx_career_coaching_created").on(table.createdAt),
+]);
+
+export const insertCareerCoachingChatSchema = createInsertSchema(careerCoachingChats).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type CareerCoachingChat = typeof careerCoachingChats.$inferSelect;
+export type InsertCareerCoachingChat = z.infer<typeof insertCareerCoachingChatSchema>;
+
 // AI Usage Tracking schemas and types
 export const insertAiUsageTrackingSchema = createInsertSchema(aiUsageTracking).omit({
   id: true,
