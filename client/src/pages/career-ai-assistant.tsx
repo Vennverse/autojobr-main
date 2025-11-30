@@ -63,7 +63,11 @@ import {
   Sparkles,
   Activity,
   TrendingDown,
-  DollarSign
+  DollarSign,
+  MessageCircle,
+  Send,
+  History,
+  Crown
 } from "lucide-react";
 
 interface CareerInsight {
@@ -134,6 +138,18 @@ export default function CareerAIAssistant() {
   const [hasUserInput, setHasUserInput] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Career Coaching Chat state
+  const [chatQuestion, setChatQuestion] = useState("");
+  const [chatMessages, setChatMessages] = useState<Array<{id: number; question: string; answer: string; createdAt: string}>>([]);
+  const [isSendingChat, setIsSendingChat] = useState(false);
+  const [showChatHistory, setShowChatHistory] = useState(false);
+  const [chatUsage, setChatUsage] = useState<{questionsUsed: number; dailyLimit: number; remaining: number; isPremium: boolean}>({
+    questionsUsed: 0,
+    dailyLimit: 2,
+    remaining: 2,
+    isPremium: false
+  });
 
   // Real-time progress tracking
   const [analysisProgress, setAnalysisProgress] = useState<{
@@ -393,6 +409,99 @@ export default function CareerAIAssistant() {
       fetchSavedAnalysis();
     }
   }, [user, userProfile]);
+
+  // Fetch chat usage on mount
+  useEffect(() => {
+    if (user) {
+      fetchChatUsage();
+      fetchChatHistory();
+    }
+  }, [user]);
+
+  const fetchChatUsage = async () => {
+    try {
+      const response = await fetch('/api/career-coaching/usage');
+      if (response.ok) {
+        const data = await response.json();
+        setChatUsage(data);
+      }
+    } catch (error) {
+      console.error("Error fetching chat usage:", error);
+    }
+  };
+
+  const fetchChatHistory = async () => {
+    try {
+      const response = await fetch('/api/career-coaching/history?limit=10');
+      if (response.ok) {
+        const data = await response.json();
+        setChatMessages(data);
+      }
+    } catch (error) {
+      console.error("Error fetching chat history:", error);
+    }
+  };
+
+  const sendChatQuestion = async () => {
+    if (!chatQuestion.trim() || isSendingChat) return;
+    
+    if (chatUsage.remaining <= 0) {
+      toast({
+        title: "Daily Limit Reached",
+        description: chatUsage.isPremium 
+          ? "You've used all 10 questions today. Come back tomorrow!"
+          : "Upgrade to Premium for 10 questions/day instead of 2.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSendingChat(true);
+    try {
+      const response = await fetch('/api/career-coaching/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: chatQuestion }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setChatMessages(prev => [data, ...prev]);
+        setChatUsage(prev => ({
+          ...prev,
+          questionsUsed: prev.questionsUsed + 1,
+          remaining: data.remaining
+        }));
+        setChatQuestion("");
+        toast({
+          title: "Answer received!",
+          description: `${data.remaining} question${data.remaining !== 1 ? 's' : ''} remaining today`,
+        });
+      } else if (response.status === 429) {
+        const data = await response.json();
+        setChatUsage(prev => ({ ...prev, remaining: 0 }));
+        toast({
+          title: "Daily Limit Reached",
+          description: data.message,
+          variant: "destructive",
+        });
+      } else {
+        throw new Error("Failed to send question");
+      }
+    } catch (error: any) {
+      if (isUnauthorizedError(error)) {
+        window.location.href = "/";
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to get an answer. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingChat(false);
+    }
+  };
 
   const fetchSavedAnalysis = async () => {
     try {
@@ -1032,6 +1141,134 @@ Examples:
               </Card>
             </motion.div>
           )}
+
+          {/* Career Coaching Chat - Always Visible */}
+          <Card className="border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50/50 to-pink-50/50 dark:from-purple-950/20 dark:to-pink-950/20">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-full">
+                    <MessageCircle className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  Ask Your Career Coach
+                </CardTitle>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 rounded-full border">
+                    <span className="text-sm text-muted-foreground">Today:</span>
+                    <span className="font-semibold text-purple-600 dark:text-purple-400">
+                      {chatUsage.remaining}/{chatUsage.dailyLimit}
+                    </span>
+                    <span className="text-sm text-muted-foreground">left</span>
+                  </div>
+                  {!chatUsage.isPremium && (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="gap-1 border-purple-300 text-purple-700 dark:text-purple-300"
+                      onClick={() => window.location.href = '/subscription'}
+                      data-testid="button-upgrade-chat"
+                    >
+                      <Crown className="h-3.5 w-3.5" />
+                      Get 10/day
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowChatHistory(!showChatHistory)}
+                    className="gap-1"
+                    data-testid="button-toggle-history"
+                  >
+                    <History className="h-4 w-4" />
+                    {showChatHistory ? 'Hide' : 'History'}
+                  </Button>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                Get personalized advice based on your profile and resume. Ask about improving your skills, interview tips, or career strategies.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Chat Input */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ask anything... e.g., 'How can I improve my resume for tech roles?'"
+                  value={chatQuestion}
+                  onChange={(e) => setChatQuestion(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendChatQuestion()}
+                  disabled={isSendingChat || chatUsage.remaining <= 0}
+                  className="flex-1"
+                  data-testid="input-chat-question"
+                />
+                <Button
+                  onClick={sendChatQuestion}
+                  disabled={!chatQuestion.trim() || isSendingChat || chatUsage.remaining <= 0}
+                  className="bg-purple-600 hover:bg-purple-700"
+                  data-testid="button-send-chat"
+                >
+                  {isSendingChat ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+
+              {/* Limit Warning */}
+              {chatUsage.remaining <= 0 && (
+                <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                    {chatUsage.isPremium 
+                      ? "You've used all 10 questions today. Come back tomorrow for more!"
+                      : "You've used your 2 free questions today. Upgrade to Premium for 10 questions/day."}
+                  </p>
+                </div>
+              )}
+
+              {/* Chat History */}
+              {(showChatHistory || chatMessages.length > 0) && (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {chatMessages.length === 0 ? (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>No questions yet. Ask your first career question above!</p>
+                    </div>
+                  ) : (
+                    chatMessages.slice(0, showChatHistory ? 10 : 3).map((msg) => (
+                      <div key={msg.id} className="space-y-2 p-3 bg-white dark:bg-gray-800 rounded-lg border">
+                        <div className="flex items-start gap-2">
+                          <div className="p-1.5 bg-purple-100 dark:bg-purple-900/50 rounded-full shrink-0">
+                            <MessageCircle className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                          </div>
+                          <p className="text-sm font-medium">{msg.question}</p>
+                        </div>
+                        <div className="flex items-start gap-2 ml-6">
+                          <div className="p-1.5 bg-green-100 dark:bg-green-900/50 rounded-full shrink-0">
+                            <Brain className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                          </div>
+                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{msg.answer}</p>
+                        </div>
+                        <p className="text-xs text-muted-foreground ml-6">
+                          {new Date(msg.createdAt).toLocaleDateString()} at {new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                  {!showChatHistory && chatMessages.length > 3 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-purple-600"
+                      onClick={() => setShowChatHistory(true)}
+                      data-testid="button-show-more-history"
+                    >
+                      View {chatMessages.length - 3} more questions
+                    </Button>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Analysis Results */}
           {insights.length > 0 && (
