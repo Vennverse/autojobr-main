@@ -17,7 +17,19 @@ import {
   Clock,
   Star,
   Zap,
-  Shield
+  Shield,
+  Brain,
+  Heart,
+  MessageSquare,
+  Video,
+  BarChart3,
+  Network,
+  UserCheck,
+  Crown,
+  Sparkles,
+  Globe,
+  Phone,
+  ArrowRight
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -26,7 +38,7 @@ export default function UniversityPartnership() {
     "@context": "https://schema.org",
     "@type": "WebPage",
     "name": "University Partnership Program - AutoJobR",
-    "description": "Partner with AutoJobR to accelerate your students' career success with AI-powered job application automation, resume optimization, and exclusive access to top-tier company referrals.",
+    "description": "Partner with AutoJobR to accelerate your students' career success. We actively recruit for FAANG, Fortune 500, and top companies - bulk hiring to executive-level headhunting.",
     "url": "https://autojobr.com/university-partnership",
     "publisher": {
       "@type": "Organization",
@@ -34,79 +46,148 @@ export default function UniversityPartnership() {
     }
   };
 
-  const features = [
+  const coreFeatures = [
     {
       icon: Zap,
-      title: "One-Click Applications",
-      description: "Students apply to 10-20x more positions in the same time, dramatically increasing interview opportunities"
+      title: "One-Click Mass Applications",
+      description: "Students apply to 10-20x more positions instantly, dramatically boosting interview chances"
     },
     {
       icon: FileText,
-      title: "AI Resume & Cover Letters",
-      description: "Intelligent resume tailoring and cover letter generation optimized for each specific role"
+      title: "AI Resume & Cover Letter Engine",
+      description: "Intelligent tailoring for each role - personalized resumes and cover letters in seconds"
     },
     {
       icon: Target,
       title: "ATS Score Optimization",
-      description: "Ensure resumes pass Applicant Tracking Systems with real-time scoring and suggestions"
+      description: "Real-time scoring ensures resumes pass Applicant Tracking Systems every time"
     },
     {
-      icon: Briefcase,
-      title: "Smart Job Matching",
-      description: "AI-powered matching connects students with opportunities aligned to their skills and goals"
+      icon: Brain,
+      title: "AI Career Coach",
+      description: "24/7 personalized career guidance, interview tips, and skill recommendations"
     },
     {
-      icon: TrendingUp,
-      title: "Application Dashboard",
-      description: "Track all applications, responses, and interviews in one centralized dashboard"
+      icon: Video,
+      title: "AI Mock Interviews",
+      description: "Practice interviews with AI feedback - video, audio, and chat formats available"
     },
+    {
+      icon: BarChart3,
+      title: "Application Analytics Dashboard",
+      description: "Track every application, response, and interview in one centralized hub"
+    }
+  ];
+
+  const recruitmentServices = [
     {
       icon: Building2,
+      title: "Bulk Campus Hiring",
+      description: "We partner with Fortune 500 companies seeking fresh talent. Direct pipeline from your campus to top employers for volume hiring."
+    },
+    {
+      icon: Crown,
+      title: "Executive Headhunting",
+      description: "For exceptional students - direct referrals to C-suite and senior leadership positions at top-tier companies."
+    },
+    {
+      icon: Network,
       title: "Exclusive Referral Network",
-      description: "Direct access to employee referrals from Google, Amazon, Microsoft, Nvidia, Deloitte, and 500+ companies"
+      description: "Access to 500+ employee referrals from Google, Amazon, Microsoft, Nvidia, Meta, Apple, Deloitte, McKinsey and more."
+    },
+    {
+      icon: UserCheck,
+      title: "Performance-Based Shortlisting",
+      description: "Top performers on our assessments get directly shortlisted or referred, bypassing traditional application queues."
     }
   ];
 
   const hiringPartners = [
-    "Google",
-    "Amazon",
-    "Microsoft",
-    "Nvidia",
-    "Meta",
-    "Apple",
-    "Deloitte",
-    "McKinsey"
+    { name: "Google", type: "FAANG" },
+    { name: "Amazon", type: "FAANG" },
+    { name: "Microsoft", type: "Tech Giant" },
+    { name: "Nvidia", type: "AI Leader" },
+    { name: "Meta", type: "FAANG" },
+    { name: "Apple", type: "FAANG" },
+    { name: "Deloitte", type: "Big 4" },
+    { name: "McKinsey", type: "MBB" },
+    { name: "Goldman Sachs", type: "Finance" },
+    { name: "JPMorgan", type: "Finance" },
+    { name: "Netflix", type: "Entertainment" },
+    { name: "Tesla", type: "Innovation" }
+  ];
+
+  const mentalWellnessFeatures = [
+    {
+      icon: Heart,
+      title: "Stress-Free Job Search",
+      description: "Automation removes the anxiety of manual applications. Students focus on what matters - their growth."
+    },
+    {
+      icon: MessageSquare,
+      title: "24/7 AI Support",
+      description: "Always available guidance for career questions, reducing uncertainty and boosting confidence."
+    },
+    {
+      icon: Shield,
+      title: "Progress Visibility",
+      description: "Real-time tracking eliminates the black hole effect. Students always know where they stand."
+    },
+    {
+      icon: Star,
+      title: "Confidence Building",
+      description: "AI mock interviews and feedback help students feel prepared and confident before real interviews."
+    }
+  ];
+
+  const allServices = [
+    "One-Click Job Applications (10-20x faster)",
+    "AI-Powered Resume Builder & Optimizer",
+    "Smart Cover Letter Generator",
+    "ATS Score Checker & Improvement",
+    "AI Mock Interviews (Video, Audio, Chat)",
+    "Personalized Job Matching Algorithm",
+    "Application Tracking Dashboard",
+    "AI Career Coach & Guidance",
+    "LinkedIn Profile Optimizer",
+    "Salary Calculator & Negotiation Tips",
+    "Employee Referral Marketplace",
+    "Skills Assessment & Certifications",
+    "Interview Preparation Suite",
+    "Company Research & Insights",
+    "Networking Event Access",
+    "Resume Templates Library"
   ];
 
   const studentBenefits = [
     {
-      icon: Star,
-      title: "30-Day Premium Access",
-      description: "Full platform access at no cost for partnered students"
+      icon: Sparkles,
+      title: "30-Day Free Premium",
+      description: "Full platform access at absolutely no cost for partnered students"
     },
     {
       icon: Award,
       title: "Exclusive Student Pricing",
-      description: "Heavily discounted plans for continued premium access"
+      description: "Up to 70% discount on premium plans for continued access"
     },
     {
       icon: Users,
-      title: "Interview Preparation Suite",
-      description: "AI mock interviews, feedback, and coaching tools"
+      title: "Priority Job Matching",
+      description: "Partner students get priority matching with exclusive opportunities"
     },
     {
-      icon: Shield,
-      title: "Resume & Networking Support",
-      description: "Expert optimization and professional networking guidance"
+      icon: Globe,
+      title: "Global Opportunities",
+      description: "Access to remote and international positions from top companies worldwide"
     }
   ];
 
   return (
     <>
       <SEOHead
-        title="University Partnership Program - AutoJobR | Accelerate Student Career Success"
-        description="Partner with AutoJobR to boost your students' placement rates with AI-powered job automation, resume optimization, and exclusive Fortune 500 referral network access."
-        keywords="university partnership, campus recruitment, student placement, career services, job automation for students, university career center, campus hiring"
+        title="University Partnership Program - AutoJobR | Bulk Hiring & Executive Headhunting"
+        description="Partner with AutoJobR for bulk campus hiring and executive headhunting. We actively recruit for FAANG, Fortune 500, and top companies. Boost student placement rates with AI-powered career tools."
+        keywords="university partnership, campus recruitment, bulk hiring, executive headhunting, FAANG recruitment, student placement, career services, university career center"
         canonicalUrl="https://autojobr.com/university-partnership"
         structuredData={structuredData}
       />
@@ -120,22 +201,27 @@ export default function UniversityPartnership() {
               University Partnership Program
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-              Empower Your Students for Career Success
+              Your Students Deserve Top Careers
             </h1>
-            <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed">
-              Partner with AutoJobR to give your students a competitive edge in today's job market with 
-              AI-powered automation, premium tools, and exclusive access to top-tier hiring networks.
+            <p className="text-xl text-muted-foreground mb-4 max-w-4xl mx-auto leading-relaxed">
+              We don't just provide tools - we <span className="font-semibold text-foreground">actively recruit your students</span> for 
+              FAANG, Fortune 500, and high-growth companies. From <span className="font-semibold text-foreground">bulk campus hiring</span> to 
+              <span className="font-semibold text-foreground"> executive-level headhunting</span>, we're your complete placement partner.
+            </p>
+            <p className="text-lg text-muted-foreground mb-8 max-w-3xl mx-auto">
+              One subscription gives your students access to all career tools, mental peace, and direct pathways to dream jobs.
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <Link href="/contact">
                 <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8" data-testid="button-schedule-demo">
-                  <Mail className="mr-2 h-5 w-5" />
-                  Schedule a Demo
+                  <Phone className="mr-2 h-5 w-5" />
+                  Schedule Partnership Call
                 </Button>
               </Link>
-              <a href="#benefits">
-                <Button size="lg" variant="outline" className="px-8" data-testid="button-learn-more">
-                  Learn More
+              <a href="mailto:shubham.dubey@autojobr.com?subject=University Partnership Inquiry">
+                <Button size="lg" variant="outline" className="px-8" data-testid="button-email-direct">
+                  <Mail className="mr-2 h-5 w-5" />
+                  Email Us Directly
                 </Button>
               </a>
             </div>
@@ -144,39 +230,91 @@ export default function UniversityPartnership() {
           <div className="grid md:grid-cols-4 gap-6 mb-20">
             <Card className="text-center border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur">
               <CardContent className="pt-6">
-                <div className="text-4xl font-bold text-blue-600 mb-2">85%</div>
-                <div className="text-muted-foreground">Interview Success Rate</div>
+                <div className="text-4xl font-bold text-blue-600 mb-2">500+</div>
+                <div className="text-muted-foreground font-medium">Partner Companies</div>
+                <div className="text-xs text-muted-foreground mt-1">Actively Hiring</div>
               </CardContent>
             </Card>
             <Card className="text-center border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur">
               <CardContent className="pt-6">
-                <div className="text-4xl font-bold text-green-600 mb-2">10-20x</div>
-                <div className="text-muted-foreground">Faster Applications</div>
+                <div className="text-4xl font-bold text-green-600 mb-2">85%</div>
+                <div className="text-muted-foreground font-medium">Placement Success</div>
+                <div className="text-xs text-muted-foreground mt-1">Interview Conversion</div>
               </CardContent>
             </Card>
             <Card className="text-center border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur">
               <CardContent className="pt-6">
-                <div className="text-4xl font-bold text-purple-600 mb-2">500+</div>
-                <div className="text-muted-foreground">Partner Companies</div>
+                <div className="text-4xl font-bold text-purple-600 mb-2">10-20x</div>
+                <div className="text-muted-foreground font-medium">Faster Applications</div>
+                <div className="text-xs text-muted-foreground mt-1">vs Manual Process</div>
               </CardContent>
             </Card>
             <Card className="text-center border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur">
               <CardContent className="pt-6">
                 <div className="text-4xl font-bold text-orange-600 mb-2">7 Days</div>
-                <div className="text-muted-foreground">Avg. to First Interview</div>
+                <div className="text-muted-foreground font-medium">Avg. First Interview</div>
+                <div className="text-xs text-muted-foreground mt-1">From Signup</div>
               </CardContent>
             </Card>
           </div>
 
-          <div id="benefits" className="mb-20">
+          <div className="mb-20">
+            <Card className="border-0 shadow-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 text-white overflow-hidden">
+              <CardContent className="p-8 md:p-12">
+                <div className="text-center mb-10">
+                  <h2 className="text-3xl md:text-4xl font-bold mb-4">We Actively Recruit For Top Companies</h2>
+                  <p className="text-white/90 text-lg max-w-2xl mx-auto">
+                    Not just a job board - we are your direct pipeline to FAANG, Fortune 500, and elite companies
+                  </p>
+                </div>
+                <div className="grid md:grid-cols-2 gap-8">
+                  {recruitmentServices.map((service, index) => (
+                    <div key={index} className="flex gap-4 items-start bg-white/10 backdrop-blur rounded-xl p-5">
+                      <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <service.icon className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg mb-2">{service.title}</h3>
+                        <p className="text-white/80 text-sm">{service.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="mb-20">
+            <div className="text-center mb-10">
+              <h2 className="text-3xl font-bold mb-4">Companies We Recruit For</h2>
+              <p className="text-muted-foreground">Top performers get directly referred to these organizations</p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-4">
+              {hiringPartners.map((partner, index) => (
+                <div 
+                  key={index}
+                  className="bg-white dark:bg-gray-800 shadow-md rounded-full px-6 py-3 flex items-center gap-2"
+                >
+                  <Building2 className="h-4 w-4 text-primary" />
+                  <span className="font-semibold">{partner.name}</span>
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{partner.type}</span>
+                </div>
+              ))}
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md rounded-full px-6 py-3">
+                <span className="font-semibold">+ 500 More Companies</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="services" className="mb-20">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4">What AutoJobR Offers Your Students</h2>
+              <h2 className="text-3xl font-bold mb-4">Complete Career Toolkit</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                Comprehensive career acceleration tools designed specifically for emerging professionals
+                One subscription unlocks everything students need for career success
               </p>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {features.map((feature, index) => (
+              {coreFeatures.map((feature, index) => (
                 <Card key={index} className="border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur">
                   <CardHeader>
                     <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-3">
@@ -193,41 +331,19 @@ export default function UniversityPartnership() {
           </div>
 
           <div className="mb-20">
-            <Card className="border-0 shadow-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-              <CardContent className="p-8 md:p-12">
-                <div className="grid md:grid-cols-2 gap-8 items-center">
-                  <div>
-                    <h2 className="text-3xl font-bold mb-4">Why Universities Partner With Us</h2>
-                    <ul className="space-y-4">
-                      <li className="flex items-start gap-3">
-                        <CheckCircle2 className="h-6 w-6 flex-shrink-0 mt-0.5" />
-                        <span>Accelerate students to interview-ready status in days, not months</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <CheckCircle2 className="h-6 w-6 flex-shrink-0 mt-0.5" />
-                        <span>Significantly improve placement rates and campus recruitment metrics</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <CheckCircle2 className="h-6 w-6 flex-shrink-0 mt-0.5" />
-                        <span>Reduce workload for placement teams with automated processes</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <CheckCircle2 className="h-6 w-6 flex-shrink-0 mt-0.5" />
-                        <span>Connect students directly with premium hiring networks</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <CheckCircle2 className="h-6 w-6 flex-shrink-0 mt-0.5" />
-                        <span>Support both internship seekers and full-time candidates</span>
-                      </li>
-                    </ul>
-                  </div>
-                  <div className="flex justify-center">
-                    <div className="bg-white/20 backdrop-blur rounded-2xl p-8 text-center">
-                      <Handshake className="h-16 w-16 mx-auto mb-4" />
-                      <div className="text-2xl font-bold mb-2">Trusted Partner</div>
-                      <div className="text-white/80">Supporting 100+ Universities</div>
+            <Card className="border-0 shadow-xl bg-white/90 dark:bg-gray-800/90">
+              <CardContent className="p-8">
+                <div className="text-center mb-8">
+                  <h2 className="text-2xl font-bold mb-2">All Services Included</h2>
+                  <p className="text-muted-foreground">Everything your students need under one roof</p>
+                </div>
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {allServices.map((service, index) => (
+                    <div key={index} className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>{service}</span>
                     </div>
-                  </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -235,39 +351,79 @@ export default function UniversityPartnership() {
 
           <div className="mb-20">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4">Direct Hiring & Referral Network</h2>
+              <h2 className="text-3xl font-bold mb-4">Mental Assurance & Peace of Mind</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                High-performing students gain direct access to opportunities at world-class companies
+                Job searching shouldn't cause stress. Our platform provides confidence and clarity throughout the journey.
               </p>
             </div>
-            <Card className="border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur">
-              <CardContent className="p-8">
-                <div className="grid md:grid-cols-2 gap-8">
-                  <div>
-                    <h3 className="text-xl font-semibold mb-4">We Actively Recruit For:</h3>
-                    <div className="flex flex-wrap gap-3">
-                      {hiringPartners.map((partner, index) => (
-                        <span 
-                          key={index}
-                          className="bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium"
-                        >
-                          {partner}
-                        </span>
-                      ))}
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {mentalWellnessFeatures.map((feature, index) => (
+                <Card key={index} className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 text-center">
+                  <CardHeader>
+                    <div className="w-14 h-14 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <feature.icon className="h-7 w-7 text-green-600" />
                     </div>
-                    <p className="text-muted-foreground mt-4">
-                      Plus 500+ Fortune 500 companies and high-growth startups in tech, finance, and consulting
-                    </p>
+                    <CardTitle className="text-lg">{feature.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground text-sm">{feature.description}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          <div className="mb-20">
+            <Card className="border-0 shadow-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur">
+              <CardContent className="p-8 md:p-12">
+                <div className="grid md:grid-cols-2 gap-8 items-center">
+                  <div>
+                    <h2 className="text-3xl font-bold mb-6">Why Universities Choose AutoJobR</h2>
+                    <ul className="space-y-4">
+                      <li className="flex items-start gap-3">
+                        <CheckCircle2 className="h-6 w-6 text-green-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-semibold">Active Recruitment Partner</span>
+                          <p className="text-muted-foreground text-sm">We bring companies to your campus, not just tools</p>
+                        </div>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <CheckCircle2 className="h-6 w-6 text-green-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-semibold">Bulk Hiring Capabilities</span>
+                          <p className="text-muted-foreground text-sm">Efficient pipeline for volume campus recruitment</p>
+                        </div>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <CheckCircle2 className="h-6 w-6 text-green-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-semibold">Executive Headhunting</span>
+                          <p className="text-muted-foreground text-sm">Direct referrals to leadership roles for top talent</p>
+                        </div>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <CheckCircle2 className="h-6 w-6 text-green-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-semibold">Improved Placement Metrics</span>
+                          <p className="text-muted-foreground text-sm">Measurable increase in student placement rates</p>
+                        </div>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <CheckCircle2 className="h-6 w-6 text-green-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-semibold">Reduced Team Workload</span>
+                          <p className="text-muted-foreground text-sm">Automation handles repetitive placement tasks</p>
+                        </div>
+                      </li>
+                    </ul>
                   </div>
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-6">
-                    <h3 className="text-xl font-semibold mb-4 text-green-700 dark:text-green-400">
-                      Performance-Based Shortlisting
-                    </h3>
-                    <p className="text-muted-foreground">
-                      Students who excel on AutoJobR assessments and demonstrate strong skills are 
-                      <span className="font-semibold text-foreground"> directly shortlisted or referred </span>
-                      to our partner companies, bypassing traditional application queues.
-                    </p>
+                  <div className="bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-2xl p-8 text-center">
+                    <Handshake className="h-20 w-20 mx-auto mb-4 text-primary" />
+                    <div className="text-3xl font-bold mb-2">100+</div>
+                    <div className="text-muted-foreground mb-4">University Partners Worldwide</div>
+                    <div className="text-sm text-muted-foreground">
+                      Join the growing network of institutions accelerating student success
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -278,7 +434,7 @@ export default function UniversityPartnership() {
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold mb-4">Exclusive Student Benefits</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                Special perks designed to maximize student success at partnered institutions
+                Partner university students receive premium perks
               </p>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -302,35 +458,35 @@ export default function UniversityPartnership() {
             <Card className="border-0 shadow-xl bg-white/90 dark:bg-gray-800/90 backdrop-blur">
               <CardContent className="p-8 md:p-12">
                 <div className="text-center mb-8">
-                  <h2 className="text-3xl font-bold mb-4">Getting Started is Simple</h2>
-                  <p className="text-muted-foreground">Minimal setup required from your institution</p>
+                  <h2 className="text-3xl font-bold mb-4">Simple Onboarding Process</h2>
+                  <p className="text-muted-foreground">Get started in minutes - minimal effort required</p>
                 </div>
                 <div className="grid md:grid-cols-3 gap-8">
                   <div className="text-center">
                     <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Users className="h-8 w-8 text-blue-600" />
+                      <span className="text-2xl font-bold text-blue-600">1</span>
                     </div>
-                    <h3 className="text-lg font-semibold mb-2">1. Designate a Contact</h3>
+                    <h3 className="text-lg font-semibold mb-2">Schedule a Call</h3>
                     <p className="text-muted-foreground text-sm">
-                      Assign one point of contact from your placement or career services team
+                      15-minute discovery call to understand your placement goals
                     </p>
                   </div>
                   <div className="text-center">
                     <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Mail className="h-8 w-8 text-purple-600" />
+                      <span className="text-2xl font-bold text-purple-600">2</span>
                     </div>
-                    <h3 className="text-lg font-semibold mb-2">2. Share Access Link</h3>
+                    <h3 className="text-lg font-semibold mb-2">Get Exclusive Link</h3>
                     <p className="text-muted-foreground text-sm">
-                      Distribute the exclusive student signup link through your preferred channels
+                      Receive unique signup URL with 30-day premium for all students
                     </p>
                   </div>
                   <div className="text-center">
                     <div className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Clock className="h-8 w-8 text-green-600" />
+                      <span className="text-2xl font-bold text-green-600">3</span>
                     </div>
-                    <h3 className="text-lg font-semibold mb-2">3. Optional Demo Session</h3>
+                    <h3 className="text-lg font-semibold mb-2">Watch Placements Soar</h3>
                     <p className="text-muted-foreground text-sm">
-                      We offer a 15-minute intro session to help students get started effectively
+                      Students start getting interviews within 7 days of joining
                     </p>
                   </div>
                 </div>
@@ -338,24 +494,28 @@ export default function UniversityPartnership() {
             </Card>
           </div>
 
-          <div className="text-center bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-12 text-white">
-            <h2 className="text-3xl font-bold mb-4">Ready to Partner With AutoJobR?</h2>
+          <div className="text-center bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 rounded-2xl p-12 text-white">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Transform Your Placement Program?</h2>
             <p className="text-xl mb-8 text-white/90 max-w-2xl mx-auto">
-              Join the growing network of universities accelerating their students' career success
+              Join 100+ universities already partnering with us for bulk hiring, executive headhunting, and student career success
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <Link href="/contact">
                 <Button size="lg" variant="secondary" className="px-8" data-testid="button-contact-partnership">
-                  <Mail className="mr-2 h-5 w-5" />
-                  Contact Our Partnership Team
+                  <Phone className="mr-2 h-5 w-5" />
+                  Schedule Partnership Call
                 </Button>
               </Link>
-              <a href="mailto:partnerships@autojobr.com">
-                <Button size="lg" variant="outline" className="px-8 border-white/30 text-white" data-testid="button-email-direct">
-                  partnerships@autojobr.com
+              <a href="mailto:shubham.dubey@autojobr.com?subject=University Partnership Inquiry">
+                <Button size="lg" variant="outline" className="px-8 border-white/30 text-white" data-testid="button-email-team">
+                  <Mail className="mr-2 h-5 w-5" />
+                  shubham.dubey@autojobr.com
                 </Button>
               </a>
             </div>
+            <p className="mt-6 text-white/70 text-sm">
+              We respond within 24 hours. Let's discuss how we can help your students succeed.
+            </p>
           </div>
 
         </div>

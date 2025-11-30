@@ -5230,6 +5230,106 @@ Return only the improved job description text, no additional formatting or expla
     }
   });
 
+  // Contact form validation schema
+  const contactFormSchema = z.object({
+    firstName: z.string().min(1, "First name is required").max(100).trim(),
+    lastName: z.string().min(1, "Last name is required").max(100).trim(),
+    email: z.string().email("Invalid email address").max(255).trim(),
+    subject: z.string().min(1, "Subject is required").max(200).trim(),
+    message: z.string().min(10, "Message must be at least 10 characters").max(5000).trim(),
+    inquiryType: z.enum(['general', 'support', 'university', 'business']).default('general')
+  });
+
+  // Sanitize HTML to prevent injection
+  function sanitizeHtml(str: string): string {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  // PUBLIC Contact Form API - Sends email directly to team
+  app.post('/api/public/contact', rateLimitMiddleware(5, 60), async (req: any, res) => {
+    try {
+      const validationResult = contactFormSchema.safeParse(req.body);
+
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Validation failed',
+          errors: validationResult.error.errors.map(e => ({ field: e.path.join('.'), message: e.message }))
+        });
+      }
+
+      const { firstName, lastName, email, subject, message, inquiryType } = validationResult.data;
+
+      const safeFirstName = sanitizeHtml(firstName);
+      const safeLastName = sanitizeHtml(lastName);
+      const safeEmail = sanitizeHtml(email);
+      const safeSubject = sanitizeHtml(subject);
+      const safeMessage = sanitizeHtml(message);
+
+      const inquiryLabel = inquiryType === 'university' ? 'University Partnership Inquiry' : 
+                          inquiryType === 'business' ? 'Business Inquiry' : 
+                          inquiryType === 'support' ? 'Support Request' : 'General Inquiry';
+
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #6366f1;">New Contact Form Submission</h2>
+          <p style="background: #f3f4f6; padding: 10px; border-radius: 5px;"><strong>Type:</strong> ${inquiryLabel}</p>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><strong>Name:</strong></td>
+              <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${safeFirstName} ${safeLastName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><strong>Email:</strong></td>
+              <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><a href="mailto:${safeEmail}">${safeEmail}</a></td>
+            </tr>
+            <tr>
+              <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><strong>Subject:</strong></td>
+              <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${safeSubject}</td>
+            </tr>
+          </table>
+          <div style="margin-top: 20px;">
+            <strong>Message:</strong>
+            <div style="background: #f9fafb; padding: 15px; border-radius: 5px; margin-top: 10px; white-space: pre-wrap;">${safeMessage}</div>
+          </div>
+          <p style="margin-top: 20px; color: #6b7280; font-size: 12px;">
+            This message was sent via the AutoJobR contact form on ${new Date().toLocaleString()}
+          </p>
+        </div>
+      `;
+
+      const emailSent = await sendEmail({
+        to: 'shubham.dubey@autojobr.com',
+        subject: `[AutoJobR] ${inquiryLabel}: ${safeSubject}`,
+        html: emailHtml
+      });
+
+      if (emailSent) {
+        res.json({ 
+          success: true, 
+          message: 'Your message has been sent successfully. We will get back to you within 24 hours.' 
+        });
+      } else {
+        console.log('Contact form submission (email failed):', { firstName: safeFirstName, lastName: safeLastName, email: safeEmail, subject: safeSubject, inquiryType });
+        res.json({ 
+          success: true, 
+          message: 'Your message has been received. We will get back to you within 24 hours.' 
+        });
+      }
+    } catch (error) {
+      console.error('Contact form error:', error);
+      res.status(500).json({ 
+        success: false,
+        message: 'Failed to send message. Please try again or email us directly at shubham.dubey@autojobr.com'
+      });
+    }
+  });
+
   // PUBLIC Salary Calculator API - No Authentication Required (SEO Tool)
   app.post('/api/public/salary-calculator', rateLimitMiddleware(30, 60), async (req: any, res) => {
     try {

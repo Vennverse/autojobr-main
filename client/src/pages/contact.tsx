@@ -3,27 +3,75 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Mail, Phone, MapPin, Clock, MessageCircle, HeadphonesIcon } from "lucide-react";
-import { useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Mail, Clock, MessageCircle, HeadphonesIcon, Send, GraduationCap, Building2, HelpCircle } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+
+const contactFormSchema = z.object({
+  firstName: z.string().min(1, "First name is required").max(100),
+  lastName: z.string().min(1, "Last name is required").max(100),
+  email: z.string().email("Please enter a valid email address").max(255),
+  subject: z.string().min(1, "Subject is required").max(200),
+  message: z.string().min(10, "Message must be at least 10 characters").max(5000),
+  inquiryType: z.enum(['general', 'support', 'university', 'business']).default('general')
+});
+
+type ContactFormValues = z.infer<typeof contactFormSchema>;
 
 export default function Contact() {
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    // Simulate form submission
-    setTimeout(() => {
+  const form = useForm<ContactFormValues>({
+    resolver: zodResolver(contactFormSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      subject: '',
+      message: '',
+      inquiryType: 'general'
+    }
+  });
+
+  const contactMutation = useMutation({
+    mutationFn: async (data: ContactFormValues) => {
+      const response = await fetch('/api/public/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to send message');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
       toast({
         title: "Message Sent!",
-        description: "Thank you for contacting us. We'll get back to you within 24 hours.",
+        description: data.message,
       });
-      setIsSubmitting(false);
-    }, 2000);
+      form.reset();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send message. Please email us directly at shubham.dubey@autojobr.com",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const onSubmit = (data: ContactFormValues) => {
+    contactMutation.mutate(data);
   };
 
   const structuredData = {
@@ -46,7 +94,6 @@ export default function Contact() {
       
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
         <div className="container mx-auto px-4 py-16">
-          {/* Hero Section */}
           <div className="text-center mb-16">
             <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Contact Us
@@ -57,7 +104,6 @@ export default function Contact() {
           </div>
 
           <div className="grid lg:grid-cols-2 gap-12">
-            {/* Contact Form */}
             <Card className="border-0 shadow-xl">
               <CardHeader>
                 <CardTitle className="text-2xl">Send us a Message</CardTitle>
@@ -66,45 +112,146 @@ export default function Contact() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input id="firstName" required />
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="inquiryType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Inquiry Type</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-inquiry-type">
+                                <SelectValue placeholder="Select inquiry type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="general">
+                                <div className="flex items-center gap-2">
+                                  <HelpCircle className="h-4 w-4" />
+                                  General Inquiry
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="support">
+                                <div className="flex items-center gap-2">
+                                  <HeadphonesIcon className="h-4 w-4" />
+                                  Support Request
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="university">
+                                <div className="flex items-center gap-2">
+                                  <GraduationCap className="h-4 w-4" />
+                                  University Partnership
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="business">
+                                <div className="flex items-center gap-2">
+                                  <Building2 className="h-4 w-4" />
+                                  Business / Enterprise
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="firstName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>First Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} data-testid="input-first-name" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="lastName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Last Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} data-testid="input-last-name" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
-                    <div>
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input id="lastName" required />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" required />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="subject">Subject</Label>
-                    <Input id="subject" required />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="message">Message</Label>
-                    <Textarea id="message" rows={6} required />
-                  </div>
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? "Sending..." : "Send Message"}
-                  </Button>
-                </form>
+                    
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" {...field} data-testid="input-email" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="subject"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Subject</FormLabel>
+                          <FormControl>
+                            <Input {...field} data-testid="input-subject" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="message"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Message</FormLabel>
+                          <FormControl>
+                            <Textarea rows={6} {...field} data-testid="input-message" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600"
+                      disabled={contactMutation.isPending}
+                      data-testid="button-submit-contact"
+                    >
+                      {contactMutation.isPending ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4 mr-2" />
+                          Send Message
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </Form>
               </CardContent>
             </Card>
 
-            {/* Contact Information */}
             <div className="space-y-8">
               <Card className="border-0 shadow-xl">
                 <CardHeader>
@@ -120,7 +267,9 @@ export default function Contact() {
                     </div>
                     <div>
                       <div className="font-semibold">Email Support</div>
-                      <div className="text-gray-600 dark:text-gray-300">support@autojobr.com</div>
+                      <a href="mailto:shubham.dubey@autojobr.com" className="text-blue-600 hover:underline">
+                        shubham.dubey@autojobr.com
+                      </a>
                     </div>
                   </div>
                   
