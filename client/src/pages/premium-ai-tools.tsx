@@ -539,7 +539,7 @@ export default function PremiumAITools() {
             className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
             asChild
           >
-            <a href="/subscription">
+            <a href="/job-seeker-premium">
               <Sparkles className="w-4 h-4 mr-2" />
               Upgrade to Premium - $13/month
             </a>
@@ -683,7 +683,7 @@ export default function PremiumAITools() {
                     className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
                     asChild
                   >
-                    <a href="/subscription">
+                    <a href="/job-seeker-premium">
                       <Crown className="w-4 h-4 mr-2" />
                       Upgrade - $13/mo
                     </a>
