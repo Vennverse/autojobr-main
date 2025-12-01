@@ -6,7 +6,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { InstallPWA } from "@/components/InstallPWA";
-import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { useAuth } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
@@ -634,7 +633,6 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <div className="flex flex-col min-h-screen">
-            <Navbar />
             <main className="flex-1">
               <Router />
             </main>
