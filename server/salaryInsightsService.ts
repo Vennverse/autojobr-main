@@ -33,11 +33,24 @@ interface SalaryRange {
   max: number;
 }
 
+interface TaxDeductions {
+  federalIncomeTax: number;
+  stateIncomeTax: number;
+  localTax: number;
+  socialSecurity: number;
+  medicare: number;
+  totalTaxes: number;
+  takeHomeAnnual: number;
+  takeHomeMonthly: number;
+  effectiveTaxRate: number;
+}
+
 interface SalaryInsights {
   salaryRange: SalaryRange;
   currency: CurrencyCode;
   totalCompensation: number;
   breakdown: SalaryBreakdown;
+  taxDeductions?: TaxDeductions;
   marketInsights: string;
   negotiationTips: string[];
   locationAdjustment: string;
@@ -91,6 +104,29 @@ const LOCATION_MAPPINGS = [
   { region: 'uae' as LocationKey, currency: 'AED' as CurrencyCode, keywords: ['uae', 'dubai', 'abu dhabi'] },
   { region: 'us' as LocationKey, currency: 'USD' as CurrencyCode, keywords: ['us', 'usa', 'united states', 'san francisco', 'new york', 'seattle', 'austin'] }
 ];
+
+// US State Income Tax Rates and City Tax Information
+const US_TAX_RATES: Record<string, { state: string; stateTaxRate: number; localTaxRate: number; }> = {
+  'san francisco': { state: 'california', stateTaxRate: 0.093, localTaxRate: 0.0125 },
+  'los angeles': { state: 'california', stateTaxRate: 0.093, localTaxRate: 0.0125 },
+  'silicon valley': { state: 'california', stateTaxRate: 0.093, localTaxRate: 0.0125 },
+  'palo alto': { state: 'california', stateTaxRate: 0.093, localTaxRate: 0.0125 },
+  'mountain view': { state: 'california', stateTaxRate: 0.093, localTaxRate: 0.0125 },
+  'new york': { state: 'new york', stateTaxRate: 0.065, localTaxRate: 0.03876 },
+  'brooklyn': { state: 'new york', stateTaxRate: 0.065, localTaxRate: 0.03876 },
+  'seattle': { state: 'washington', stateTaxRate: 0, localTaxRate: 0 },
+  'austin': { state: 'texas', stateTaxRate: 0, localTaxRate: 0 },
+  'dallas': { state: 'texas', stateTaxRate: 0, localTaxRate: 0 },
+  'houston': { state: 'texas', stateTaxRate: 0, localTaxRate: 0 },
+  'denver': { state: 'colorado', stateTaxRate: 0.04625, localTaxRate: 0 },
+  'boston': { state: 'massachusetts', stateTaxRate: 0.05, localTaxRate: 0 },
+  'chicago': { state: 'illinois', stateTaxRate: 0.0495, localTaxRate: 0.0385 },
+  'atlanta': { state: 'georgia', stateTaxRate: 0.0575, localTaxRate: 0 },
+  'miami': { state: 'florida', stateTaxRate: 0, localTaxRate: 0 },
+  'portland': { state: 'oregon', stateTaxRate: 0.0875, localTaxRate: 0 },
+  'remote': { state: 'usa-avg', stateTaxRate: 0.05, localTaxRate: 0 },
+  'united states': { state: 'usa-avg', stateTaxRate: 0.05, localTaxRate: 0 },
+};
 
 const SALARY_DATABASE: Record<string, RoleData> = {
   // Engineering Roles
@@ -274,11 +310,18 @@ export class SalaryInsightsService {
 
     const experienceMultiplier = 1 + (experienceLevel * CONSTANTS.EXPERIENCE_MULTIPLIER);
 
+    // Calculate tax deductions for US locations
+    let taxDeductions: TaxDeductions | undefined;
+    if (region === 'us' && currency === 'USD') {
+      taxDeductions = this.calculateTaxDeductions(localTotal, location);
+    }
+
     return {
       salaryRange,
       currency,
       totalCompensation: localTotal,
       breakdown,
+      taxDeductions,
       marketInsights,
       negotiationTips,
       careerProgression,
@@ -286,6 +329,56 @@ export class SalaryInsightsService {
       locationAdjustment: `${region.toUpperCase()} salary adjusted by ${this.formatPercentage(multiplier - 1)}`,
       companyTier: isTopCompany ? 'Top Tier (FAANG+)' : 'Standard',
       experienceImpact: `+${this.formatPercentage(experienceMultiplier - 1)} for ${experienceLevel} years experience`
+    };
+  }
+
+  private calculateTaxDeductions(annualSalary: number, location: string | undefined): TaxDeductions {
+    // Get tax rates for location
+    const locationLower = location?.toLowerCase() || 'remote';
+    const taxInfo = US_TAX_RATES[locationLower] || US_TAX_RATES['remote'];
+    
+    // Federal Income Tax (2024 brackets, simplified for single filer)
+    let federalTax = 0;
+    if (annualSalary <= 11600) federalTax = annualSalary * 0.10;
+    else if (annualSalary <= 47150) federalTax = 1160 + (annualSalary - 11600) * 0.12;
+    else if (annualSalary <= 100525) federalTax = 5426 + (annualSalary - 47150) * 0.22;
+    else if (annualSalary <= 191950) federalTax = 17168.50 + (annualSalary - 100525) * 0.24;
+    else if (annualSalary <= 243725) federalTax = 39110.50 + (annualSalary - 191950) * 0.32;
+    else if (annualSalary <= 609350) federalTax = 55678.50 + (annualSalary - 243725) * 0.35;
+    else federalTax = 178621.50 + (annualSalary - 609350) * 0.37;
+
+    // State Income Tax
+    const stateIncomeTax = annualSalary * taxInfo.stateTaxRate;
+    
+    // Local Tax
+    const localTax = annualSalary * taxInfo.localTaxRate;
+    
+    // Social Security (6.2% up to $168,600)
+    const socialSecurityMax = 168600;
+    const socialSecurityWages = Math.min(annualSalary, socialSecurityMax);
+    const socialSecurity = socialSecurityWages * 0.062;
+    
+    // Medicare (1.45% + additional 0.9% over $200k for single filers)
+    let medicare = annualSalary * 0.0145;
+    if (annualSalary > 200000) {
+      medicare += (annualSalary - 200000) * 0.009;
+    }
+    
+    const totalTaxes = Math.round(federalTax + stateIncomeTax + localTax + socialSecurity + medicare);
+    const takeHomeAnnual = annualSalary - totalTaxes;
+    const takeHomeMonthly = Math.round(takeHomeAnnual / 12);
+    const effectiveTaxRate = totalTaxes / annualSalary;
+
+    return {
+      federalIncomeTax: Math.round(federalTax),
+      stateIncomeTax: Math.round(stateIncomeTax),
+      localTax: Math.round(localTax),
+      socialSecurity: Math.round(socialSecurity),
+      medicare: Math.round(medicare),
+      totalTaxes,
+      takeHomeAnnual: Math.round(takeHomeAnnual),
+      takeHomeMonthly,
+      effectiveTaxRate
     };
   }
 

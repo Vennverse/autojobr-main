@@ -44,6 +44,17 @@ interface SalaryInsights {
     bonusEstimate: number;
     signingBonus?: number;
   };
+  taxDeductions?: {
+    federalIncomeTax: number;
+    stateIncomeTax: number;
+    localTax: number;
+    socialSecurity: number;
+    medicare: number;
+    totalTaxes: number;
+    takeHomeAnnual: number;
+    takeHomeMonthly: number;
+    effectiveTaxRate: number;
+  };
   marketInsights: string;
   negotiationTips: string[];
   locationAdjustment: string;
@@ -603,6 +614,60 @@ export default function SalaryCalculator() {
                   </div>
 
                   <Separator />
+
+                  {results.taxDeductions && (
+                    <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                      <h4 className="font-semibold flex items-center gap-2 mb-3">
+                        <DollarSign className="w-4 h-4 text-emerald-600" />
+                        Take Home Salary (After Taxes & Deductions)
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Monthly</p>
+                          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(results.taxDeductions.takeHomeMonthly, results.currency)}</p>
+                        </div>
+                        <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Yearly</p>
+                          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(results.taxDeductions.takeHomeAnnual, results.currency)}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Federal Income Tax</span>
+                          <span className="font-medium">-{formatCurrency(results.taxDeductions.federalIncomeTax, results.currency)}</span>
+                        </div>
+                        {results.taxDeductions.stateIncomeTax > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">State Income Tax</span>
+                            <span className="font-medium">-{formatCurrency(results.taxDeductions.stateIncomeTax, results.currency)}</span>
+                          </div>
+                        )}
+                        {results.taxDeductions.localTax > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">Local Tax</span>
+                            <span className="font-medium">-{formatCurrency(results.taxDeductions.localTax, results.currency)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Social Security (6.2%)</span>
+                          <span className="font-medium">-{formatCurrency(results.taxDeductions.socialSecurity, results.currency)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Medicare (1.45%)</span>
+                          <span className="font-medium">-{formatCurrency(results.taxDeductions.medicare, results.currency)}</span>
+                        </div>
+                        <Separator className="my-2" />
+                        <div className="flex justify-between">
+                          <span className="font-semibold">Total Taxes & Deductions</span>
+                          <span className="font-bold text-red-600">-{formatCurrency(results.taxDeductions.totalTaxes, results.currency)}</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                          <span>Effective Tax Rate</span>
+                          <span>{(results.taxDeductions.effectiveTaxRate * 100).toFixed(1)}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
