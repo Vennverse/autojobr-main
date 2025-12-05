@@ -5,6 +5,7 @@ import { behavioralQuestionService, BehavioralQuestion } from './behavioralQuest
 import { proctorService } from './proctorService';
 import { behavioralAnalyzer } from './behavioralAnalyzer';
 import { cameraProctorService } from './cameraProctorService';
+import { apiKeyRotationService } from './apiKeyRotationService';
 
 // Using centralized AI service for all virtual interview functionality
 
