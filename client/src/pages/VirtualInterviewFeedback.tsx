@@ -4,11 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Star, TrendingUp, Award, ArrowLeft, Loader2, RefreshCw, Target, Briefcase, AlertCircle } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { CheckCircle, Star, TrendingUp, Award, ArrowLeft, Loader2, RefreshCw, Target, Briefcase, AlertCircle, Share2, ExternalLink, MessageCircle, ThumbsUp, CreditCard } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import PayPalInterviewPayment from '@/components/PayPalInterviewPayment';
+import { SiLinkedin } from "react-icons/si";
 
 interface InterviewFeedback {
   interview: {
@@ -51,10 +55,14 @@ export default function VirtualInterviewFeedback() {
   const [match, params] = useRoute("/virtual-interview/:sessionId/feedback");
   const sessionId = params?.sessionId;
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // All hooks at the top
   const [showRetakePayment, setShowRetakePayment] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [linkedinPostUrl, setLinkedinPostUrl] = useState('');
+  const [linkedinCommentUrl, setLinkedinCommentUrl] = useState('');
+  const [activeTab, setActiveTab] = useState<'comment' | 'linkedin' | 'payment'>('comment');
 
   // Fetch interview feedback
   const { data: feedbackData, isLoading, error } = useQuery<InterviewFeedback>({
@@ -96,6 +104,85 @@ export default function VirtualInterviewFeedback() {
     } finally {
       setProcessingPayment(false);
     }
+  };
+
+  // LinkedIn share verification mutation
+  const verifyLinkedinShareMutation = useMutation({
+    mutationFn: async (postUrl: string) => {
+      return await apiRequest(`/api/virtual-interview/${sessionId}/retake/linkedin-share`, "POST", {
+        linkedinPostUrl: postUrl
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "LinkedIn Post Verified!",
+        description: "Your retake is now available. Starting new interview...",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/virtual-interview/feedback', sessionId] });
+      setTimeout(() => setLocation('/virtual-interview/start'), 1500);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Verification Failed",
+        description: error.message || "Could not verify LinkedIn post. Please ensure the post is public.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // LinkedIn comment verification mutation
+  const verifyLinkedinCommentMutation = useMutation({
+    mutationFn: async (commentUrl: string) => {
+      return await apiRequest(`/api/virtual-interview/${sessionId}/retake/linkedin-comment`, "POST", {
+        linkedinCommentUrl: commentUrl
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "LinkedIn Comment Verified!",
+        description: "Your retake is now available. Starting new interview...",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/virtual-interview/feedback', sessionId] });
+      setTimeout(() => setLocation('/virtual-interview/start'), 1500);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Verification Failed",
+        description: error.message || "Could not verify LinkedIn comment. Please ensure the comment is public.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleLinkedinShare = () => {
+    const role = feedbackData?.interview?.role || 'interview';
+    const shareText = `Just completed a virtual ${role.replace(/_/g, ' ')} interview practice on AutoJobr! Working on sharpening my skills for the next opportunity. #CareerGrowth #InterviewPrep #JobSearch`;
+    const shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://autojobr.com')}&summary=${encodeURIComponent(shareText)}`;
+    window.open(shareUrl, '_blank', 'width=600,height=600');
+  };
+
+  const handleVerifyLinkedinPost = async () => {
+    if (!linkedinPostUrl.trim()) {
+      toast({
+        title: "URL Required",
+        description: "Please enter your LinkedIn post URL",
+        variant: "destructive",
+      });
+      return;
+    }
+    verifyLinkedinShareMutation.mutate(linkedinPostUrl);
+  };
+
+  const handleVerifyLinkedinComment = async () => {
+    if (!linkedinCommentUrl.trim()) {
+      toast({
+        title: "URL Required",
+        description: "Please enter your LinkedIn comment URL",
+        variant: "destructive",
+      });
+      return;
+    }
+    verifyLinkedinCommentMutation.mutate(linkedinCommentUrl);
   };
 
   if (!sessionId) {
@@ -439,66 +526,240 @@ export default function VirtualInterviewFeedback() {
               </CardContent>
             </Card>
 
-            {/* Retake Option */}
+            {/* Retake Option with LinkedIn and Payment tabs */}
             <Card className="border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20">
               <CardHeader>
                 <CardTitle className="text-purple-800 dark:text-purple-200 flex items-center gap-2">
                   <RefreshCw className="w-5 h-5" />
                   {interview.overallScore < 70 ? 'Improve Your Score' : 'Perfect Your Performance'}
                 </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-purple-700 dark:text-purple-300">
+                <p className="text-sm text-purple-700 dark:text-purple-300 mt-2">
                   {interview.overallScore < 70 
                     ? "Your performance shows room for growth. Retake to practice and achieve better results!"
-                    : "Great work! Retake to refine your skills even further and maximize your hiring potential!"}
+                    : "Great work! Retake to refine your skills even further!"}
                 </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'comment' | 'linkedin' | 'payment')} className="w-full">
+                  <TabsList className="grid w-full grid-cols-3 mb-4">
+                    <TabsTrigger value="comment" className="flex items-center gap-1 text-xs" data-testid="tab-comment-like">
+                      <MessageCircle className="w-3 h-3" />
+                      <span className="hidden sm:inline">Comment</span>
+                      <Badge variant="secondary" className="ml-1 text-[10px] px-1">FREE</Badge>
+                    </TabsTrigger>
+                    <TabsTrigger value="linkedin" className="flex items-center gap-1 text-xs" data-testid="tab-linkedin-share">
+                      <Share2 className="w-3 h-3" />
+                      <span className="hidden sm:inline">Share</span>
+                      <Badge variant="secondary" className="ml-1 text-[10px] px-1">FREE</Badge>
+                    </TabsTrigger>
+                    <TabsTrigger value="payment" className="flex items-center gap-1 text-xs" data-testid="tab-payment">
+                      <CreditCard className="w-3 h-3" />
+                      $5
+                    </TabsTrigger>
+                  </TabsList>
 
-                {!showRetakePayment ? (
-                  <div className="space-y-3">
-                    <div className="bg-white/80 dark:bg-gray-900/50 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-semibold text-sm">Interview Retake</span>
-                        <span className="font-bold text-2xl text-purple-600 dark:text-purple-400">$5</span>
+                  {/* Comment & Like Tab */}
+                  <TabsContent value="comment" className="space-y-4">
+                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 p-3 rounded-lg border border-green-200">
+                      <div className="flex items-start gap-2">
+                        <div className="flex gap-1">
+                          <MessageCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                          <ThumbsUp className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-green-900 dark:text-green-100 text-sm">Free Retake via LinkedIn</h3>
+                          <p className="text-xs text-green-700 dark:text-green-300">Comment on our post to unlock your free retake!</p>
+                        </div>
                       </div>
-                      <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1 mt-2">
-                        <li>✓ Fresh set of questions tailored to your role</li>
-                        <li>✓ Same difficulty level for consistent practice</li>
-                        <li>✓ Instant access after payment confirmation</li>
-                        <li>✓ Your best score is saved automatically</li>
-                      </ul>
+                    </div>
+
+                    <div className="space-y-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                        <span>Visit our company LinkedIn post</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                        <span>Like the post and add a meaningful comment</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                        <span>Paste your comment URL to verify</span>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-3">
+                      <h4 className="font-medium text-xs">Step 1: View & Comment on Our Post</h4>
+                      <Button
+                        onClick={() => {
+                          window.open('https://www.linkedin.com/posts/autojobr_autojobr-ai-recruitmenttech-activity-7397982472216502272-9PEn?utm_source=share&utm_medium=member_desktop', '_blank');
+                        }}
+                        className="w-full bg-[#0077B5] hover:bg-[#006399] text-white"
+                        data-testid="button-view-company-post"
+                      >
+                        <SiLinkedin className="w-4 h-4 mr-2" />
+                        View AutoJobr Post
+                        <ExternalLink className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-xs">Step 2: Paste Your Comment URL</h4>
+                      <Input
+                        type="url"
+                        placeholder="https://www.linkedin.com/feed/update/urn:li:activity:..."
+                        value={linkedinCommentUrl}
+                        onChange={(e) => setLinkedinCommentUrl(e.target.value)}
+                        className="w-full text-sm"
+                        data-testid="input-comment-url"
+                      />
+                      <p className="text-[10px] text-gray-500">Click timestamp on your comment to get the link</p>
                     </div>
 
                     <Button
-                      onClick={() => setShowRetakePayment(true)}
-                      className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold"
-                      disabled={processingPayment}
-                      data-testid="retake-interview-button"
+                      onClick={handleVerifyLinkedinComment}
+                      disabled={verifyLinkedinCommentMutation.isPending || !linkedinCommentUrl.trim()}
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      data-testid="button-verify-comment"
                     >
-                      {processingPayment ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Processing...
-                        </>
+                      {verifyLinkedinCommentMutation.isPending ? (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Verifying...
+                        </div>
                       ) : (
-                        <>
-                          <RefreshCw className="w-4 h-4 mr-2" />
-                          Retake Interview - $5
-                        </>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4" />
+                          Verify & Unlock Free Retake
+                        </div>
                       )}
                     </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <PayPalInterviewPayment
-                      amount={5}
-                      sessionId={sessionId || ''}
-                      interviewType="virtual_interview"
-                      onSuccess={handlePaymentSuccess}
-                      onCancel={() => setShowRetakePayment(false)}
-                    />
-                  </div>
-                )}
+                  </TabsContent>
+
+                  {/* LinkedIn Share Tab */}
+                  <TabsContent value="linkedin" className="space-y-4">
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 p-3 rounded-lg border border-blue-200">
+                      <div className="flex items-start gap-2">
+                        <SiLinkedin className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                        <div>
+                          <h3 className="font-semibold text-blue-900 dark:text-blue-100 text-sm">Free Retake via LinkedIn Share</h3>
+                          <p className="text-xs text-blue-700 dark:text-blue-300">Share your learning journey to unlock!</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                        <span>Share a post about your interview on LinkedIn</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                        <span>Post must be publicly visible</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                        <span>Paste the post URL to verify</span>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-3">
+                      <h4 className="font-medium text-xs">Step 1: Share on LinkedIn</h4>
+                      <Button
+                        onClick={handleLinkedinShare}
+                        className="w-full bg-[#0077B5] hover:bg-[#006399] text-white"
+                        data-testid="button-share-linkedin"
+                      >
+                        <SiLinkedin className="w-4 h-4 mr-2" />
+                        Share Post on LinkedIn
+                        <ExternalLink className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-xs">Step 2: Paste Post URL</h4>
+                      <Input
+                        type="url"
+                        placeholder="https://www.linkedin.com/posts/..."
+                        value={linkedinPostUrl}
+                        onChange={(e) => setLinkedinPostUrl(e.target.value)}
+                        className="w-full text-sm"
+                        data-testid="input-linkedin-url"
+                      />
+                    </div>
+
+                    <Button
+                      onClick={handleVerifyLinkedinPost}
+                      disabled={verifyLinkedinShareMutation.isPending || !linkedinPostUrl.trim()}
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      data-testid="button-verify-linkedin"
+                    >
+                      {verifyLinkedinShareMutation.isPending ? (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Verifying...
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4" />
+                          Verify & Unlock Free Retake
+                        </div>
+                      )}
+                    </Button>
+                  </TabsContent>
+
+                  {/* Payment Tab */}
+                  <TabsContent value="payment" className="space-y-4">
+                    <div className="text-center mb-4">
+                      <div className="text-3xl font-bold text-purple-600 mb-1">$5</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">One-time payment</div>
+                    </div>
+
+                    <div className="space-y-2 text-xs mb-4">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3 text-green-600" />
+                        <span>Fresh set of questions</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3 text-green-600" />
+                        <span>Same difficulty level</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3 text-green-600" />
+                        <span>Instant access after payment</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3 text-green-600" />
+                        <span>Best score counts</span>
+                      </div>
+                    </div>
+
+                    {!showRetakePayment ? (
+                      <Button
+                        onClick={() => setShowRetakePayment(true)}
+                        className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                        data-testid="retake-interview-button"
+                      >
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        Pay $5 to Retake
+                      </Button>
+                    ) : (
+                      <div className="space-y-3">
+                        <PayPalInterviewPayment
+                          amount={5}
+                          sessionId={sessionId || ''}
+                          interviewType="virtual_interview"
+                          onSuccess={handlePaymentSuccess}
+                          onCancel={() => setShowRetakePayment(false)}
+                        />
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
 

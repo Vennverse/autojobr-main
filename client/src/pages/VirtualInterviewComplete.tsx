@@ -257,24 +257,26 @@ export default function VirtualInterviewComplete() {
               </Card>
             )}
             
-            {/* Show retake option for self-initiated interviews with low scores */}
-            {!isRecruiterAssigned && interviewData?.overallScore < 70 && (
-              <Card className="border-2 border-orange-200 bg-orange-50 dark:bg-orange-950/20 mb-4">
+            {/* Show retake option for all self-initiated interviews - always visible */}
+            {!isRecruiterAssigned && (
+              <Card className="border-2 border-purple-200 bg-purple-50 dark:bg-purple-950/20 mb-4">
                 <CardHeader>
-                  <CardTitle className="text-orange-800 dark:text-orange-200 flex items-center gap-2 text-lg">
+                  <CardTitle className="text-purple-800 dark:text-purple-200 flex items-center gap-2 text-lg">
                     <RefreshCw className="w-5 h-5" />
-                    Improve Your Score
+                    {interviewData?.overallScore < 70 ? 'Improve Your Score' : 'Perfect Your Performance'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-sm text-orange-700 dark:text-orange-300">
-                    Your score of {interviewData?.overallScore}% shows room for improvement. Retake the interview to practice and improve your performance!
+                  <p className="text-sm text-purple-700 dark:text-purple-300">
+                    {interviewData?.overallScore < 70 
+                      ? `Your score of ${interviewData?.overallScore}% shows room for improvement. Retake the interview to practice and improve your performance!`
+                      : 'Great job! Want to practice more or try for an even higher score? Retake the interview anytime!'}
                   </p>
                   
                   <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border">
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-medium text-sm">Interview Retake</span>
-                      <span className="font-bold text-lg text-orange-600">$5</span>
+                      <span className="font-bold text-lg text-purple-600">$5</span>
                     </div>
                     <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                       <li>• Fresh set of questions</li>
@@ -287,10 +289,11 @@ export default function VirtualInterviewComplete() {
                   {!showRetakePayment ? (
                     <Button
                       onClick={() => setShowRetakePayment(true)}
-                      className="w-full bg-orange-600 hover:bg-orange-700"
+                      className="w-full bg-purple-600 hover:bg-purple-700"
+                      data-testid="button-retake-interview"
                     >
-                      <CreditCard className="w-4 h-4 mr-2" />
-                      Pay $5 to Retake Interview
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Retake Interview - $5
                     </Button>
                   ) : (
                     <div className="space-y-4">
@@ -300,10 +303,9 @@ export default function VirtualInterviewComplete() {
                         itemName={`${(interviewData?.role || 'Interview').replace(/_/g, ' ')} Retake`}
                         onPaymentSuccess={async (paymentData) => {
                           try {
-                            // Call existing backend retake payment endpoint
                             await apiRequest(`/api/interviews/virtual/${interviewId}/retake-payment`, 'POST', {
                               paymentProvider: 'paypal',
-                              amount: 500 // $5 in cents
+                              amount: 500
                             });
                             
                             toast({

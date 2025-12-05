@@ -123,44 +123,69 @@ export class VirtualInterviewService {
   ): Promise<InterviewQuestion> {
     const prompt = this.buildQuestionPrompt(interviewType, difficulty, role, questionNumber, previousResponses, userContext);
     
-    try {
-      const response = await aiService.createChatCompletion([
-        {
-          role: "system",
-          content: "You are an expert interviewer. Generate a single, specific interview question with metadata. Respond with valid JSON only."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ]);
-
-      const content = response.choices[0]?.message?.content;
-      if (!content) throw new Error('No response from AI');
-
-      // Clean and parse the JSON response
-      const cleanedContent = this.cleanJsonResponse(content);
-      let questionData;
+    console.log(`🤖 Generating AI question #${questionNumber} for ${role} (${interviewType}, ${difficulty})...`);
+    
+    // Try up to 2 attempts - first with full prompt, then with simplified prompt
+    for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        questionData = JSON.parse(cleanedContent);
-      } catch (parseError) {
-        console.error('JSON parse error for question generation:', parseError);
-        console.error('Content that failed to parse:', cleanedContent);
-        throw new Error('Invalid JSON response from AI service');
-      }
+        const systemPrompt = attempt === 1 
+          ? "You are an expert interviewer. Generate a single, specific interview question with metadata. Respond with valid JSON only, no extra text."
+          : "Generate an interview question. Return ONLY this JSON format, nothing else: {\"category\": \"technical\", \"question\": \"your question here\", \"difficulty\": \"medium\", \"expectedKeywords\": [], \"followUpPrompts\": []}";
+        
+        const response = await aiService.createChatCompletion([
+          {
+            role: "system",
+            content: systemPrompt
+          },
+          {
+            role: "user",
+            content: attempt === 1 ? prompt : `Generate a ${difficulty} ${interviewType} interview question for a ${role} position. Question #${questionNumber}. Return only valid JSON.`
+          }
+        ], attempt === 2 ? { temperature: 0 } : undefined);
 
-      return {
-        category: questionData.category || interviewType as any,
-        question: questionData.question,
-        difficulty: questionData.difficulty || difficulty as any,
-        expectedKeywords: questionData.expectedKeywords || [],
-        followUpPrompts: questionData.followUpPrompts || []
-      };
-    } catch (error) {
-      console.error('Error generating question:', error);
-      // Fallback question
-      return this.getFallbackQuestion(interviewType, difficulty, role);
+        const content = response.choices[0]?.message?.content;
+        if (!content) {
+          console.log(`⚠️ Attempt ${attempt}: No content in AI response`);
+          continue;
+        }
+
+        // Clean and parse the JSON response
+        const cleanedContent = this.cleanJsonResponse(content);
+        let questionData;
+        try {
+          questionData = JSON.parse(cleanedContent);
+        } catch (parseError) {
+          console.error(`⚠️ Attempt ${attempt}: JSON parse error:`, parseError);
+          console.error('Raw content:', content.substring(0, 300));
+          if (attempt < 2) continue; // Try again with simpler prompt
+          throw new Error('Invalid JSON response from AI service');
+        }
+
+        // Validate we got a question
+        if (!questionData.question || typeof questionData.question !== 'string') {
+          console.log(`⚠️ Attempt ${attempt}: No valid question in response`);
+          if (attempt < 2) continue;
+          throw new Error('No question in AI response');
+        }
+
+        console.log(`✅ AI generated question (attempt ${attempt}): "${questionData.question.substring(0, 60)}..."`);
+
+        return {
+          category: questionData.category || interviewType as any,
+          question: questionData.question,
+          difficulty: questionData.difficulty || difficulty as any,
+          expectedKeywords: questionData.expectedKeywords || [],
+          followUpPrompts: questionData.followUpPrompts || []
+        };
+      } catch (error) {
+        console.error(`❌ Attempt ${attempt} failed:`, error);
+        if (attempt < 2) continue; // Try again
+      }
     }
+    
+    // All attempts failed - use fallback
+    console.log('❌ All AI attempts failed, using fallback question');
+    return this.getFallbackQuestion(interviewType, difficulty, role);
   }
 
   async analyzeResponse(
@@ -473,17 +498,25 @@ Return valid JSON only:
     
     // Remove markdown code blocks and clean the response
     let cleaned = content.replace(/```json\s*|\s*```/g, '').trim();
+    cleaned = cleaned.replace(/```\s*|\s*```/g, '').trim();
     
-    // Remove any text before the first { or after the last }
-    const firstBrace = cleaned.indexOf('{');
-    const lastBrace = cleaned.lastIndexOf('}');
-    
-    if (firstBrace !== -1 && lastBrace !== -1) {
-      cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+    // Try to extract JSON object using regex (more tolerant)
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      cleaned = jsonMatch[0];
+    } else {
+      // Fallback: Remove any text before the first { or after the last }
+      const firstBrace = cleaned.indexOf('{');
+      const lastBrace = cleaned.lastIndexOf('}');
+      
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+      }
     }
     
     // Validate that we have valid JSON structure
     if (!cleaned.startsWith('{') || !cleaned.endsWith('}')) {
+      console.error('Raw AI content that failed to parse:', content.substring(0, 200));
       throw new Error('Response does not contain valid JSON structure');
     }
     
@@ -504,28 +537,72 @@ Return valid JSON only:
   }
 
   private getFallbackQuestion(interviewType: string, difficulty: string, role: string): InterviewQuestion {
+    // Expanded fallback questions pool - randomly select to ensure variety
     const fallbackQuestions = {
       technical: {
-        easy: "Can you walk me through how you would approach debugging a simple JavaScript function that's not working as expected?",
-        medium: "Explain the difference between synchronous and asynchronous programming. When would you use each?",
-        hard: "Design a scalable system for handling millions of concurrent users. What are the key considerations?"
+        easy: [
+          "Can you walk me through how you would approach debugging a simple JavaScript function that's not working as expected?",
+          "What is the difference between var, let, and const in JavaScript?",
+          "Explain how you would implement a simple REST API endpoint.",
+          "What is the difference between HTTP GET and POST requests?",
+          "How do you handle errors in your code?"
+        ],
+        medium: [
+          "Explain the difference between synchronous and asynchronous programming. When would you use each?",
+          "How would you optimize a slow database query?",
+          "Describe the differences between SQL and NoSQL databases.",
+          "What are design patterns and can you explain one you've used?",
+          "How do you ensure code quality in your projects?"
+        ],
+        hard: [
+          "Design a scalable system for handling millions of concurrent users. What are the key considerations?",
+          "How would you implement a distributed caching system?",
+          "Explain how you would design a real-time notification system.",
+          "What strategies would you use to handle database sharding?",
+          "How would you architect a microservices-based system?"
+        ]
       },
       behavioral: {
-        easy: "Tell me about a time when you had to learn something new for a project.",
-        medium: "Describe a situation where you had to work with a difficult team member. How did you handle it?",
-        hard: "Tell me about a time when you had to make a decision with incomplete information. What was your process?"
+        easy: [
+          "Tell me about a time when you had to learn something new for a project.",
+          "Describe a project you're most proud of and why.",
+          "How do you stay updated with the latest technology trends?",
+          "Tell me about a time you helped a teammate.",
+          "What motivates you in your work?"
+        ],
+        medium: [
+          "Describe a situation where you had to work with a difficult team member. How did you handle it?",
+          "Tell me about a time when you had to meet a tight deadline.",
+          "Describe a failure you experienced and what you learned from it.",
+          "How do you prioritize your tasks when you have multiple deadlines?",
+          "Tell me about a time you had to adapt to a significant change at work."
+        ],
+        hard: [
+          "Tell me about a time when you had to make a decision with incomplete information. What was your process?",
+          "Describe a situation where you had to influence stakeholders without direct authority.",
+          "Tell me about a complex problem you solved and your approach.",
+          "How have you handled conflicting priorities from different stakeholders?",
+          "Describe a time when you had to lead a team through a challenging situation."
+        ]
       }
     };
 
-    const questionText = fallbackQuestions[interviewType as keyof typeof fallbackQuestions]?.[difficulty as keyof typeof fallbackQuestions.technical] 
-      || "Tell me about your experience and what interests you about this role.";
+    // Get the question pool for this type and difficulty
+    const typeQuestions = fallbackQuestions[interviewType as keyof typeof fallbackQuestions] || fallbackQuestions.technical;
+    const difficultyQuestions = typeQuestions[difficulty as keyof typeof typeQuestions] || typeQuestions.medium;
+    
+    // Randomly select a question from the pool
+    const randomIndex = Math.floor(Math.random() * difficultyQuestions.length);
+    const questionText = difficultyQuestions[randomIndex];
+
+    console.log(`⚠️ Using fallback question (AI unavailable): "${questionText.substring(0, 50)}..."`);
 
     return {
       category: interviewType as any,
       question: questionText,
       difficulty: difficulty as any,
-      expectedKeywords: ['experience', 'skills', 'approach'],
-      followUpPrompts: ['Can you provide more details?', 'What was the outcome?']
+      expectedKeywords: ['experience', 'skills', 'approach', 'solution', 'result'],
+      followUpPrompts: ['Can you provide more details?', 'What was the outcome?', 'How did that impact the project?']
     };
   }
 

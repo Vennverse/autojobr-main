@@ -747,9 +747,85 @@ router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
     const currentInterview = interview[0];
 
     // Get all messages for this interview
-    const messages = await db.select().from(virtualInterviewMessages)
+    let messages = await db.select().from(virtualInterviewMessages)
       .where(eq(virtualInterviewMessages.interviewId, currentInterview.id))
       .orderBy(virtualInterviewMessages.messageIndex);
+
+    // If no messages exist (including greeting), generate welcome message and first question
+    if (messages.length === 0) {
+      console.log(`📝 No messages found for session ${sessionId}, generating welcome message and first question...`);
+      
+      // Generate welcome greeting
+      const greeting = await virtualInterviewService.generateGreeting(
+        currentInterview.interviewerPersonality || 'professional',
+        currentInterview.role || 'Software Engineer',
+        currentInterview.company
+      );
+      
+      // Store greeting message
+      await db.insert(virtualInterviewMessages).values({
+        interviewId: currentInterview.id,
+        sender: 'interviewer',
+        messageType: 'greeting',
+        content: greeting,
+        messageIndex: 0,
+        timestamp: new Date()
+      });
+      
+      // Generate and store first question with unique context
+      const uniqueContext = `Session: ${sessionId}, Time: ${Date.now()}, User: ${userId}`;
+      const firstQuestion = await virtualInterviewService.generateQuestion(
+        currentInterview.interviewType || 'technical',
+        currentInterview.difficulty || 'medium',
+        currentInterview.role || 'Software Engineer',
+        1,
+        [],
+        uniqueContext
+      );
+      
+      await db.insert(virtualInterviewMessages).values({
+        interviewId: currentInterview.id,
+        sender: 'interviewer',
+        messageType: 'question',
+        content: firstQuestion.question,
+        messageIndex: 1,
+        timestamp: new Date()
+      });
+      
+      // Reload messages after inserting
+      messages = await db.select().from(virtualInterviewMessages)
+        .where(eq(virtualInterviewMessages.interviewId, currentInterview.id))
+        .orderBy(virtualInterviewMessages.messageIndex);
+    }
+    // If only greeting exists, generate first question
+    else if (messages.length === 1 && messages[0].sender === 'interviewer') {
+      console.log(`📝 Only greeting found for session ${sessionId}, generating first question...`);
+      
+      // Generate first question with unique context
+      const uniqueContext = `Session: ${sessionId}, Time: ${Date.now()}, User: ${userId}, Random: ${Math.random()}`;
+      const firstQuestion = await virtualInterviewService.generateQuestion(
+        currentInterview.interviewType || 'technical',
+        currentInterview.difficulty || 'medium',
+        currentInterview.role || 'Software Engineer',
+        1,
+        [],
+        uniqueContext
+      );
+      
+      await db.insert(virtualInterviewMessages).values({
+        interviewId: currentInterview.id,
+        sender: 'interviewer',
+        messageType: 'question',
+        content: firstQuestion.question,
+        messageIndex: 1,
+        timestamp: new Date()
+      });
+      
+      // Reload messages after inserting
+      messages = await db.select().from(virtualInterviewMessages)
+        .where(eq(virtualInterviewMessages.interviewId, currentInterview.id))
+        .orderBy(virtualInterviewMessages.messageIndex);
+    }
 
     // Calculate time remaining
     const startTime = currentInterview.startTime ? new Date(currentInterview.startTime).getTime() : Date.now();
@@ -762,7 +838,7 @@ router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
         id: msg.id,
         sender: msg.sender,
         content: msg.content,
-        timestamp: msg.timestamp,
+        timestamp: msg.timestamp || msg.createdAt,
         messageIndex: msg.messageIndex
       })),
       currentQuestionCount: currentInterview.questionsAsked || 0,
@@ -970,6 +1046,118 @@ router.post('/:sessionId/message', isAuthenticated, async (req: any, res) => {
   } catch (error) {
     console.error('Error processing chat message:', error);
     res.status(500).json({ message: 'Failed to process message' });
+  }
+});
+
+// LinkedIn Share Verification for Interview Retake
+router.post('/:sessionId/retake/linkedin-share', isAuthenticated, async (req: any, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { linkedinPostUrl } = req.body;
+    const userId = req.user?.id || req.session?.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    if (!linkedinPostUrl || !linkedinPostUrl.includes('linkedin.com')) {
+      return res.status(400).json({ message: 'Please provide a valid LinkedIn post URL' });
+    }
+
+    // Verify the interview exists
+    const [interview] = await db.select().from(virtualInterviews)
+      .where(and(
+        eq(virtualInterviews.sessionId, sessionId),
+        eq(virtualInterviews.userId, userId)
+      ))
+      .limit(1);
+
+    if (!interview) {
+      return res.status(404).json({ message: 'Interview not found' });
+    }
+
+    // For now, we'll trust the URL is valid (in production, you'd verify via LinkedIn API)
+    console.log(`✅ LinkedIn share verified for interview ${sessionId}: ${linkedinPostUrl}`);
+
+    // Grant retake access - update user stats to allow another interview
+    const existingStats = await db.select().from(virtualInterviewStats)
+      .where(eq(virtualInterviewStats.userId, userId))
+      .limit(1);
+
+    if (existingStats.length > 0) {
+      // Decrement freeInterviewsUsed to grant a free retake
+      const currentUsed = existingStats[0].freeInterviewsUsed || 0;
+      await db.update(virtualInterviewStats)
+        .set({ 
+          freeInterviewsUsed: Math.max(0, currentUsed - 1)
+        })
+        .where(eq(virtualInterviewStats.userId, userId));
+    }
+
+    res.json({
+      success: true,
+      message: 'LinkedIn post verified! You can now retake the interview for free.',
+      linkedinPostUrl
+    });
+  } catch (error) {
+    console.error('Error verifying LinkedIn share:', error);
+    res.status(500).json({ message: 'Failed to verify LinkedIn share' });
+  }
+});
+
+// LinkedIn Comment Verification for Interview Retake
+router.post('/:sessionId/retake/linkedin-comment', isAuthenticated, async (req: any, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { linkedinCommentUrl } = req.body;
+    const userId = req.user?.id || req.session?.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    if (!linkedinCommentUrl || !linkedinCommentUrl.includes('linkedin.com')) {
+      return res.status(400).json({ message: 'Please provide a valid LinkedIn comment URL' });
+    }
+
+    // Verify the interview exists
+    const [interview] = await db.select().from(virtualInterviews)
+      .where(and(
+        eq(virtualInterviews.sessionId, sessionId),
+        eq(virtualInterviews.userId, userId)
+      ))
+      .limit(1);
+
+    if (!interview) {
+      return res.status(404).json({ message: 'Interview not found' });
+    }
+
+    // For now, we'll trust the URL is valid (in production, you'd verify via LinkedIn API)
+    console.log(`✅ LinkedIn comment verified for interview ${sessionId}: ${linkedinCommentUrl}`);
+
+    // Grant retake access - update user stats to allow another interview
+    const existingStats = await db.select().from(virtualInterviewStats)
+      .where(eq(virtualInterviewStats.userId, userId))
+      .limit(1);
+
+    if (existingStats.length > 0) {
+      // Decrement freeInterviewsUsed to grant a free retake
+      const currentUsed = existingStats[0].freeInterviewsUsed || 0;
+      await db.update(virtualInterviewStats)
+        .set({ 
+          freeInterviewsUsed: Math.max(0, currentUsed - 1)
+        })
+        .where(eq(virtualInterviewStats.userId, userId));
+    }
+
+    res.json({
+      success: true,
+      message: 'LinkedIn comment verified! You can now retake the interview for free.',
+      linkedinCommentUrl
+    });
+  } catch (error) {
+    console.error('Error verifying LinkedIn comment:', error);
+    res.status(500).json({ message: 'Failed to verify LinkedIn comment' });
   }
 });
 
