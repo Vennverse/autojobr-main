@@ -194,10 +194,16 @@ class AIService {
     } = {}
   ) {
     if (this.developmentMode) {
+      console.error('❌ AI Service is in DEVELOPMENT MODE - no API keys configured!');
       throw new Error('AI service not available in development mode');
     }
 
+    console.log(`🤖 AI Service createChatCompletion called`);
+    console.log(`   Messages: ${messages.length} messages`);
+    console.log(`   Options: temp=${options.temperature}, maxTokens=${options.max_tokens}`);
+
     return await this.executeWithRotation(async (service, model) => {
+      console.log(`   Selected service: ${service}, model: ${model}`);
       const completionOptions = {
         messages,
         model: options.model || model,

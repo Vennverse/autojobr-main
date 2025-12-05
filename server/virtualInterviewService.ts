@@ -165,7 +165,9 @@ export class VirtualInterviewService {
              Return only valid JSON.`
           : `Generate a ${difficulty} ${interviewType} interview question for a ${role} position. Question #${questionNumber}. ${previousQuestionsContext} Return only valid JSON.`;
         
-        console.log(`🔄 AI Attempt ${attempt}/3 - Calling aiService.createChatCompletion...`);
+        console.log(`🔄 AI Question Generation - Attempt ${attempt}/3`);
+        console.log(`📋 Role: ${role}, Type: ${interviewType}, Difficulty: ${difficulty}, Question #${questionNumber}`);
+        console.log(`🤖 Calling aiService.createChatCompletion with ${attempt === 1 ? 'full' : 'simplified'} prompt...`);
         
         const response = await aiService.createChatCompletion([
           {
@@ -209,7 +211,10 @@ export class VirtualInterviewService {
           throw new Error('No question in AI response after 3 attempts');
         }
 
-        console.log(`✅ AI generated question (attempt ${attempt}): "${questionData.question.substring(0, 60)}..."`);
+        console.log(`✅ AI QUESTION GENERATED SUCCESSFULLY (attempt ${attempt}):`);
+        console.log(`   Question: "${questionData.question.substring(0, 80)}..."`);
+        console.log(`   Category: ${questionData.category || interviewType}`);
+        console.log(`   Keywords: ${questionData.expectedKeywords?.length || 0} keywords`);
 
         return {
           category: questionData.category || interviewType as any,
@@ -230,8 +235,14 @@ export class VirtualInterviewService {
     }
     
     // All attempts failed - use fallback
-    console.error('❌ All 3 AI attempts failed, using fallback question');
-    return this.getFallbackQuestion(interviewType, difficulty, role);
+    console.error('❌ ========================================');
+    console.error('❌ ALL 3 AI ATTEMPTS FAILED!');
+    console.error('❌ Using hardcoded fallback question instead');
+    console.error('❌ This means AI service is not working properly');
+    console.error('❌ ========================================');
+    const fallback = this.getFallbackQuestion(interviewType, difficulty, role);
+    console.log(`⚠️  Fallback question: "${fallback.question.substring(0, 60)}..."`);
+    return fallback;
   }
 
   async analyzeResponse(
