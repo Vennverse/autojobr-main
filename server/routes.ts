@@ -2111,6 +2111,52 @@ Return only the improved job description text, no additional formatting or expla
     }
   });
 
+  // Generate shareable link for job posting
+  app.post('/api/recruiter/jobs/:id/share', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const jobId = parseInt(req.params.id);
+
+      // Verify user is a recruiter
+      const user = await storage.getUser(userId);
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      // Get the job posting and verify ownership
+      const [job] = await db
+        .select()
+        .from(schema.jobPostings)
+        .where(and(
+          eq(schema.jobPostings.id, jobId),
+          eq(schema.jobPostings.recruiterId, userId)
+        ));
+
+      if (!job) {
+        return res.status(404).json({ message: "Job posting not found or access denied" });
+      }
+
+      // Generate shareable link - uses source-aware URL to avoid ID collisions
+      const baseUrl = process.env.REPLIT_DOMAINS 
+        ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`
+        : `https://${req.get('host')}`;
+      
+      const shareableLink = `${baseUrl}/jobs/posting/${jobId}`;
+
+      console.log(`[JOB SHARE] Recruiter ${userId} generated share link for job ${jobId}`);
+
+      res.json({
+        success: true,
+        shareableLink,
+        jobTitle: job.title,
+        companyName: job.companyName
+      });
+    } catch (error) {
+      console.error('[SHARE JOB ERROR]:', error);
+      handleError(res, error, "Failed to generate share link");
+    }
+  });
+
   app.get('/api/recruiter/applications', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
