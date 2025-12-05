@@ -122,9 +122,10 @@ export class VirtualInterviewService {
     questionNumber: number,
     previousResponses: string[],
     userContext?: string,
-    jobDescription?: string
+    jobDescription?: string,
+    previousQuestions?: string[]
   ): Promise<InterviewQuestion> {
-    const prompt = this.buildQuestionPrompt(interviewType, difficulty, role, questionNumber, previousResponses, userContext, jobDescription);
+    const prompt = this.buildQuestionPrompt(interviewType, difficulty, role, questionNumber, previousResponses, userContext, jobDescription, previousQuestions);
     
     const hasJobDescription = jobDescription && jobDescription.trim().length > 20;
     console.log(`🤖 Generating AI question #${questionNumber} for ${role} (${interviewType}, ${difficulty})...`);
@@ -132,22 +133,28 @@ export class VirtualInterviewService {
       console.log(`📋 Using job description for question generation (${jobDescription.substring(0, 50)}...)`);
     }
     
-    // Try up to 2 attempts - first with full prompt, then with simplified prompt that still includes job context
-    for (let attempt = 1; attempt <= 2; attempt++) {
+    // Try up to 3 attempts to get a unique question
+    for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         const systemPrompt = attempt === 1 
-          ? "You are an expert interviewer. Generate a single, specific interview question with metadata. Questions MUST be directly relevant to the job description if provided. Respond with valid JSON only, no extra text."
-          : "Generate an interview question relevant to the job. Return ONLY this JSON format, nothing else: {\"category\": \"technical\", \"question\": \"your question here\", \"difficulty\": \"medium\", \"expectedKeywords\": [], \"followUpPrompts\": []}";
+          ? "You are an expert interviewer. Generate a single, specific interview question with metadata. Questions MUST be directly relevant to the job description if provided and MUST BE DIFFERENT from previously asked questions. Respond with valid JSON only, no extra text."
+          : "Generate a UNIQUE interview question relevant to the job. Return ONLY this JSON format, nothing else: {\"category\": \"technical\", \"question\": \"your question here\", \"difficulty\": \"medium\", \"expectedKeywords\": [], \"followUpPrompts\": []}";
+        
+        // Include previous questions context
+        const previousQuestionsContext = previousQuestions && previousQuestions.length > 0 
+          ? `\n\nPREVIOUSLY ASKED QUESTIONS (DO NOT REPEAT THESE):\n${previousQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n')}\n\nGENERATE A COMPLETELY DIFFERENT QUESTION.`
+          : '';
         
         // For retry attempts, still include job context in simplified form
         const retryPrompt = hasJobDescription 
           ? `Generate a ${difficulty} ${interviewType} interview question for a ${role} position. Question #${questionNumber}. 
              
              JOB CONTEXT: ${jobDescription.substring(0, 500)}
+             ${previousQuestionsContext}
              
-             IMPORTANT: Ask about skills, technologies, or scenarios from this job description. Do NOT ask generic coding questions.
+             IMPORTANT: Ask about skills, technologies, or scenarios from this job description. Do NOT ask generic coding questions. MUST BE DIFFERENT from previous questions.
              Return only valid JSON.`
-          : `Generate a ${difficulty} ${interviewType} interview question for a ${role} position. Question #${questionNumber}. Return only valid JSON.`;
+          : `Generate a ${difficulty} ${interviewType} interview question for a ${role} position. Question #${questionNumber}. ${previousQuestionsContext} Return only valid JSON.`;
         
         const response = await aiService.createChatCompletion([
           {
@@ -158,7 +165,7 @@ export class VirtualInterviewService {
             role: "user",
             content: attempt === 1 ? prompt : retryPrompt
           }
-        ], attempt === 2 ? { temperature: 0 } : undefined);
+        ], attempt === 2 ? { temperature: 0.8 } : { temperature: 0.9 });
 
         const content = response.choices[0]?.message?.content;
         if (!content) {
@@ -571,7 +578,8 @@ Be constructive but honest - don't give false praise.`;
     questionNumber: number,
     previousResponses: string[],
     userContext?: string,
-    jobDescription?: string
+    jobDescription?: string,
+    previousQuestions?: string[]
   ): string {
     // Define question progression strategy
     let questionFocus = '';
@@ -622,6 +630,13 @@ ${userContext ? `Candidate Background: ${userContext}` : ''}
 ${jobContext}
 
 Previous responses (avoid repetition): ${previousResponses.slice(-2).join('; ')}
+
+${previousQuestions && previousQuestions.length > 0 ? `
+PREVIOUSLY ASKED QUESTIONS (GENERATE COMPLETELY DIFFERENT QUESTIONS):
+${previousQuestions.map((q, i) => `${i + 1}. ${q.substring(0, 150)}...`).join('\n')}
+
+YOU MUST NOT REPEAT ANY OF THE ABOVE QUESTIONS. Generate a fresh, unique question on a different topic/concept.
+` : ''}
 
 CRITICAL REQUIREMENTS:
 ${hasJobDescription ? `

@@ -406,6 +406,16 @@ router.get('/:sessionId/question', isAuthenticated, async (req: any, res) => {
 
       const previousResponses = previousMessages.map(msg => msg.content);
 
+      // Get previous questions to avoid duplicates
+      const prevMessagesForQuestionAvoidance = await db.select()
+        .from(virtualInterviewMessages)
+        .where(eq(virtualInterviewMessages.interviewId, currentInterview.id))
+        .orderBy(virtualInterviewMessages.createdAt);
+
+      const previousQuestions = prevMessagesForQuestionAvoidance
+        .filter(m => m.sender === 'interviewer' && m.content && m.content.length > 50)
+        .map(m => m.content);
+
       // Generate next question with job description for job-specific questions
       console.log(`📋 Generating question #${questionNumber} with job description: ${currentInterview.jobDescription ? 'YES' : 'NO'}`);
       const questionData = await virtualInterviewService.generateQuestion(
@@ -415,7 +425,8 @@ router.get('/:sessionId/question', isAuthenticated, async (req: any, res) => {
         questionNumber,
         previousResponses,
         undefined,
-        currentInterview.jobDescription || undefined
+        currentInterview.jobDescription || undefined,
+        previousQuestions // Pass previous questions to avoid duplicates
       );
 
       // Store question in database
@@ -758,14 +769,14 @@ router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
     if (messages.length === 0) {
       console.log(`📝 No messages found for session ${sessionId}, generating welcome message and first question...`);
       console.log(`📋 Job Description available: ${currentInterview.jobDescription ? 'YES (' + currentInterview.jobDescription.substring(0, 50) + '...)' : 'NO'}`);
-      
+
       // Generate welcome greeting
       const greeting = await virtualInterviewService.generateGreeting(
         currentInterview.interviewerPersonality || 'professional',
         currentInterview.role || 'Software Engineer',
         currentInterview.company
       );
-      
+
       // Store greeting message
       await db.insert(virtualInterviewMessages).values({
         interviewId: currentInterview.id,
@@ -775,7 +786,7 @@ router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
         messageIndex: 0,
         timestamp: new Date()
       });
-      
+
       // Generate and store first question with unique context AND job description
       const uniqueContext = `Session: ${sessionId}, Time: ${Date.now()}, User: ${userId}`;
       const firstQuestion = await virtualInterviewService.generateQuestion(
@@ -787,7 +798,7 @@ router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
         uniqueContext,
         currentInterview.jobDescription || undefined
       );
-      
+
       await db.insert(virtualInterviewMessages).values({
         interviewId: currentInterview.id,
         sender: 'interviewer',
@@ -796,7 +807,7 @@ router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
         messageIndex: 1,
         timestamp: new Date()
       });
-      
+
       // Reload messages after inserting
       messages = await db.select().from(virtualInterviewMessages)
         .where(eq(virtualInterviewMessages.interviewId, currentInterview.id))
@@ -806,7 +817,7 @@ router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
     else if (messages.length === 1 && messages[0].sender === 'interviewer') {
       console.log(`📝 Only greeting found for session ${sessionId}, generating first question...`);
       console.log(`📋 Job Description available: ${currentInterview.jobDescription ? 'YES (' + currentInterview.jobDescription.substring(0, 50) + '...)' : 'NO'}`);
-      
+
       // Generate first question with unique context AND job description
       const uniqueContext = `Session: ${sessionId}, Time: ${Date.now()}, User: ${userId}, Random: ${Math.random()}`;
       const firstQuestion = await virtualInterviewService.generateQuestion(
@@ -818,7 +829,7 @@ router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
         uniqueContext,
         currentInterview.jobDescription || undefined
       );
-      
+
       await db.insert(virtualInterviewMessages).values({
         interviewId: currentInterview.id,
         sender: 'interviewer',
@@ -827,7 +838,7 @@ router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
         messageIndex: 1,
         timestamp: new Date()
       });
-      
+
       // Reload messages after inserting
       messages = await db.select().from(virtualInterviewMessages)
         .where(eq(virtualInterviewMessages.interviewId, currentInterview.id))
@@ -971,15 +982,15 @@ router.post('/:sessionId/message', isAuthenticated, async (req: any, res) => {
 
     // Generate AI response using follow-up or new question
     let aiResponseText: string;
-    
+
     if (existingMessages.length > 1) {
       // Get the last question from the interviewer
       const lastInterviewerMsg = existingMessages
         .filter(m => m.sender === 'interviewer')
         .pop();
-      
+
       const previousQuestion = lastInterviewerMsg?.content || 'Tell me about yourself';
-      
+
       // Create a simple analysis for the follow-up
       const simpleAnalysis = {
         responseQuality: 7,
@@ -990,7 +1001,7 @@ router.post('/:sessionId/message', isAuthenticated, async (req: any, res) => {
         sentiment: 'neutral' as const,
         confidence: 70
       };
-      
+
       // Generate a follow-up question based on the conversation
       aiResponseText = await virtualInterviewService.generateFollowUp(
         previousQuestion,
