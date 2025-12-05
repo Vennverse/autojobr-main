@@ -833,6 +833,16 @@ router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
         currentInterview.jobDescription || undefined
       );
 
+      console.log(`✅ ========================================`);
+      console.log(`✅ FIRST QUESTION GENERATED SUCCESSFULLY!`);
+      console.log(`✅ Question Text: "${firstQuestion.question.substring(0, 120)}..."`);
+      console.log(`✅ Category: ${firstQuestion.category}`);
+      console.log(`✅ Difficulty: ${firstQuestion.difficulty}`);
+      console.log(`✅ Keywords: ${firstQuestion.expectedKeywords?.length || 0} provided`);
+      console.log(`✅ This means AI SERVICE IS WORKING!`);
+      console.log(`✅ ========================================`);
+
+      // Store first question
       await db.insert(virtualInterviewMessages).values({
         interviewId: currentInterview.id,
         sender: 'interviewer',
