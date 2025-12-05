@@ -1269,7 +1269,7 @@ Jane Smith,jane@example.com,555-5678,Resume text,applied,indeed,2025-01-14,linke
                               variant="outline"
                               size="sm"
                               onClick={() =>
-                                window.open(`/jobs/${job.id}`, "_blank")
+                                window.open(`/jobs/posting/${job.id}`, "_blank")
                               }
                             >
                               View

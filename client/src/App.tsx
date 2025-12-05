@@ -190,6 +190,10 @@ function JobsSingaporeCountry() { return <Jobs country="singapore" />; }
 function JobsNetherlands() { return <Jobs country="netherlands" />; }
 function JobsSweden() { return <Jobs country="sweden" />; }
 
+// ViewJob source wrappers - fixes ID collision between job_postings and scraped_jobs tables
+function ViewJobPosting() { return <ViewJob source="posting" />; }
+function ViewJobScraped() { return <ViewJob source="scraped" />; }
+
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [location] = useLocation();
@@ -394,6 +398,9 @@ function Router() {
       {/* Interview Prep Tools Page - Public access */}
       <Route path="/interview-prep-tools" component={InterviewPrepTools} />
 
+      {/* Source-specific job routes - fixes ID collision between tables */}
+      <Route path="/jobs/posting/:id" component={ViewJobPosting} />
+      <Route path="/jobs/scraped/:id" component={ViewJobScraped} />
       <Route path="/jobs/:id" component={ViewJob} />
 
       {/* Company career pages - accessible to everyone */}

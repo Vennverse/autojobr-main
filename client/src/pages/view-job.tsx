@@ -218,16 +218,27 @@ const generateJobPostingStructuredData = (job: any, jobId: string) => {
   };
 };
 
-export default function ViewJob() {
+interface ViewJobProps {
+  source?: 'posting' | 'scraped';
+}
+
+export default function ViewJob({ source }: ViewJobProps = {}) {
   const params = useParams();
   const jobId = params.id;
   const [location, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Determine which API to call based on source prop
+  // 'posting' = recruiter-posted jobs (job_postings table)
+  // 'scraped' = scraped jobs (scraped_jobs table)
+  // undefined = try posting first, then scraped (for backwards compatibility)
 
-  // Share functionality
+  // Share functionality - uses source-aware URL to avoid ID collisions
   const shareJob = async (platform?: string) => {
-    const jobUrl = `${window.location.origin}/jobs/${jobId}`;
+    // Build source-aware URL: /jobs/posting/:id or /jobs/scraped/:id
+    const sourceType = source || (platformJob ? 'posting' : 'scraped');
+    const jobUrl = `${window.location.origin}/jobs/${sourceType}/${jobId}`;
     const shareText = `Check out this ${job?.title} position at ${job?.companyName}!`;
     
     if (platform === 'copy') {
@@ -280,10 +291,34 @@ export default function ViewJob() {
     return div.textContent || div.innerText || '';
   };
 
-  // Try fetching as scraped job first (most jobs are scraped)
+  // Fetch platform job (recruiter-posted job from job_postings table)
+  // Enabled when: source is 'posting' OR source is undefined (for fallback)
+  const { data: platformJob, isLoading: platformLoading, error: platformError } = useQuery({
+    queryKey: [`/api/jobs/postings/${jobId}`],
+    enabled: !!jobId && (source === 'posting' || source === undefined),
+    queryFn: async () => {
+      const response = await fetch(`/api/jobs/postings/${jobId}`, {
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null; // Try scraped job if no source specified
+        }
+        throw new Error(`Failed to fetch job: ${response.status}`);
+      }
+      
+      return response.json();
+    }
+  });
+
+  // Fetch scraped job (from scraped_jobs table)
+  // Enabled when: source is 'scraped' OR (source is undefined AND platform job not found)
+  const shouldFetchScraped = source === 'scraped' || (source === undefined && !platformJob && !platformLoading);
+  
   const { data: scrapedJob, isLoading: scrapedLoading, error: scrapedError } = useQuery({
     queryKey: [`/api/scraped-jobs/${jobId}`],
-    enabled: !!jobId,
+    enabled: !!jobId && shouldFetchScraped,
     queryFn: async () => {
       const response = await fetch(`/api/scraped-jobs/${jobId}`, {
         credentials: 'include',
@@ -291,7 +326,7 @@ export default function ViewJob() {
       
       if (!response.ok) {
         if (response.status === 404) {
-          return null; // Try platform job instead
+          return null;
         }
         throw new Error(`Failed to fetch job: ${response.status}`);
       }
@@ -306,33 +341,16 @@ export default function ViewJob() {
       return data;
     }
   });
-
-  // If scraped job not found, try platform job
-  const { data: platformJob, isLoading: platformLoading, error: platformError } = useQuery({
-    queryKey: [`/api/jobs/postings/${jobId}`],
-    enabled: !!jobId && !scrapedJob && !scrapedLoading,
-    queryFn: async () => {
-      const response = await fetch(`/api/jobs/postings/${jobId}`, {
-        credentials: 'include',
-      });
-      
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Job not found');
-        }
-        throw new Error(`Failed to fetch job: ${response.status}`);
-      }
-      
-      return response.json();
-    }
-  });
   
-  // Use the appropriate job data
-  const job = scrapedJob || platformJob;
-  const isLoading = scrapedLoading || platformLoading;
-  const error = !scrapedJob && !platformJob && !isLoading ? (scrapedError || platformError || new Error('Job not found')) : null;
+  // Determine the job based on source priority
+  // - If source is 'posting', use platformJob
+  // - If source is 'scraped', use scrapedJob
+  // - If source is undefined, prefer platformJob first (for recruiter-shared links), then scrapedJob
+  const job = source === 'scraped' ? scrapedJob : (platformJob || scrapedJob);
+  const isLoading = platformLoading || (shouldFetchScraped && scrapedLoading);
+  const error = !job && !isLoading ? (platformError || scrapedError || new Error('Job not found')) : null;
 
-  console.log('ViewJob - jobId:', jobId, 'job:', job, 'error:', error);
+  console.log('ViewJob - source:', source, 'jobId:', jobId, 'platformJob:', platformJob, 'scrapedJob:', scrapedJob, 'job:', job);
 
   if (isLoading) {
     return (
