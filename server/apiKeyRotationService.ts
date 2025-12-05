@@ -2,7 +2,7 @@ import Groq from "groq-sdk";
 import { Resend } from 'resend';
 import OpenAI from 'openai';
 
-interface ApiKeyPool {
+export interface ApiKeyPool {
   keys: string[];
   currentIndex: number;
   failedKeys: Set<string>;
@@ -10,7 +10,7 @@ interface ApiKeyPool {
   cooldownPeriod: number; // in milliseconds
 }
 
-interface ServiceConfig {
+export interface ServiceConfig {
   name: string;
   envPrefix: string;
   maxRetries: number;
