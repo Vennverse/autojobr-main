@@ -38,6 +38,8 @@ interface MessageAnalysis {
   behavioralAnalysis?: any; // Behavioral analysis results
   proctoringSummary?: any; // Proctoring summary
   riskLevel?: 'low' | 'medium' | 'high' | 'critical';
+  isCorrect?: boolean; // Whether the answer is factually correct
+  relevanceScore?: number; // How relevant the answer is to the question (0-100)
 }
 
 interface InterviewSession {
@@ -230,21 +232,44 @@ export class VirtualInterviewService {
       reasoning: 'AI detection skipped for performance'
     };
     
-    // Use centralized AI service for analysis
+    // Use centralized AI service for analysis with CORRECTNESS validation
     
     const prompt = `
-Analyze this interview response. Be concise and STRICT in evaluation.
+Analyze this interview response for CORRECTNESS and QUALITY. Be STRICT.
 
 Question: "${question}"
 Category: ${questionCategory}
 Response: "${userResponse}"
 
-IMPORTANT: Be critical and realistic in scoring. Do not give high scores for vague, off-topic, or low-quality responses.
-- Only give responseQuality 7+ for detailed, specific answers with examples
-- Give responseQuality 4-6 for adequate but generic answers
-- Give responseQuality 1-3 for poor, irrelevant, or minimal responses
+CRITICAL EVALUATION CRITERIA:
+1. CORRECTNESS: Is the answer factually accurate and directly addresses the question?
+   - Wrong/incorrect answers get 1-3 responseQuality
+   - Partially correct answers get 4-6
+   - Fully correct and detailed answers get 7-10
 
-Return JSON only: {"responseQuality": 1-10, "technicalAccuracy": 0-100, "clarityScore": 0-100, "depthScore": 0-100, "keywordsMatched": ["matched", "keywords"], "sentiment": "positive/neutral/negative", "confidence": 1-100}`;
+2. RELEVANCE: Does the response actually answer what was asked?
+   - Off-topic or tangential responses get low scores regardless of length
+
+3. DEPTH: Does it show understanding or just surface-level knowledge?
+   - Generic/memorized answers without examples get max 5
+   - Specific examples and reasoning get higher scores
+
+4. TECHNICAL ACCURACY: For technical questions, are concepts/code/methods correct?
+   - Incorrect technical details drastically lower the score
+
+DO NOT reward:
+- Long responses that don't answer the question
+- Responses that pass gibberish check but are factually wrong
+- Generic answers without specifics
+- Off-topic rambling
+
+REWARD:
+- Correct, accurate answers
+- Specific examples demonstrating understanding
+- Clear explanations of reasoning
+- Direct answers to the question asked
+
+Return JSON only: {"responseQuality": 1-10, "technicalAccuracy": 0-100, "clarityScore": 0-100, "depthScore": 0-100, "keywordsMatched": ["matched", "keywords"], "sentiment": "positive/neutral/negative", "confidence": 1-100, "isCorrect": true/false, "relevanceScore": 0-100}`;
 
     try {
       const response = await aiService.createChatCompletion([
@@ -264,15 +289,27 @@ Return JSON only: {"responseQuality": 1-10, "technicalAccuracy": 0-100, "clarity
       const cleanedContent = this.cleanJsonResponse(content);
       const analysis = JSON.parse(cleanedContent);
 
-      // Calculate base analysis
+      // CRITICAL: Apply correctness penalty - wrong answers get low scores regardless of length
+      let correctnessPenalty = 1.0;
+      if (analysis.isCorrect === false) {
+        correctnessPenalty = 0.3; // 70% penalty for incorrect answers
+        console.log(`⚠️ Answer marked as INCORRECT by AI - applying 70% penalty`);
+      } else if (analysis.relevanceScore && analysis.relevanceScore < 50) {
+        correctnessPenalty = 0.5; // 50% penalty for low relevance
+        console.log(`⚠️ Answer has low relevance (${analysis.relevanceScore}%) - applying 50% penalty`);
+      }
+
+      // Calculate base analysis with correctness factor
       const baseAnalysis = {
-        responseQuality: Math.min(10, Math.max(1, analysis.responseQuality || 5)),
-        technicalAccuracy: Math.min(100, Math.max(0, analysis.technicalAccuracy || 50)),
+        responseQuality: Math.min(10, Math.max(1, Math.round((analysis.responseQuality || 5) * correctnessPenalty))),
+        technicalAccuracy: Math.min(100, Math.max(0, Math.round((analysis.technicalAccuracy || 50) * correctnessPenalty))),
         clarityScore: Math.min(100, Math.max(0, analysis.clarityScore || 50)),
-        depthScore: Math.min(100, Math.max(0, analysis.depthScore || 50)),
+        depthScore: Math.min(100, Math.max(0, Math.round((analysis.depthScore || 50) * correctnessPenalty))),
         keywordsMatched: analysis.keywordsMatched || [],
         sentiment: analysis.sentiment || 'neutral',
-        confidence: Math.min(100, Math.max(1, analysis.confidence || 50))
+        confidence: Math.min(100, Math.max(1, analysis.confidence || 50)),
+        isCorrect: analysis.isCorrect !== false,
+        relevanceScore: analysis.relevanceScore || 50
       };
 
       // Apply AI detection analysis
