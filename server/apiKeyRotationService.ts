@@ -59,6 +59,68 @@ class ApiKeyRotationService {
     console.log(`   - Groq keys available: ${this.groqPool.keys.length}`);
     console.log(`   - OpenRouter keys available: ${this.openrouterPool.keys.length}`);
     console.log(`   - Resend keys available: ${this.resendPool.keys.length}`);
+
+    // Validate API keys asynchronously (don't block startup)
+    this.validateAllKeys();
+  }
+
+  // Validate all API keys to ensure they're working
+  private async validateAllKeys(): Promise<void> {
+    console.log(`🔍 Validating API keys...`);
+    
+    // Validate Groq keys
+    if (this.groqPool.keys.length > 0) {
+      await this.validateGroqKeys();
+    }
+
+    // Validate OpenRouter keys
+    if (this.openrouterPool.keys.length > 0) {
+      await this.validateOpenRouterKeys();
+    }
+
+    console.log(`✅ API key validation complete`);
+  }
+
+  // Validate Groq API keys
+  private async validateGroqKeys(): Promise<void> {
+    for (const key of this.groqPool.keys) {
+      const client = this.groqClients.get(key);
+      if (!client) continue;
+
+      try {
+        // Test with a minimal request
+        await client.chat.completions.create({
+          messages: [{ role: 'user', content: 'test' }],
+          model: 'llama-3.3-70b-versatile',
+          max_tokens: 1
+        });
+        console.log(`✅ Groq key validated: ${key.substring(0, 10)}...`);
+      } catch (error: any) {
+        console.error(`❌ Groq key INVALID: ${key.substring(0, 10)}... - ${error.message}`);
+        this.markKeyAsFailed(this.groqPool, key);
+      }
+    }
+  }
+
+  // Validate OpenRouter API keys
+  private async validateOpenRouterKeys(): Promise<void> {
+    for (const key of this.openrouterPool.keys) {
+      const client = this.openrouterClients.get(key);
+      if (!client) continue;
+
+      try {
+        // Test with a minimal request
+        await client.chat.completions.create({
+          messages: [{ role: 'user', content: 'test' }],
+          model: 'mistralai/mistral-small-2402',
+          max_tokens: 1
+        });
+        console.log(`✅ OpenRouter key validated: ${key.substring(0, 10)}...`);
+      } catch (error: any) {
+        console.error(`❌ OpenRouter key INVALID: ${key.substring(0, 10)}... - ${error.message}`);
+        this.markKeyAsFailed(this.openrouterPool, key);
+      }
+    }
   }
 
   private initializeKeyPool(envPrefix: string, config: ServiceConfig): ApiKeyPool {
