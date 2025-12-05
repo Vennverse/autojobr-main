@@ -133,6 +133,15 @@ export class VirtualInterviewService {
       console.log(`📋 Using job description for question generation (${jobDescription.substring(0, 50)}...)`);
     }
     
+    // Check if AI service is available
+    const aiStatus = apiKeyRotationService.getStatus();
+    console.log(`🔍 AI Service Status - Groq: ${aiStatus.groq.availableKeys}/${aiStatus.groq.totalKeys}, OpenRouter: ${aiStatus.openrouter.availableKeys}/${aiStatus.openrouter.totalKeys}`);
+    
+    if (aiStatus.groq.availableKeys === 0 && aiStatus.openrouter.availableKeys === 0) {
+      console.error('❌ No AI API keys available! Using fallback questions.');
+      return this.getFallbackQuestion(interviewType, difficulty, role);
+    }
+    
     // Try up to 3 attempts to get a unique question
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
@@ -156,6 +165,8 @@ export class VirtualInterviewService {
              Return only valid JSON.`
           : `Generate a ${difficulty} ${interviewType} interview question for a ${role} position. Question #${questionNumber}. ${previousQuestionsContext} Return only valid JSON.`;
         
+        console.log(`🔄 AI Attempt ${attempt}/3 - Calling aiService.createChatCompletion...`);
+        
         const response = await aiService.createChatCompletion([
           {
             role: "system",
@@ -165,13 +176,18 @@ export class VirtualInterviewService {
             role: "user",
             content: attempt === 1 ? prompt : retryPrompt
           }
-        ], attempt === 2 ? { temperature: 0.8 } : { temperature: 0.9 });
+        ], { 
+          temperature: attempt === 1 ? 0.9 : 0.8,
+          max_tokens: 500
+        });
 
         const content = response.choices[0]?.message?.content;
         if (!content) {
-          console.log(`⚠️ Attempt ${attempt}: No content in AI response`);
+          console.error(`⚠️ Attempt ${attempt}: No content in AI response - response object:`, JSON.stringify(response).substring(0, 200));
           continue;
         }
+
+        console.log(`✅ Attempt ${attempt}: Got AI response (${content.length} chars)`);
 
         // Clean and parse the JSON response
         const cleanedContent = this.cleanJsonResponse(content);
@@ -181,15 +197,16 @@ export class VirtualInterviewService {
         } catch (parseError) {
           console.error(`⚠️ Attempt ${attempt}: JSON parse error:`, parseError);
           console.error('Raw content:', content.substring(0, 300));
-          if (attempt < 2) continue; // Try again with simpler prompt
-          throw new Error('Invalid JSON response from AI service');
+          console.error('Cleaned content:', cleanedContent.substring(0, 300));
+          if (attempt < 3) continue; // Try again with simpler prompt
+          throw new Error('Invalid JSON response from AI service after 3 attempts');
         }
 
         // Validate we got a question
         if (!questionData.question || typeof questionData.question !== 'string') {
-          console.log(`⚠️ Attempt ${attempt}: No valid question in response`);
-          if (attempt < 2) continue;
-          throw new Error('No question in AI response');
+          console.error(`⚠️ Attempt ${attempt}: No valid question in response - questionData:`, questionData);
+          if (attempt < 3) continue;
+          throw new Error('No question in AI response after 3 attempts');
         }
 
         console.log(`✅ AI generated question (attempt ${attempt}): "${questionData.question.substring(0, 60)}..."`);
@@ -201,14 +218,19 @@ export class VirtualInterviewService {
           expectedKeywords: questionData.expectedKeywords || [],
           followUpPrompts: questionData.followUpPrompts || []
         };
-      } catch (error) {
-        console.error(`❌ Attempt ${attempt} failed:`, error);
-        if (attempt < 2) continue; // Try again
+      } catch (error: any) {
+        console.error(`❌ Attempt ${attempt} failed with error:`, error.message);
+        console.error('Full error:', error);
+        if (attempt < 3) {
+          console.log(`⏳ Retrying in ${attempt} second(s)...`);
+          await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+          continue;
+        }
       }
     }
     
     // All attempts failed - use fallback
-    console.log('❌ All AI attempts failed, using fallback question');
+    console.error('❌ All 3 AI attempts failed, using fallback question');
     return this.getFallbackQuestion(interviewType, difficulty, role);
   }
 
@@ -741,7 +763,10 @@ Return valid JSON only:
   }
 
   private getFallbackQuestion(interviewType: string, difficulty: string, role: string): InterviewQuestion {
-    // Expanded fallback questions pool - randomly select to ensure variety
+    // Expanded fallback questions pool with more variety - randomly select
+    const timestamp = Date.now();
+    const randomSeed = Math.floor(timestamp / 1000); // Changes every second
+    
     const fallbackQuestions = {
       technical: {
         easy: [
@@ -749,21 +774,36 @@ Return valid JSON only:
           "What is the difference between var, let, and const in JavaScript?",
           "Explain how you would implement a simple REST API endpoint.",
           "What is the difference between HTTP GET and POST requests?",
-          "How do you handle errors in your code?"
+          "How do you handle errors in your code?",
+          "Describe the purpose of version control systems like Git.",
+          "What is the difference between null and undefined in JavaScript?",
+          "How would you explain object-oriented programming to a beginner?",
+          "What are the benefits of using TypeScript over JavaScript?",
+          "Explain what an API is and give an example of when you'd use one."
         ],
         medium: [
           "Explain the difference between synchronous and asynchronous programming. When would you use each?",
           "How would you optimize a slow database query?",
           "Describe the differences between SQL and NoSQL databases.",
           "What are design patterns and can you explain one you've used?",
-          "How do you ensure code quality in your projects?"
+          "How do you ensure code quality in your projects?",
+          "Explain the concept of middleware in Express.js or similar frameworks.",
+          "What strategies do you use for state management in React applications?",
+          "How would you implement authentication and authorization in a web application?",
+          "Describe your approach to writing unit tests for a complex function.",
+          "What is the difference between horizontal and vertical scaling?"
         ],
         hard: [
           "Design a scalable system for handling millions of concurrent users. What are the key considerations?",
           "How would you implement a distributed caching system?",
           "Explain how you would design a real-time notification system.",
           "What strategies would you use to handle database sharding?",
-          "How would you architect a microservices-based system?"
+          "How would you architect a microservices-based system?",
+          "Describe how you would implement a rate-limiting system for an API.",
+          "How would you design a fault-tolerant message queue system?",
+          "Explain your approach to optimizing a web application's performance at scale.",
+          "Design a system for processing millions of daily transactions with high availability.",
+          "How would you implement a distributed tracing system for debugging microservices?"
         ]
       },
       behavioral: {
@@ -772,21 +812,36 @@ Return valid JSON only:
           "Describe a project you're most proud of and why.",
           "How do you stay updated with the latest technology trends?",
           "Tell me about a time you helped a teammate.",
-          "What motivates you in your work?"
+          "What motivates you in your work?",
+          "Describe your typical approach to starting a new project.",
+          "How do you handle constructive criticism?",
+          "Tell me about a time you collaborated effectively with others.",
+          "What do you do when you get stuck on a problem?",
+          "Describe a skill you've recently learned and how you learned it."
         ],
         medium: [
           "Describe a situation where you had to work with a difficult team member. How did you handle it?",
           "Tell me about a time when you had to meet a tight deadline.",
           "Describe a failure you experienced and what you learned from it.",
           "How do you prioritize your tasks when you have multiple deadlines?",
-          "Tell me about a time you had to adapt to a significant change at work."
+          "Tell me about a time you had to adapt to a significant change at work.",
+          "Describe a situation where you had to give difficult feedback to a colleague.",
+          "Tell me about a time you disagreed with a technical decision. How did you handle it?",
+          "How do you balance perfectionism with shipping features on time?",
+          "Describe a time when you had to learn a new technology under pressure.",
+          "Tell me about a project where you had to change your approach midway through."
         ],
         hard: [
           "Tell me about a time when you had to make a decision with incomplete information. What was your process?",
           "Describe a situation where you had to influence stakeholders without direct authority.",
           "Tell me about a complex problem you solved and your approach.",
           "How have you handled conflicting priorities from different stakeholders?",
-          "Describe a time when you had to lead a team through a challenging situation."
+          "Describe a time when you had to lead a team through a challenging situation.",
+          "Tell me about a major technical decision you made that didn't work out. What did you learn?",
+          "Describe how you've mentored junior developers and helped them grow.",
+          "Tell me about a time you had to advocate for technical debt reduction.",
+          "How have you handled a situation where you disagreed with management's direction?",
+          "Describe the most challenging cross-functional project you've led."
         ]
       }
     };
