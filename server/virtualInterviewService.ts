@@ -126,14 +126,28 @@ export class VirtualInterviewService {
   ): Promise<InterviewQuestion> {
     const prompt = this.buildQuestionPrompt(interviewType, difficulty, role, questionNumber, previousResponses, userContext, jobDescription);
     
+    const hasJobDescription = jobDescription && jobDescription.trim().length > 20;
     console.log(`🤖 Generating AI question #${questionNumber} for ${role} (${interviewType}, ${difficulty})...`);
+    if (hasJobDescription) {
+      console.log(`📋 Using job description for question generation (${jobDescription.substring(0, 50)}...)`);
+    }
     
-    // Try up to 2 attempts - first with full prompt, then with simplified prompt
+    // Try up to 2 attempts - first with full prompt, then with simplified prompt that still includes job context
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
         const systemPrompt = attempt === 1 
-          ? "You are an expert interviewer. Generate a single, specific interview question with metadata. Respond with valid JSON only, no extra text."
-          : "Generate an interview question. Return ONLY this JSON format, nothing else: {\"category\": \"technical\", \"question\": \"your question here\", \"difficulty\": \"medium\", \"expectedKeywords\": [], \"followUpPrompts\": []}";
+          ? "You are an expert interviewer. Generate a single, specific interview question with metadata. Questions MUST be directly relevant to the job description if provided. Respond with valid JSON only, no extra text."
+          : "Generate an interview question relevant to the job. Return ONLY this JSON format, nothing else: {\"category\": \"technical\", \"question\": \"your question here\", \"difficulty\": \"medium\", \"expectedKeywords\": [], \"followUpPrompts\": []}";
+        
+        // For retry attempts, still include job context in simplified form
+        const retryPrompt = hasJobDescription 
+          ? `Generate a ${difficulty} ${interviewType} interview question for a ${role} position. Question #${questionNumber}. 
+             
+             JOB CONTEXT: ${jobDescription.substring(0, 500)}
+             
+             IMPORTANT: Ask about skills, technologies, or scenarios from this job description. Do NOT ask generic coding questions.
+             Return only valid JSON.`
+          : `Generate a ${difficulty} ${interviewType} interview question for a ${role} position. Question #${questionNumber}. Return only valid JSON.`;
         
         const response = await aiService.createChatCompletion([
           {
@@ -142,7 +156,7 @@ export class VirtualInterviewService {
           },
           {
             role: "user",
-            content: attempt === 1 ? prompt : `Generate a ${difficulty} ${interviewType} interview question for a ${role} position. Question #${questionNumber}. Return only valid JSON.`
+            content: attempt === 1 ? prompt : retryPrompt
           }
         ], attempt === 2 ? { temperature: 0 } : undefined);
 

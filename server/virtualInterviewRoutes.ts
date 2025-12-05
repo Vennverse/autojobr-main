@@ -406,13 +406,16 @@ router.get('/:sessionId/question', isAuthenticated, async (req: any, res) => {
 
       const previousResponses = previousMessages.map(msg => msg.content);
 
-      // Generate next question
+      // Generate next question with job description for job-specific questions
+      console.log(`📋 Generating question #${questionNumber} with job description: ${currentInterview.jobDescription ? 'YES' : 'NO'}`);
       const questionData = await virtualInterviewService.generateQuestion(
         currentInterview.interviewType || 'technical',
         currentInterview.difficulty || 'medium',
         currentInterview.role || 'software_engineer',
         questionNumber,
-        previousResponses
+        previousResponses,
+        undefined,
+        currentInterview.jobDescription || undefined
       );
 
       // Store question in database
@@ -754,6 +757,7 @@ router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
     // If no messages exist (including greeting), generate welcome message and first question
     if (messages.length === 0) {
       console.log(`📝 No messages found for session ${sessionId}, generating welcome message and first question...`);
+      console.log(`📋 Job Description available: ${currentInterview.jobDescription ? 'YES (' + currentInterview.jobDescription.substring(0, 50) + '...)' : 'NO'}`);
       
       // Generate welcome greeting
       const greeting = await virtualInterviewService.generateGreeting(
@@ -772,7 +776,7 @@ router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
         timestamp: new Date()
       });
       
-      // Generate and store first question with unique context
+      // Generate and store first question with unique context AND job description
       const uniqueContext = `Session: ${sessionId}, Time: ${Date.now()}, User: ${userId}`;
       const firstQuestion = await virtualInterviewService.generateQuestion(
         currentInterview.interviewType || 'technical',
@@ -780,7 +784,8 @@ router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
         currentInterview.role || 'Software Engineer',
         1,
         [],
-        uniqueContext
+        uniqueContext,
+        currentInterview.jobDescription || undefined
       );
       
       await db.insert(virtualInterviewMessages).values({
@@ -800,8 +805,9 @@ router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
     // If only greeting exists, generate first question
     else if (messages.length === 1 && messages[0].sender === 'interviewer') {
       console.log(`📝 Only greeting found for session ${sessionId}, generating first question...`);
+      console.log(`📋 Job Description available: ${currentInterview.jobDescription ? 'YES (' + currentInterview.jobDescription.substring(0, 50) + '...)' : 'NO'}`);
       
-      // Generate first question with unique context
+      // Generate first question with unique context AND job description
       const uniqueContext = `Session: ${sessionId}, Time: ${Date.now()}, User: ${userId}, Random: ${Math.random()}`;
       const firstQuestion = await virtualInterviewService.generateQuestion(
         currentInterview.interviewType || 'technical',
@@ -809,7 +815,8 @@ router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
         currentInterview.role || 'Software Engineer',
         1,
         [],
-        uniqueContext
+        uniqueContext,
+        currentInterview.jobDescription || undefined
       );
       
       await db.insert(virtualInterviewMessages).values({
@@ -992,14 +999,16 @@ router.post('/:sessionId/message', isAuthenticated, async (req: any, res) => {
         currentInterview.interviewerPersonality || 'professional'
       );
     } else {
-      // First message - generate initial question
+      // First message - generate initial question with job description
+      console.log(`📋 Generating initial question with job description: ${currentInterview.jobDescription ? 'YES' : 'NO'}`);
       const question = await virtualInterviewService.generateQuestion(
         currentInterview.interviewType || 'general',
         currentInterview.difficulty || 'medium',
         currentInterview.role || 'Software Engineer',
         1,
         [],
-        ''
+        '',
+        currentInterview.jobDescription || undefined
       );
       aiResponseText = question.question;
     }
