@@ -194,6 +194,33 @@ export class VirtualInterviewService {
     expectedKeywords: string[],
     questionCategory: string
   ): Promise<MessageAnalysis> {
+    // First, validate response quality (detect gibberish, spam, etc.)
+    const responseValidation = this.validateResponseQuality(userResponse);
+    
+    if (!responseValidation.isValid) {
+      console.log(`⚠️ Invalid response detected: ${responseValidation.reason}`);
+      // Return low scores for gibberish/invalid responses
+      const penaltyScore = 100 - responseValidation.penaltyScore;
+      return {
+        responseQuality: Math.max(1, Math.round(penaltyScore / 10)),
+        technicalAccuracy: Math.max(0, penaltyScore - 10),
+        clarityScore: Math.max(0, penaltyScore - 15),
+        depthScore: Math.max(0, penaltyScore - 20),
+        keywordsMatched: [],
+        sentiment: 'negative' as const,
+        confidence: Math.max(1, penaltyScore),
+        aiDetection: {
+          isAIGenerated: false,
+          confidence: 0,
+          humanScore: 100,
+          indicators: [responseValidation.reason],
+          reasoning: `Response flagged: ${responseValidation.reason}`
+        },
+        finalScore: Math.max(0, penaltyScore),
+        partialResultsOnly: true
+      };
+    }
+
     // Skip AI detection for faster response during development
     const aiDetection = {
       isAIGenerated: false,
@@ -206,11 +233,16 @@ export class VirtualInterviewService {
     // Use centralized AI service for analysis
     
     const prompt = `
-Analyze this interview response. Be concise.
+Analyze this interview response. Be concise and STRICT in evaluation.
 
 Question: "${question}"
 Category: ${questionCategory}
 Response: "${userResponse}"
+
+IMPORTANT: Be critical and realistic in scoring. Do not give high scores for vague, off-topic, or low-quality responses.
+- Only give responseQuality 7+ for detailed, specific answers with examples
+- Give responseQuality 4-6 for adequate but generic answers
+- Give responseQuality 1-3 for poor, irrelevant, or minimal responses
 
 Return JSON only: {"responseQuality": 1-10, "technicalAccuracy": 0-100, "clarityScore": 0-100, "depthScore": 0-100, "keywordsMatched": ["matched", "keywords"], "sentiment": "positive/neutral/negative", "confidence": 1-100}`;
 
@@ -218,7 +250,7 @@ Return JSON only: {"responseQuality": 1-10, "technicalAccuracy": 0-100, "clarity
       const response = await aiService.createChatCompletion([
         {
           role: "system",
-          content: "You are an expert interview evaluator. Analyze responses thoroughly and fairly."
+          content: "You are a strict interview evaluator. Analyze responses critically and fairly. Do NOT give high scores for generic or low-quality responses."
         },
         {
           role: "user",
@@ -257,19 +289,19 @@ Return JSON only: {"responseQuality": 1-10, "technicalAccuracy": 0-100, "clarity
       };
     } catch (error) {
       console.error('Error analyzing response:', error);
-      // Fallback analysis with AI detection
+      // Fallback analysis - apply validation check for fallback too
       const baseAnalysis = {
-        responseQuality: 5,
-        technicalAccuracy: 50,
-        clarityScore: 50,
-        depthScore: 50,
+        responseQuality: 4,
+        technicalAccuracy: 40,
+        clarityScore: 40,
+        depthScore: 35,
         keywordsMatched: [],
         sentiment: 'neutral' as const,
-        confidence: 50
+        confidence: 40
       };
 
       const responseAnalysis = aiDetectionService.analyzeResponseWithAI(
-        { overallScore: 50 }, 
+        { overallScore: 40 }, 
         aiDetection
       );
 
@@ -344,14 +376,68 @@ Keep it conversational and under 100 words.`;
     recommendedResources: any[];
     nextSteps: string[];
   }> {
-    const candidateResponses = messages
+    const candidateResponsesRaw = messages
       .filter(m => m.sender === 'candidate')
-      .map(m => m.content)
-      .join('\n\n');
-
-    const questionsAnswered = messages.filter(m => m.sender === 'candidate').length;
+      .map(m => m.content);
     
-    const prompt = `Analyze this interview session and provide feedback as JSON only:
+    const candidateResponses = candidateResponsesRaw.join('\n\n');
+    const questionsAnswered = candidateResponsesRaw.length;
+    
+    // Validate all responses for gibberish/spam
+    let invalidResponseCount = 0;
+    let totalPenalty = 0;
+    const validationResults: string[] = [];
+    
+    for (const response of candidateResponsesRaw) {
+      const validation = this.validateResponseQuality(response);
+      if (!validation.isValid) {
+        invalidResponseCount++;
+        totalPenalty += validation.penaltyScore;
+        validationResults.push(validation.reason);
+      }
+    }
+    
+    // If most responses are invalid, return poor feedback immediately
+    if (questionsAnswered > 0 && invalidResponseCount / questionsAnswered > 0.5) {
+      console.log(`⚠️ Interview feedback: ${invalidResponseCount}/${questionsAnswered} responses flagged as invalid`);
+      const avgPenalty = totalPenalty / invalidResponseCount;
+      const score = Math.max(10, Math.round(100 - avgPenalty));
+      
+      return {
+        performanceSummary: "Your responses did not demonstrate adequate preparation or effort. Many answers appeared to be incomplete, off-topic, or lacked meaningful content. We recommend practicing with thoughtful, detailed responses to improve your interview performance.",
+        keyStrengths: ["Completed the interview session", "Showed up on time", "Attempted all questions"],
+        areasForImprovement: [
+          "Provide detailed, meaningful responses to interview questions",
+          "Include specific examples and experiences in your answers",
+          "Ensure responses are relevant to the question asked",
+          "Practice articulating your thoughts clearly and completely"
+        ],
+        overallScore: score,
+        technicalScore: Math.max(5, score - 10),
+        communicationScore: Math.max(5, score - 5),
+        confidenceScore: Math.max(5, score - 15),
+        recommendedResources: [
+          {
+            title: "Interview Practice Platform",
+            url: "https://leetcode.com",
+            description: "Practice coding problems and technical interviews"
+          },
+          {
+            title: "STAR Method Guide",
+            url: "https://www.indeed.com/career-advice/interviewing/how-to-use-the-star-interview-response-technique",
+            description: "Learn how to structure behavioral interview responses"
+          }
+        ],
+        nextSteps: [
+          "Retake the interview with thoughtful, complete responses",
+          "Practice answering common interview questions out loud",
+          "Prepare specific examples from your experience",
+          "Research the role and company before your next attempt"
+        ]
+      };
+    }
+    
+    const prompt = `Analyze this interview session and provide HONEST feedback as JSON only:
 
 Role: ${interviewData.role}
 Interview Type: ${interviewData.interviewType}
@@ -360,20 +446,26 @@ Questions Answered: ${questionsAnswered}
 Candidate Responses:
 ${candidateResponses}
 
+IMPORTANT: Be STRICT and REALISTIC in your evaluation. 
+- Only give scores above 70 for genuinely good responses with specific examples
+- Give scores 50-70 for adequate but generic responses  
+- Give scores below 50 for poor, vague, or off-topic responses
+- Do NOT inflate scores - be honest about the quality
+
 Return valid JSON only with these exact fields:
 {
-  "performanceSummary": "2-3 sentence assessment",
+  "performanceSummary": "2-3 sentence honest assessment of actual performance",
   "keyStrengths": ["strength1", "strength2", "strength3"],
   "areasForImprovement": ["area1", "area2", "area3"],
-  "overallScore": 75,
-  "technicalScore": 70,
-  "communicationScore": 80,
-  "confidenceScore": 75,
+  "overallScore": 60,
+  "technicalScore": 55,
+  "communicationScore": 65,
+  "confidenceScore": 60,
   "recommendedResources": [{"title": "Resource", "url": "https://example.com", "description": "Description"}],
   "nextSteps": ["step1", "step2", "step3"]
 }
 
-Be constructive and encouraging.`;
+Be constructive but honest - don't give false praise.`;
 
     try {
       console.log('Generating AI feedback for interview:', interviewData.id);
@@ -608,13 +700,13 @@ Return valid JSON only:
 
   private getFallbackFeedback() {
     return {
-      performanceSummary: "You demonstrated good communication skills and showed enthusiasm for the role. With some additional preparation, you'll be well-prepared for real interviews.",
-      keyStrengths: ["Good communication", "Enthusiasm", "Willingness to learn"],
-      areasForImprovement: ["Technical depth", "Specific examples", "Confidence in responses"],
-      overallScore: 70,
-      technicalScore: 65,
-      communicationScore: 75,
-      confidenceScore: 70,
+      performanceSummary: "Your interview session has been recorded. AI analysis was unavailable, so we recommend retaking the interview for a detailed assessment of your performance.",
+      keyStrengths: ["Completed the interview session", "Showed effort", "Time management"],
+      areasForImprovement: ["Consider retaking for AI-powered feedback", "Provide more detailed responses", "Practice with specific examples"],
+      overallScore: 55,
+      technicalScore: 50,
+      communicationScore: 55,
+      confidenceScore: 50,
       recommendedResources: [
         {
           title: "Interview Practice Platform",
@@ -623,11 +715,95 @@ Return valid JSON only:
         }
       ],
       nextSteps: [
+        "Retake the interview for complete AI analysis",
         "Practice more technical questions",
-        "Prepare specific examples from your experience",
-        "Work on confident delivery"
+        "Prepare specific examples from your experience"
       ]
     };
+  }
+
+  // Validate if a response is meaningful or gibberish
+  // This function aims to detect truly invalid responses while being lenient with legitimate short answers
+  private validateResponseQuality(response: string): { isValid: boolean; reason: string; penaltyScore: number } {
+    const trimmedResponse = response.trim().toLowerCase();
+    
+    // Extremely short responses (less than 10 chars) are always flagged
+    if (trimmedResponse.length < 10) {
+      return { isValid: false, reason: "Response is extremely short", penaltyScore: 95 };
+    }
+
+    // Short responses (10-30 chars) - check if they contain at least some coherent words
+    if (trimmedResponse.length < 30) {
+      const words = trimmedResponse.split(/\s+/).filter(w => w.length > 1);
+      const basicWords = ['yes', 'no', 'i', 'we', 'they', 'it', 'is', 'are', 'was', 'can', 'do', 'have', 'think', 'agree', 'believe', 'know', 'sure', 'okay', 'good', 'thanks', 'sorry', 'not', 'don\'t', 'would', 'could'];
+      const hasBasicWord = words.some(w => basicWords.includes(w));
+      
+      if (!hasBasicWord && words.length < 3) {
+        return { isValid: false, reason: "Response is too short to evaluate", penaltyScore: 85 };
+      }
+      // Short but coherent responses get a moderate penalty (not flagged as invalid)
+      // They'll naturally get lower scores from the AI evaluation
+      return { isValid: true, reason: "Short but coherent response", penaltyScore: 0 };
+    }
+
+    // Check for repeated characters (e.g., "aaaaaa", "sdfsdfsdf") - at least 5 in a row
+    const repeatedCharPattern = /(.)\1{5,}/;
+    if (repeatedCharPattern.test(trimmedResponse)) {
+      return { isValid: false, reason: "Response contains repeated characters", penaltyScore: 85 };
+    }
+
+    // Check for keyboard mashing patterns (random sequences like "asdfgh", "qwerty", "zxcvbn")
+    // Only flag if the keyboard pattern is a significant portion of the response
+    const keyboardPatterns = ['asdf', 'qwer', 'zxcv', 'hjkl', 'yuio', 'sdfg', 'dfgh', 'fghj', 'ghjk', 'cvbn', 'vbnm', 'wert', 'erty', 'rtyu', 'tyui', 'uiop'];
+    const keyboardMatchCount = keyboardPatterns.filter(pattern => trimmedResponse.includes(pattern)).length;
+    // Only flag if multiple keyboard patterns are found OR response is mostly keyboard mashing
+    if (keyboardMatchCount >= 2 && trimmedResponse.length < 80) {
+      return { isValid: false, reason: "Response appears to be random keyboard input", penaltyScore: 80 };
+    }
+
+    // Check for mostly consonant-only words (gibberish detection)
+    const words = trimmedResponse.split(/\s+/).filter(w => w.length > 2);
+    if (words.length > 3) { // Only check if there are enough words to analyze
+      const gibberishWords = words.filter(word => {
+        const vowels = (word.match(/[aeiou]/gi) || []).length;
+        const ratio = vowels / word.length;
+        return ratio < 0.08 && word.length > 5; // Very strict: almost no vowels in longer words
+      });
+      
+      // Only flag if majority of words are gibberish
+      if (gibberishWords.length / words.length > 0.6) {
+        return { isValid: false, reason: "Response contains mostly unreadable content", penaltyScore: 85 };
+      }
+    }
+
+    // Check for repeated word patterns (e.g., "test test test test")
+    const wordCounts: { [key: string]: number } = {};
+    words.forEach(word => {
+      wordCounts[word] = (wordCounts[word] || 0) + 1;
+    });
+    const mostRepeatedWord = Math.max(...Object.values(wordCounts), 0);
+    // Only flag if more than 60% of words are the same word
+    if (mostRepeatedWord > words.length * 0.6 && words.length > 4) {
+      return { isValid: false, reason: "Response contains excessive word repetition", penaltyScore: 75 };
+    }
+
+    // Check for meaningful English words - only for longer responses
+    const commonWords = ['the', 'a', 'an', 'is', 'are', 'was', 'were', 'i', 'we', 'they', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'can', 'may', 'might', 'must', 'my', 'your', 'our', 'their', 'this', 'that', 'these', 'those', 'it', 'in', 'on', 'at', 'to', 'for', 'with', 'by', 'from', 'about', 'into', 'through', 'during', 'before', 'after', 'and', 'or', 'but', 'if', 'because', 'as', 'so', 'than', 'when', 'where', 'what', 'how', 'why', 'who', 'which', 'experience', 'work', 'project', 'team', 'problem', 'solution', 'skill', 'develop', 'manage', 'create', 'build', 'learn', 'use', 'help', 'make', 'think', 'believe', 'know', 'understand', 'yes', 'no', 'not', 'like', 'also', 'just', 'been', 'being', 'more', 'most', 'some', 'any', 'other', 'one', 'two', 'new', 'first', 'last', 'long', 'great', 'good', 'time', 'way', 'day', 'made', 'after', 'back', 'only', 'well', 'then', 'now', 'look', 'come', 'over', 'such', 'take', 'into'];
+    
+    const foundCommonWords = words.filter(word => commonWords.includes(word));
+    // Only check coherence for longer responses (8+ words) and require only 10% common words
+    if (words.length > 8 && foundCommonWords.length / words.length < 0.10) {
+      return { isValid: false, reason: "Response lacks coherent English content", penaltyScore: 75 };
+    }
+
+    // Check for single character spam with spaces
+    const singleCharSpam = /^([a-z]\s+){6,}$/i;
+    if (singleCharSpam.test(trimmedResponse)) {
+      return { isValid: false, reason: "Response is just random characters", penaltyScore: 90 };
+    }
+
+    // Response appears to be valid
+    return { isValid: true, reason: "Response appears valid", penaltyScore: 0 };
   }
 
   // ===============================

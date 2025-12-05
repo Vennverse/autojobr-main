@@ -94,7 +94,7 @@ export default function VirtualInterviewFeedback() {
         description: "You can now retake the interview.",
       });
       setShowRetakePayment(false);
-      setTimeout(() => setLocation('/virtual-interview/start'), 1500);
+      setTimeout(() => setLocation('/virtual-interview-start'), 1500);
     } catch (error: any) {
       toast({
         title: "Payment Verification Failed",
@@ -119,7 +119,7 @@ export default function VirtualInterviewFeedback() {
         description: "Your retake is now available. Starting new interview...",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/virtual-interview/feedback', sessionId] });
-      setTimeout(() => setLocation('/virtual-interview/start'), 1500);
+      setTimeout(() => setLocation('/virtual-interview-start'), 1500);
     },
     onError: (error: any) => {
       toast({
@@ -143,7 +143,7 @@ export default function VirtualInterviewFeedback() {
         description: "Your retake is now available. Starting new interview...",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/virtual-interview/feedback', sessionId] });
-      setTimeout(() => setLocation('/virtual-interview/start'), 1500);
+      setTimeout(() => setLocation('/virtual-interview-start'), 1500);
     },
     onError: (error: any) => {
       toast({
@@ -192,7 +192,7 @@ export default function VirtualInterviewFeedback() {
           <CardContent className="p-6 text-center">
             <AlertCircle className="w-12 h-12 mx-auto mb-4 text-yellow-500" />
             <p className="mb-4">Invalid session. Please start a new interview.</p>
-            <Button onClick={() => setLocation('/virtual-interview/start')} className="w-full" data-testid="start-new-interview">
+            <Button onClick={() => setLocation('/virtual-interview-start')} className="w-full" data-testid="start-new-interview">
               Start New Interview
             </Button>
           </CardContent>
@@ -228,7 +228,7 @@ export default function VirtualInterviewFeedback() {
               <Button onClick={() => setLocation('/dashboard')} className="w-full" data-testid="return-dashboard">
                 Return to Dashboard
               </Button>
-              <Button variant="outline" onClick={() => setLocation('/virtual-interview/start')} className="w-full">
+              <Button variant="outline" onClick={() => setLocation('/virtual-interview-start')} className="w-full">
                 Start New Interview
               </Button>
             </div>
@@ -776,7 +776,7 @@ export default function VirtualInterviewFeedback() {
                 <Button 
                   variant="outline" 
                   className="w-full border-2"
-                  onClick={() => setLocation('/virtual-interview/start')}
+                  onClick={() => setLocation('/virtual-interview-start')}
                   data-testid="take-another-interview"
                 >
                   Take Another Interview

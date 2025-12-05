@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, MessageCircle, Clock, User, Bot } from 'lucide-react';
+import { Loader2, MessageCircle, Clock, User, Bot, AlertTriangle, Sparkles, Target, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
@@ -39,8 +39,28 @@ export default function VirtualInterview() {
   const [submitting, setSubmitting] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
+  
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const sessionId = params?.sessionId;
+  
+  // Auto-scroll to latest message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Character count and quality indicators
+  const characterCount = currentResponse.length;
+  const minRecommendedChars = 100;
+  const goodChars = 200;
+  const getQualityIndicator = () => {
+    if (characterCount === 0) return { color: 'text-gray-400', message: 'Start typing your response' };
+    if (characterCount < minRecommendedChars) return { color: 'text-orange-500', message: 'Add more detail for a better response' };
+    if (characterCount < goodChars) return { color: 'text-yellow-500', message: 'Good start! Add more specifics' };
+    return { color: 'text-green-500', message: 'Great detail level!' };
+  };
+  
+  const qualityIndicator = getQualityIndicator();
   const [isRedirecting, setIsRedirecting] = useState(!sessionId || sessionId === 'new');
 
   // Check session validity and redirect if needed
@@ -326,15 +346,16 @@ export default function VirtualInterview() {
               
               <CardContent className="flex-1 flex flex-col">
                 {/* Messages */}
-                <div className="flex-1 space-y-4 overflow-y-auto mb-4 max-h-80">
+                <div className="flex-1 space-y-4 overflow-y-auto mb-4 max-h-80 scroll-smooth">
                   {messages.map((message, index) => (
                     <div
                       key={index}
                       className={`flex items-start space-x-3 ${
                         message.sender === 'candidate' ? 'flex-row-reverse space-x-reverse' : ''
                       }`}
+                      data-testid={`message-${message.sender}-${index}`}
                     >
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                         message.sender === 'interviewer' 
                           ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300'
                           : 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300'
@@ -358,6 +379,7 @@ export default function VirtualInterview() {
                       </div>
                     </div>
                   ))}
+                  <div ref={messagesEndRef} />
                 </div>
 
                 {/* Response Input */}
@@ -369,16 +391,43 @@ export default function VirtualInterview() {
                     <Textarea
                       value={currentResponse}
                       onChange={(e) => setCurrentResponse(e.target.value)}
-                      placeholder="Type your response to the interview question..."
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          if (currentResponse.trim() && !submitting) {
+                            submitResponse();
+                          }
+                        }
+                      }}
+                      placeholder="Type your response to the interview question... (Press Shift+Enter for new line)"
                       className="min-h-[120px] resize-none"
                       disabled={submitting}
+                      data-testid="textarea-response"
                     />
+                    <div className="flex justify-between items-center mt-1">
+                      <p className="text-xs text-gray-500">Press Enter to submit, Shift+Enter for a new line</p>
+                      <div className={`flex items-center gap-2 text-xs ${qualityIndicator.color}`}>
+                        <Sparkles className="w-3 h-3" />
+                        <span>{characterCount} characters - {qualityIndicator.message}</span>
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="flex justify-between items-center">
-                    <p className="text-sm text-gray-500">
-                      Take your time to provide a thoughtful response
-                    </p>
+                    <div className="flex items-center gap-2">
+                      {characterCount < minRecommendedChars && currentResponse.length > 0 && (
+                        <div className="flex items-center gap-1 text-orange-500 text-xs">
+                          <AlertTriangle className="w-3 h-3" />
+                          <span>Short responses may receive lower scores</span>
+                        </div>
+                      )}
+                      {characterCount >= goodChars && (
+                        <div className="flex items-center gap-1 text-green-500 text-xs">
+                          <CheckCircle className="w-3 h-3" />
+                          <span>Detailed response</span>
+                        </div>
+                      )}
+                    </div>
                     <Button
                       onClick={submitResponse}
                       disabled={!currentResponse.trim() || submitting}
@@ -427,17 +476,45 @@ export default function VirtualInterview() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">
               <CardHeader>
-                <CardTitle className="text-lg">Tips</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Target className="w-5 h-5 text-blue-600" />
+                  Success Tips
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="text-sm space-y-2 text-gray-600 dark:text-gray-400">
-                  <li>• Take your time to think before responding</li>
-                  <li>• Provide specific examples when possible</li>
-                  <li>• Explain your thought process clearly</li>
-                  <li>• Ask clarifying questions if needed</li>
+                <ul className="text-sm space-y-3 text-gray-700 dark:text-gray-300">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Use the <strong>STAR method</strong>: Situation, Task, Action, Result</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Give <strong>specific examples</strong> from your experience</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Aim for <strong>200+ characters</strong> for detailed responses</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Explain your <strong>thought process</strong> clearly</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span><strong>Quantify results</strong> when possible (%, $, time saved)</span>
+                  </li>
                 </ul>
+                
+                <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-xs text-yellow-700 dark:text-yellow-300">
+                      <strong>Avoid:</strong> Vague answers, one-liners, and off-topic responses. They will negatively impact your score.
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
