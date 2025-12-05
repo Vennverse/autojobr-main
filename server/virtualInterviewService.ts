@@ -54,7 +54,7 @@ interface InterviewSession {
 }
 
 export class VirtualInterviewService {
-  
+
   private personalities: Record<string, InterviewerPersonality> = {
     friendly: {
       greeting: "Hi! I'm excited to chat with you today. I'm here to help you practice and improve your interview skills in a relaxed, supportive environment.",
@@ -111,7 +111,7 @@ export class VirtualInterviewService {
   ): Promise<string> {
     const personalityConfig = this.personalities[personality] || this.personalities.professional;
     const context = company ? ` for a ${role} position at ${company}` : ` for a ${role} position`;
-    
+
     return `${personalityConfig.greeting}\n\nToday we'll be conducting a practice interview${context}. I'll ask you questions to help you practice and improve your interview skills. Feel free to answer naturally, and I'll provide feedback to help you grow.\n\nShall we begin?`;
   }
 
@@ -126,49 +126,49 @@ export class VirtualInterviewService {
     previousQuestions?: string[]
   ): Promise<InterviewQuestion> {
     const prompt = this.buildQuestionPrompt(interviewType, difficulty, role, questionNumber, previousResponses, userContext, jobDescription, previousQuestions);
-    
+
     const hasJobDescription = jobDescription && jobDescription.trim().length > 20;
     console.log(`🤖 Generating AI question #${questionNumber} for ${role} (${interviewType}, ${difficulty})...`);
     if (hasJobDescription) {
       console.log(`📋 Using job description for question generation (${jobDescription.substring(0, 50)}...)`);
     }
-    
+
     // Check if AI service is available
     const aiStatus = apiKeyRotationService.getStatus();
     console.log(`🔍 AI Service Status - Groq: ${aiStatus.groq.availableKeys}/${aiStatus.groq.totalKeys}, OpenRouter: ${aiStatus.openrouter.availableKeys}/${aiStatus.openrouter.totalKeys}`);
-    
+
     if (aiStatus.groq.availableKeys === 0 && aiStatus.openrouter.availableKeys === 0) {
       console.error('❌ No AI API keys available! Using fallback questions.');
       return this.getFallbackQuestion(interviewType, difficulty, role);
     }
-    
+
     // Try up to 3 attempts to get a unique question
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         const systemPrompt = attempt === 1 
           ? "You are an expert interviewer. Generate a single, specific interview question with metadata. Questions MUST be directly relevant to the job description if provided and MUST BE DIFFERENT from previously asked questions. Respond with valid JSON only, no extra text."
           : "Generate a UNIQUE interview question relevant to the job. Return ONLY this JSON format, nothing else: {\"category\": \"technical\", \"question\": \"your question here\", \"difficulty\": \"medium\", \"expectedKeywords\": [], \"followUpPrompts\": []}";
-        
+
         // Include previous questions context
         const previousQuestionsContext = previousQuestions && previousQuestions.length > 0 
           ? `\n\nPREVIOUSLY ASKED QUESTIONS (DO NOT REPEAT THESE):\n${previousQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n')}\n\nGENERATE A COMPLETELY DIFFERENT QUESTION.`
           : '';
-        
+
         // For retry attempts, still include job context in simplified form
         const retryPrompt = hasJobDescription 
           ? `Generate a ${difficulty} ${interviewType} interview question for a ${role} position. Question #${questionNumber}. 
-             
+
              JOB CONTEXT: ${jobDescription.substring(0, 500)}
              ${previousQuestionsContext}
-             
+
              IMPORTANT: Ask about skills, technologies, or scenarios from this job description. Do NOT ask generic coding questions. MUST BE DIFFERENT from previous questions.
              Return only valid JSON.`
           : `Generate a ${difficulty} ${interviewType} interview question for a ${role} position. Question #${questionNumber}. ${previousQuestionsContext} Return only valid JSON.`;
-        
+
         console.log(`🔄 AI Question Generation - Attempt ${attempt}/3`);
         console.log(`📋 Role: ${role}, Type: ${interviewType}, Difficulty: ${difficulty}, Question #${questionNumber}`);
         console.log(`🤖 Calling aiService.createChatCompletion with ${attempt === 1 ? 'full' : 'simplified'} prompt...`);
-        
+
         const response = await aiService.createChatCompletion([
           {
             role: "system",
@@ -233,7 +233,7 @@ export class VirtualInterviewService {
         }
       }
     }
-    
+
     // All attempts failed - use fallback
     console.error('❌ ========================================');
     console.error('❌ ALL 3 AI ATTEMPTS FAILED!');
@@ -253,7 +253,7 @@ export class VirtualInterviewService {
   ): Promise<MessageAnalysis> {
     // First, validate response quality (detect gibberish, spam, etc.)
     const responseValidation = this.validateResponseQuality(userResponse);
-    
+
     if (!responseValidation.isValid) {
       console.log(`⚠️ Invalid response detected: ${responseValidation.reason}`);
       // Return low scores for gibberish/invalid responses
@@ -286,9 +286,9 @@ export class VirtualInterviewService {
       indicators: [],
       reasoning: 'AI detection skipped for performance'
     };
-    
+
     // Use centralized AI service for analysis with CORRECTNESS validation
-    
+
     const prompt = `
 Analyze this interview response for CORRECTNESS and QUALITY. Be STRICT.
 
@@ -413,7 +413,7 @@ Return JSON only: {"responseQuality": 1-10, "technicalAccuracy": 0-100, "clarity
     personality: string
   ): Promise<string> {
     const personalityConfig = this.personalities[personality] || this.personalities.professional;
-    
+
     const prompt = `
 As an interviewer with a ${personalityConfig.style} style, generate a follow-up response to:
 
@@ -471,15 +471,15 @@ Keep it conversational and under 100 words.`;
     const candidateResponsesRaw = messages
       .filter(m => m.sender === 'candidate')
       .map(m => m.content);
-    
+
     const candidateResponses = candidateResponsesRaw.join('\n\n');
     const questionsAnswered = candidateResponsesRaw.length;
-    
+
     // Validate all responses for gibberish/spam
     let invalidResponseCount = 0;
     let totalPenalty = 0;
     const validationResults: string[] = [];
-    
+
     for (const response of candidateResponsesRaw) {
       const validation = this.validateResponseQuality(response);
       if (!validation.isValid) {
@@ -488,13 +488,13 @@ Keep it conversational and under 100 words.`;
         validationResults.push(validation.reason);
       }
     }
-    
+
     // If most responses are invalid, return poor feedback immediately
     if (questionsAnswered > 0 && invalidResponseCount / questionsAnswered > 0.5) {
       console.log(`⚠️ Interview feedback: ${invalidResponseCount}/${questionsAnswered} responses flagged as invalid`);
       const avgPenalty = totalPenalty / invalidResponseCount;
       const score = Math.max(10, Math.round(100 - avgPenalty));
-      
+
       return {
         performanceSummary: "Your responses did not demonstrate adequate preparation or effort. Many answers appeared to be incomplete, off-topic, or lacked meaningful content. We recommend practicing with thoughtful, detailed responses to improve your interview performance.",
         keyStrengths: ["Completed the interview session", "Showed up on time", "Attempted all questions"],
@@ -528,7 +528,7 @@ Keep it conversational and under 100 words.`;
         ]
       };
     }
-    
+
     const prompt = `Analyze this interview session and provide HONEST feedback as JSON only:
 
 Role: ${interviewData.role}
@@ -561,7 +561,7 @@ Be constructive but honest - don't give false praise.`;
 
     try {
       console.log('Generating AI feedback for interview:', interviewData.id);
-      
+
       const response = await aiService.createChatCompletion([
         {
           role: "system",
@@ -589,7 +589,7 @@ Be constructive but honest - don't give false praise.`;
         console.error('Content that failed to parse:', cleanedContent);
         return this.getFallbackFeedback();
       }
-      
+
       // Validate required fields
       if (!feedback.performanceSummary || !feedback.keyStrengths || !feedback.overallScore) {
         console.error('Invalid feedback structure from GROQ');
@@ -633,21 +633,14 @@ Be constructive but honest - don't give false praise.`;
         questionFocus = 'Ask about practical application and problem-solving relevant to job responsibilities';
         break;
       case 3:
-        questionFocus = 'Focus on advanced concepts, system design, or specific skills mentioned in the job';
+        questionFocus = 'Dive deeper into technical expertise and past project experience';
         break;
       case 4:
-        questionFocus = 'Ask about experience with technologies/methodologies from the job requirements';
-        break;
-      case 5:
-        questionFocus = 'Conclude with challenging situational questions based on job challenges';
+        questionFocus = 'Challenge with advanced concepts or complex scenarios';
         break;
       default:
-        questionFocus = 'Ask a comprehensive question building on previous answers and job requirements';
+        questionFocus = 'Test comprehensive understanding and ability to handle edge cases';
     }
-
-    // Detect if role is technical
-    const technicalRoles = ['developer', 'engineer', 'programmer', 'software', 'full stack', 'frontend', 'backend', 'devops', 'data scientist', 'ml engineer', 'data engineer', 'architect'];
-    const isTechnical = technicalRoles.some(tech => role.toLowerCase().includes(tech));
 
     // Build job-specific context
     const hasJobDescription = jobDescription && jobDescription.trim().length > 20;
@@ -698,7 +691,7 @@ ${hasJobDescription ? `
 - Generate ONLY ONE unique question completely different from previous ones
 - Question should be specific to ${interviewType} interviews  
 - Follow ${questionFocus} for this question number
-${isTechnical && !hasJobDescription ? `
+${['developer', 'engineer', 'programmer', 'software', 'full stack', 'frontend', 'backend', 'devops', 'data scientist', 'ml engineer', 'data engineer', 'architect'].some(tech => role.toLowerCase().includes(tech)) && !hasJobDescription ? `
 - FOR TECHNICAL ROLES: You can ask CODING QUESTIONS! 
   * Ask to write code for algorithms (sorting, searching, dynamic programming)
   * Ask to solve data structure problems (arrays, linked lists, trees, graphs)
@@ -732,11 +725,11 @@ Return valid JSON only:
     if (!content || typeof content !== 'string') {
       throw new Error('Invalid content provided for JSON cleaning');
     }
-    
+
     // Remove markdown code blocks and clean the response
     let cleaned = content.replace(/```json\s*|\s*```/g, '').trim();
     cleaned = cleaned.replace(/```\s*|\s*```/g, '').trim();
-    
+
     // Try to extract JSON object using regex (more tolerant)
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -745,18 +738,18 @@ Return valid JSON only:
       // Fallback: Remove any text before the first { or after the last }
       const firstBrace = cleaned.indexOf('{');
       const lastBrace = cleaned.lastIndexOf('}');
-      
+
       if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
         cleaned = cleaned.substring(firstBrace, lastBrace + 1);
       }
     }
-    
+
     // Validate that we have valid JSON structure
     if (!cleaned.startsWith('{') || !cleaned.endsWith('}')) {
       console.error('Raw AI content that failed to parse:', content.substring(0, 200));
       throw new Error('Response does not contain valid JSON structure');
     }
-    
+
     return cleaned;
   }
 
@@ -777,7 +770,7 @@ Return valid JSON only:
     // Expanded fallback questions pool with more variety - randomly select
     const timestamp = Date.now();
     const randomSeed = Math.floor(timestamp / 1000); // Changes every second
-    
+
     const fallbackQuestions = {
       technical: {
         easy: [
@@ -860,7 +853,7 @@ Return valid JSON only:
     // Get the question pool for this type and difficulty
     const typeQuestions = fallbackQuestions[interviewType as keyof typeof fallbackQuestions] || fallbackQuestions.technical;
     const difficultyQuestions = typeQuestions[difficulty as keyof typeof typeQuestions] || typeQuestions.medium;
-    
+
     // Randomly select a question from the pool
     const randomIndex = Math.floor(Math.random() * difficultyQuestions.length);
     const questionText = difficultyQuestions[randomIndex];
@@ -904,7 +897,7 @@ Return valid JSON only:
   // This function aims to detect truly invalid responses while being lenient with legitimate short answers
   private validateResponseQuality(response: string): { isValid: boolean; reason: string; penaltyScore: number } {
     const trimmedResponse = response.trim().toLowerCase();
-    
+
     // Extremely short responses (less than 10 chars) are always flagged
     if (trimmedResponse.length < 10) {
       return { isValid: false, reason: "Response is extremely short", penaltyScore: 95 };
@@ -915,7 +908,7 @@ Return valid JSON only:
       const words = trimmedResponse.split(/\s+/).filter(w => w.length > 1);
       const basicWords = ['yes', 'no', 'i', 'we', 'they', 'it', 'is', 'are', 'was', 'can', 'do', 'have', 'think', 'agree', 'believe', 'know', 'sure', 'okay', 'good', 'thanks', 'sorry', 'not', 'don\'t', 'would', 'could'];
       const hasBasicWord = words.some(w => basicWords.includes(w));
-      
+
       if (!hasBasicWord && words.length < 3) {
         return { isValid: false, reason: "Response is too short to evaluate", penaltyScore: 85 };
       }
@@ -947,7 +940,7 @@ Return valid JSON only:
         const ratio = vowels / word.length;
         return ratio < 0.08 && word.length > 5; // Very strict: almost no vowels in longer words
       });
-      
+
       // Only flag if majority of words are gibberish
       if (gibberishWords.length / words.length > 0.6) {
         return { isValid: false, reason: "Response contains mostly unreadable content", penaltyScore: 85 };
@@ -967,7 +960,7 @@ Return valid JSON only:
 
     // Check for meaningful English words - only for longer responses
     const commonWords = ['the', 'a', 'an', 'is', 'are', 'was', 'were', 'i', 'we', 'they', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'can', 'may', 'might', 'must', 'my', 'your', 'our', 'their', 'this', 'that', 'these', 'those', 'it', 'in', 'on', 'at', 'to', 'for', 'with', 'by', 'from', 'about', 'into', 'through', 'during', 'before', 'after', 'and', 'or', 'but', 'if', 'because', 'as', 'so', 'than', 'when', 'where', 'what', 'how', 'why', 'who', 'which', 'experience', 'work', 'project', 'team', 'problem', 'solution', 'skill', 'develop', 'manage', 'create', 'build', 'learn', 'use', 'help', 'make', 'think', 'believe', 'know', 'understand', 'yes', 'no', 'not', 'like', 'also', 'just', 'been', 'being', 'more', 'most', 'some', 'any', 'other', 'one', 'two', 'new', 'first', 'last', 'long', 'great', 'good', 'time', 'way', 'day', 'made', 'after', 'back', 'only', 'well', 'then', 'now', 'look', 'come', 'over', 'such', 'take', 'into'];
-    
+
     const foundCommonWords = words.filter(word => commonWords.includes(word));
     // Only check coherence for longer responses (8+ words) and require only 10% common words
     if (words.length > 8 && foundCommonWords.length / words.length < 0.10) {
@@ -987,10 +980,10 @@ Return valid JSON only:
   // ===============================
   // INDUSTRY-LEADING ANTI-CHEATING METHODS
   // ===============================
-  
+
   async initializeInterviewSession(sessionId: string, userId: string): Promise<InterviewSession> {
     console.log(`🔒 Initializing secure virtual interview session: ${sessionId}`);
-    
+
     const session: InterviewSession = {
       sessionId,
       userId,
@@ -999,7 +992,7 @@ Return valid JSON only:
       riskScore: 0,
       cameraMonitoring: false
     };
-    
+
     try {
       // Initialize comprehensive proctoring services
       await proctorService.initializeSession(sessionId, userId, {
@@ -1008,32 +1001,32 @@ Return valid JSON only:
         enableScreenRecording: true,
         enableActivityTracking: true
       });
-      
+
       await cameraProctorService.initializeSession(sessionId, {
         faceDetection: true,
         eyeTracking: true,
         environmentMonitoring: true,
         multiplePersonDetection: true
       });
-      
+
       session.cameraMonitoring = true;
       console.log(`✅ Virtual interview security initialized for session ${sessionId}`);
     } catch (error) {
       console.error('Error initializing interview security:', error);
       // Continue with reduced security features
     }
-    
+
     return session;
   }
-  
+
   async processDeviceFingerprint(sessionId: string, deviceData: any): Promise<any> {
     try {
       console.log(`🔍 Processing device fingerprint for virtual interview ${sessionId}`);
-      
+
       const fingerprint = await proctorService.generateDeviceFingerprint(deviceData);
       const environmentValidation = await proctorService.validateEnvironment(deviceData);
       const browserSecurity = await proctorService.analyzeBrowserSecurity(deviceData);
-      
+
       const securityReport = {
         fingerprint,
         environmentValidation,
@@ -1041,9 +1034,9 @@ Return valid JSON only:
         riskLevel: this.assessEnvironmentRisk(environmentValidation, browserSecurity),
         recommendations: this.generateSecurityRecommendations(environmentValidation, browserSecurity)
       };
-      
+
       console.log(`📊 Device security analysis completed - Risk: ${securityReport.riskLevel}`);
-      
+
       return securityReport;
     } catch (error) {
       console.error('Error processing device fingerprint:', error);
@@ -1055,11 +1048,11 @@ Return valid JSON only:
       };
     }
   }
-  
+
   async processViolation(sessionId: string, violation: any): Promise<void> {
     try {
       console.log(`🚨 Virtual interview violation detected: ${violation.type} in session ${sessionId}`);
-      
+
       // Record violation with comprehensive context
       await proctorService.recordViolation({
         ...violation,
@@ -1071,21 +1064,21 @@ Return valid JSON only:
           questionType: violation.questionType || 'unknown'
         }
       });
-      
+
       // If critical violation, trigger immediate response
       if (violation.severity === 'critical') {
         await this.handleCriticalViolation(sessionId, violation);
       }
-      
+
     } catch (error) {
       console.error('Error recording interview violation:', error);
     }
   }
-  
+
   async analyzeVideoFrame(sessionId: string, frameData: any): Promise<any> {
     try {
       const analysis = await cameraProctorService.analyzeVideoFrame(sessionId, frameData);
-      
+
       // Enhanced analysis specific to interview context
       const interviewSpecificAnalysis = {
         ...analysis,
@@ -1093,7 +1086,7 @@ Return valid JSON only:
         engagementLevel: this.assessEngagementLevel(analysis),
         interviewReadiness: this.assessInterviewReadiness(analysis)
       };
-      
+
       // Auto-detect concerning patterns
       if (analysis.facesCount > 1) {
         await this.processViolation(sessionId, {
@@ -1102,7 +1095,7 @@ Return valid JSON only:
           data: { facesCount: analysis.facesCount }
         });
       }
-      
+
       if (analysis.facesCount === 0) {
         await this.processViolation(sessionId, {
           type: 'candidate_not_visible',
@@ -1110,14 +1103,14 @@ Return valid JSON only:
           data: { timestamp: Date.now() }
         });
       }
-      
+
       return interviewSpecificAnalysis;
     } catch (error) {
       console.error('Error analyzing video frame:', error);
       return { facesCount: 1, confidence: 0.5, suspiciousActivity: [] };
     }
   }
-  
+
   async enhancedAnalyzeResponse(
     question: string,
     userResponse: string,
@@ -1127,11 +1120,11 @@ Return valid JSON only:
     behavioralData?: any
   ): Promise<MessageAnalysis> {
     console.log(`🔬 Enhanced response analysis for virtual interview session: ${sessionData?.sessionId}`);
-    
+
     try {
       // 1. Enhanced AI Detection with behavioral context
       const aiDetection = await aiDetectionService.detectAIUsage(userResponse, question, behavioralData);
-      
+
       // 2. Comprehensive Behavioral Analysis
       let behavioralAnalysis = null;
       if (behavioralData) {
@@ -1142,22 +1135,22 @@ Return valid JSON only:
           context: 'virtual_interview'
         });
       }
-      
+
       // 3. Response Pattern Analysis
       const responsePatterns = this.analyzeResponsePatterns(userResponse, behavioralData);
-      
+
       // 4. Interview-specific Analysis
       const interviewAnalysis = this.analyzeInterviewSpecificPatterns(userResponse, questionCategory, behavioralData);
-      
+
       // 5. Calculate comprehensive risk score
       const riskScore = this.calculateInterviewRiskScore(aiDetection, behavioralAnalysis, responsePatterns, interviewAnalysis);
-      
+
       // 6. Get base analysis (use existing method)
       const baseAnalysis = await this.analyzeResponse(question, userResponse, expectedKeywords, questionCategory);
-      
+
       // 7. Apply enhanced penalties and adjustments
       const finalScore = this.applyEnhancedPenalties(baseAnalysis.finalScore || baseAnalysis.responseQuality * 10, riskScore, aiDetection);
-      
+
       return {
         ...baseAnalysis,
         behavioralAnalysis,
@@ -1170,24 +1163,24 @@ Return valid JSON only:
         finalScore,
         partialResultsOnly: riskScore > 50 || aiDetection.isAIGenerated
       };
-      
+
     } catch (error) {
       console.error('Error in enhanced response analysis:', error);
       // Fallback to standard analysis
       return await this.analyzeResponse(question, userResponse, expectedKeywords, questionCategory);
     }
   }
-  
+
   async generateInterviewSummary(sessionId: string): Promise<any> {
     try {
       console.log(`📊 Generating comprehensive interview security summary for session: ${sessionId}`);
-      
+
       const proctoringSummary = await proctorService.generateProctoringSummary(sessionId);
       const cameraSummary = await cameraProctorService.generateSummary(sessionId);
-      
+
       const overallRisk = this.calculateOverallRisk(proctoringSummary, cameraSummary);
       const recommendation = this.generateSecurityRecommendation(overallRisk);
-      
+
       const comprehensiveSummary = {
         sessionId,
         timestamp: new Date().toISOString(),
@@ -1201,10 +1194,10 @@ Return valid JSON only:
         reliability: this.assessResultReliability(overallRisk),
         nextSteps: this.generateNextSteps(overallRisk)
       };
-      
+
       console.log(`✅ Interview security summary generated - Overall Risk: ${overallRisk}`);
       return comprehensiveSummary;
-      
+
     } catch (error) {
       console.error('Error generating interview summary:', error);
       return {
@@ -1215,9 +1208,9 @@ Return valid JSON only:
       };
     }
   }
-  
+
   // Private helper methods for enhanced security
-  
+
   private analyzeResponsePatterns(response: string, behavioralData?: any): any {
     const patterns = {
       unusualSpeed: false,
@@ -1225,7 +1218,7 @@ Return valid JSON only:
       humanLikeVariation: true,
       suspiciousPatterns: [] as string[]
     };
-    
+
     if (behavioralData?.responseTime) {
       const wordsPerMinute = (response.split(' ').length / (behavioralData.responseTime / 60000));
       if (wordsPerMinute > 120 || wordsPerMinute < 10) {
@@ -1233,7 +1226,7 @@ Return valid JSON only:
         patterns.suspiciousPatterns.push(`Unusual typing speed: ${Math.round(wordsPerMinute)} WPM`);
       }
     }
-    
+
     if (behavioralData?.keystrokes && behavioralData.keystrokes.length > 10) {
       const keystrokeVariation = this.calculateKeystrokeVariation(behavioralData.keystrokes);
       patterns.humanLikeVariation = keystrokeVariation > 0.3;
@@ -1241,10 +1234,10 @@ Return valid JSON only:
         patterns.suspiciousPatterns.push('Robotic typing patterns detected');
       }
     }
-    
+
     return patterns;
   }
-  
+
   private analyzeInterviewSpecificPatterns(response: string, questionCategory: string, behavioralData?: any): any {
     const analysis = {
       responseLength: response.length,
@@ -1252,12 +1245,12 @@ Return valid JSON only:
       interviewAppropriate: true,
       concerns: [] as string[]
     };
-    
+
     // Check for overly perfect responses
     if (analysis.complexity > 0.8 && response.length > 500) {
       analysis.concerns.push('Unusually complex and lengthy response');
     }
-    
+
     // Check for copy-paste indicators in behavioral data
     if (behavioralData?.violations) {
       const copyPasteAttempts = behavioralData.violations.filter((v: any) => v.type === 'copy_attempt').length;
@@ -1265,65 +1258,65 @@ Return valid JSON only:
         analysis.concerns.push(`${copyPasteAttempts} copy/paste attempts detected`);
       }
     }
-    
+
     return analysis;
   }
-  
+
   private calculateResponseComplexity(response: string): number {
     const words = response.split(' ').filter(word => word.length > 0);
     const avgWordLength = words.reduce((sum, word) => sum + word.length, 0) / words.length;
     const sentences = response.split(/[.!?]+/).filter(s => s.trim().length > 0);
     const avgSentenceLength = words.length / sentences.length;
-    
+
     // Normalize complexity score (0-1)
     const complexity = (avgWordLength / 10 + avgSentenceLength / 30) / 2;
     return Math.min(1, Math.max(0, complexity));
   }
-  
+
   private calculateKeystrokeVariation(keystrokes: any[]): number {
     if (keystrokes.length < 10) return 0.5;
-    
+
     const intervals = keystrokes.slice(1).map((keystroke, i) => 
       keystroke.timestamp - keystrokes[i].timestamp
     ).filter(interval => interval > 0 && interval < 2000); // Filter reasonable intervals
-    
+
     if (intervals.length === 0) return 0;
-    
+
     const mean = intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length;
     const variance = intervals.reduce((sum, interval) => sum + Math.pow(interval - mean, 2), 0) / intervals.length;
     const standardDeviation = Math.sqrt(variance);
-    
+
     return mean > 0 ? standardDeviation / mean : 0;
   }
-  
+
   private calculateInterviewRiskScore(aiDetection: any, behavioralAnalysis: any, responsePatterns: any, interviewAnalysis: any): number {
     let riskScore = 0;
-    
+
     // AI detection risk (40% weight)
     if (aiDetection.isAIGenerated) {
       riskScore += aiDetection.confidence * 0.4;
     }
-    
+
     // Behavioral analysis risk (30% weight)
     if (behavioralAnalysis && behavioralAnalysis.overallAuthenticity < 50) {
       riskScore += (100 - behavioralAnalysis.overallAuthenticity) * 0.3;
     }
-    
+
     // Response patterns risk (20% weight)
     if (responsePatterns.unusualSpeed) riskScore += 20;
     if (!responsePatterns.humanLikeVariation) riskScore += 15;
-    
+
     // Interview-specific concerns (10% weight)
     if (interviewAnalysis.concerns.length > 0) {
       riskScore += interviewAnalysis.concerns.length * 5;
     }
-    
+
     return Math.min(100, riskScore);
   }
-  
+
   private applyEnhancedPenalties(baseScore: number, riskScore: number, aiDetection: any): number {
     let finalScore = baseScore;
-    
+
     // Progressive penalty system
     if (riskScore >= 80) {
       finalScore *= 0.1; // 90% penalty for critical risk
@@ -1334,63 +1327,63 @@ Return valid JSON only:
     } else if (riskScore >= 20) {
       finalScore *= 0.8; // 20% penalty for low risk
     }
-    
+
     return Math.round(Math.max(0, finalScore));
   }
-  
+
   private determineRiskLevel(riskScore: number): 'low' | 'medium' | 'high' | 'critical' {
     if (riskScore >= 80) return 'critical';
     if (riskScore >= 60) return 'high';
     if (riskScore >= 40) return 'medium';
     return 'low';
   }
-  
+
   private assessEnvironmentRisk(environmentValidation: any, browserSecurity: any): 'low' | 'medium' | 'high' | 'critical' {
     if (environmentValidation.isVirtualMachine || environmentValidation.isRemoteDesktop) {
       return 'critical';
     }
-    
+
     if (browserSecurity.hasDevToolsOpen || environmentValidation.suspiciousProcesses?.length > 0) {
       return 'high';
     }
-    
+
     if (environmentValidation.screenSharingDetected || !browserSecurity.isSecureBrowser) {
       return 'medium';
     }
-    
+
     return 'low';
   }
-  
+
   private generateSecurityRecommendations(environmentValidation: any, browserSecurity: any): string[] {
     const recommendations = [];
-    
+
     if (environmentValidation.isVirtualMachine) {
       recommendations.push('Virtual machine detected - interview should be conducted on physical hardware');
     }
-    
+
     if (browserSecurity.hasDevToolsOpen) {
       recommendations.push('Developer tools detected - close all development tools');
     }
-    
+
     if (environmentValidation.screenSharingDetected) {
       recommendations.push('Screen sharing detected - disable all screen sharing applications');
     }
-    
+
     return recommendations;
   }
-  
+
   private calculateOverallRisk(proctoringSummary: any, cameraSummary: any): 'low' | 'medium' | 'high' | 'critical' {
     const risks = [
       proctoringSummary?.riskLevel || 'low', 
       cameraSummary?.riskLevel || 'low'
     ];
-    
+
     if (risks.includes('critical')) return 'critical';
     if (risks.includes('high')) return 'high';
     if (risks.includes('medium')) return 'medium';
     return 'low';
   }
-  
+
   private generateSecurityRecommendation(riskLevel: string): string {
     const recommendations = {
       low: 'Interview conducted with excellent security compliance. Results are highly reliable.',
@@ -1398,10 +1391,10 @@ Return valid JSON only:
       high: 'Significant security violations detected. Manual review strongly recommended before making decisions.',
       critical: 'Critical security breaches detected. Interview results should be considered unreliable and require immediate review.'
     };
-    
+
     return recommendations[riskLevel as keyof typeof recommendations] || recommendations.medium;
   }
-  
+
   private assessResultReliability(riskLevel: string): 'high' | 'medium' | 'low' | 'unreliable' {
     const reliability = {
       low: 'high',
@@ -1409,10 +1402,10 @@ Return valid JSON only:
       high: 'low',
       critical: 'unreliable'
     };
-    
+
     return reliability[riskLevel as keyof typeof reliability] as any || 'medium';
   }
-  
+
   private generateNextSteps(riskLevel: string): string[] {
     const nextSteps = {
       low: ['Proceed with interview evaluation', 'Results can be used confidently'],
@@ -1420,10 +1413,10 @@ Return valid JSON only:
       high: ['Conduct manual security review', 'Consider rescheduling under better conditions', 'Request additional verification'],
       critical: ['Do not use results for decision making', 'Investigate security violations', 'Require supervised re-interview']
     };
-    
+
     return nextSteps[riskLevel as keyof typeof nextSteps] || nextSteps.medium;
   }
-  
+
   private calculateViolationSeverity(violationType: string, data: any): 'low' | 'medium' | 'high' | 'critical' {
     const severityMap: {[key: string]: string} = {
       'tab_switch': 'medium',
@@ -1436,40 +1429,40 @@ Return valid JSON only:
       'rapid_responses': 'high',
       'ai_assistance': 'critical'
     };
-    
+
     return (severityMap[violationType] || 'medium') as any;
   }
-  
+
   private calculateAttentionScore(analysis: any): number {
     if (!analysis.primaryFace) return 0;
-    
+
     return analysis.primaryFace.isLookingAtScreen ? 
       analysis.primaryFace.attentionLevel * 100 : 20;
   }
-  
+
   private assessEngagementLevel(analysis: any): 'low' | 'medium' | 'high' {
     const attentionScore = this.calculateAttentionScore(analysis);
-    
+
     if (attentionScore > 70) return 'high';
     if (attentionScore > 40) return 'medium';
     return 'low';
   }
-  
+
   private assessInterviewReadiness(analysis: any): 'ready' | 'needs_adjustment' | 'not_ready' {
     if (analysis.facesCount !== 1) return 'not_ready';
     if (!analysis.primaryFace?.isLookingAtScreen) return 'needs_adjustment';
     return 'ready';
   }
-  
+
   private async handleCriticalViolation(sessionId: string, violation: any): Promise<void> {
     console.log(`🚨 CRITICAL VIOLATION in virtual interview ${sessionId}: ${violation.type}`);
-    
+
     // In a production system, this would:
     // 1. Send immediate alerts to supervisors
     // 2. Potentially pause the interview
     // 3. Log detailed violation data
     // 4. Trigger additional security measures
-    
+
     // For now, we log the critical violation
     try {
       await proctorService.recordViolation({
@@ -1481,6 +1474,13 @@ Return valid JSON only:
     } catch (error) {
       console.error('Error handling critical violation:', error);
     }
+  }
+
+  private assessExperienceLevel(responses: string[]): string {
+    const avgLength = responses.reduce((sum, r) => sum + r.length, 0) / responses.length;
+    if (avgLength > 200) return 'detailed and experienced';
+    if (avgLength > 100) return 'moderate';
+    return 'entry-level or concise';
   }
 }
 
