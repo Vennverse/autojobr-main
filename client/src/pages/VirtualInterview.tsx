@@ -41,12 +41,16 @@ export default function VirtualInterview() {
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const previousMessageCountRef = useRef<number>(0);
 
   const sessionId = params?.sessionId;
   
-  // Auto-scroll to latest message
+  // Auto-scroll to bottom only when NEW messages arrive (not on typing)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length > previousMessageCountRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      previousMessageCountRef.current = messages.length;
+    }
   }, [messages]);
 
   // Character count and quality indicators
