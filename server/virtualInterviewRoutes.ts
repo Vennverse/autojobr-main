@@ -416,6 +416,9 @@ router.get('/:sessionId/question', isAuthenticated, async (req: any, res) => {
         .filter(m => m.sender === 'interviewer' && m.content && m.content.length > 50)
         .map(m => m.content);
 
+      // Generate UNIQUE context for this specific question
+      const uniqueQuestionContext = `USER_${userId}_Q${questionNumber}_SESSION_${sessionId}_TIME_${Date.now()}_RAND_${Math.random()}_VAR_${Math.floor(Math.random() * 999999)}`;
+
       // Generate next question with job description for job-specific questions
       console.log(`📋 Generating question #${questionNumber} with job description: ${currentInterview.jobDescription ? 'YES' : 'NO'}`);
       const questionData = await virtualInterviewService.generateQuestion(
@@ -424,7 +427,7 @@ router.get('/:sessionId/question', isAuthenticated, async (req: any, res) => {
         currentInterview.role || 'software_engineer',
         questionNumber,
         previousResponses,
-        undefined,
+        uniqueQuestionContext, // Pass unique context
         currentInterview.jobDescription || undefined,
         previousQuestions // Pass previous questions to avoid duplicates
       );
@@ -818,8 +821,8 @@ router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
       console.log(`📝 Only greeting found for session ${sessionId}, generating first question...`);
       console.log(`📋 Job Description available: ${currentInterview.jobDescription ? 'YES (' + currentInterview.jobDescription.substring(0, 50) + '...)' : 'NO'}`);
 
-      // Generate first question with unique context AND job description
-      const uniqueContext = `Session: ${sessionId}, Time: ${Date.now()}, User: ${userId}, Random: ${Math.random()}`;
+      // Generate first question with HIGHLY UNIQUE context to ensure variation
+      const uniqueContext = `UNIQUE_USER_${userId}_SESSION_${sessionId}_TIME_${Date.now()}_RANDOM_${Math.random()}_TIMESTAMP_${new Date().toISOString()}_VARIATION_${Math.floor(Math.random() * 1000000)}`;
       const firstQuestion = await virtualInterviewService.generateQuestion(
         currentInterview.interviewType || 'technical',
         currentInterview.difficulty || 'medium',

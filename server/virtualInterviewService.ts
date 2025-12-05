@@ -581,11 +581,20 @@ Be constructive but honest - don't give false praise.`;
     jobDescription?: string,
     previousQuestions?: string[]
   ): string {
-    // Define question progression strategy
+    // Define question progression strategy with VARIATION
     let questionFocus = '';
+    const randomVariation = Math.floor(Math.random() * 5); // 0-4 for variation
     switch (questionNumber) {
       case 1:
-        questionFocus = 'Start with foundational concepts or basic experience related to the job';
+        // Add variation to first question to prevent duplicates
+        const firstQuestionVariations = [
+          'Start with a specific scenario-based question about real-world experience',
+          'Begin with a technical problem-solving question with a unique twist',
+          'Ask about a recent project or challenge they faced',
+          'Start with an open-ended question about their approach to a common problem',
+          'Begin with a situational question about teamwork or leadership'
+        ];
+        questionFocus = firstQuestionVariations[randomVariation] || 'Start with foundational concepts or basic experience related to the job';
         break;
       case 2:
         questionFocus = 'Ask about practical application and problem-solving relevant to job responsibilities';
@@ -626,8 +635,14 @@ Generate interview question ${questionNumber} for a ${role} candidate.
 Interview Type: ${interviewType}
 Difficulty: ${difficulty}
 Question Focus: ${questionFocus}
-${userContext ? `Candidate Background: ${userContext}` : ''}
+${userContext ? `UNIQUE SESSION CONTEXT (ensure variation): ${userContext}` : ''}
 ${jobContext}
+
+IMPORTANT FOR UNIQUENESS: 
+- This is a unique interview session: ${userContext || 'session_' + Date.now()}
+- Generate a DIFFERENT question than you would typically start with
+- Vary the angle, scenario, or focus area to ensure uniqueness
+- Use the session context to create variety
 
 Previous responses (avoid repetition): ${previousResponses.slice(-2).join('; ')}
 
