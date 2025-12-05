@@ -121,9 +121,10 @@ export class VirtualInterviewService {
     role: string,
     questionNumber: number,
     previousResponses: string[],
-    userContext?: string
+    userContext?: string,
+    jobDescription?: string
   ): Promise<InterviewQuestion> {
-    const prompt = this.buildQuestionPrompt(interviewType, difficulty, role, questionNumber, previousResponses, userContext);
+    const prompt = this.buildQuestionPrompt(interviewType, difficulty, role, questionNumber, previousResponses, userContext, jobDescription);
     
     console.log(`🤖 Generating AI question #${questionNumber} for ${role} (${interviewType}, ${difficulty})...`);
     
@@ -555,33 +556,48 @@ Be constructive but honest - don't give false praise.`;
     role: string,
     questionNumber: number,
     previousResponses: string[],
-    userContext?: string
+    userContext?: string,
+    jobDescription?: string
   ): string {
     // Define question progression strategy
     let questionFocus = '';
     switch (questionNumber) {
       case 1:
-        questionFocus = 'Start with foundational concepts or basic experience';
+        questionFocus = 'Start with foundational concepts or basic experience related to the job';
         break;
       case 2:
-        questionFocus = 'Ask about practical application and problem-solving';
+        questionFocus = 'Ask about practical application and problem-solving relevant to job responsibilities';
         break;
       case 3:
-        questionFocus = 'Focus on advanced concepts or system design';
+        questionFocus = 'Focus on advanced concepts, system design, or specific skills mentioned in the job';
         break;
       case 4:
-        questionFocus = 'Ask about experience and real-world scenarios';
+        questionFocus = 'Ask about experience with technologies/methodologies from the job requirements';
         break;
       case 5:
-        questionFocus = 'Conclude with challenging or situational questions';
+        questionFocus = 'Conclude with challenging situational questions based on job challenges';
         break;
       default:
-        questionFocus = 'Ask a comprehensive question building on previous answers';
+        questionFocus = 'Ask a comprehensive question building on previous answers and job requirements';
     }
 
     // Detect if role is technical
-    const technicalRoles = ['developer', 'engineer', 'programmer', 'software', 'full stack', 'frontend', 'backend', 'devops', 'data scientist', 'ml engineer'];
+    const technicalRoles = ['developer', 'engineer', 'programmer', 'software', 'full stack', 'frontend', 'backend', 'devops', 'data scientist', 'ml engineer', 'data engineer', 'architect'];
     const isTechnical = technicalRoles.some(tech => role.toLowerCase().includes(tech));
+
+    // Build job-specific context
+    const hasJobDescription = jobDescription && jobDescription.trim().length > 20;
+    const jobContext = hasJobDescription ? `
+JOB DESCRIPTION (USE THIS TO GENERATE RELEVANT QUESTIONS):
+${jobDescription}
+
+IMPORTANT: Generate questions that are DIRECTLY RELEVANT to:
+- The specific responsibilities mentioned in the job description
+- The required skills and qualifications listed
+- The technologies, tools, and methodologies mentioned
+- The industry or domain context of the role
+- Real scenarios the candidate would face in this specific job
+` : '';
 
     return `
 Generate interview question ${questionNumber} for a ${role} candidate.
@@ -589,14 +605,23 @@ Interview Type: ${interviewType}
 Difficulty: ${difficulty}
 Question Focus: ${questionFocus}
 ${userContext ? `Candidate Background: ${userContext}` : ''}
+${jobContext}
 
 Previous responses (avoid repetition): ${previousResponses.slice(-2).join('; ')}
 
 CRITICAL REQUIREMENTS:
+${hasJobDescription ? `
+*** PRIORITY: Generate questions based on the JOB DESCRIPTION above ***
+- Ask about specific technologies, frameworks, or tools mentioned in the job posting
+- Include questions about the actual responsibilities and challenges of this role
+- Reference specific skills or qualifications required
+- Ask situational questions based on what the job entails
+- Do NOT ask generic coding questions - ask questions relevant to THIS specific job
+` : ''}
 - Generate ONLY ONE unique question completely different from previous ones
 - Question should be specific to ${interviewType} interviews  
 - Follow ${questionFocus} for this question number
-${isTechnical ? `
+${isTechnical && !hasJobDescription ? `
 - FOR TECHNICAL ROLES: You can ask CODING QUESTIONS! 
   * Ask to write code for algorithms (sorting, searching, dynamic programming)
   * Ask to solve data structure problems (arrays, linked lists, trees, graphs)
@@ -606,14 +631,20 @@ ${isTechnical ? `
   * Ask about time/space complexity analysis
   * Examples: "Write a function to reverse a linked list", "Implement a binary search", "Design a cache system"
 ` : ''}
+${hasJobDescription ? `
+- Mix technical and behavioral questions based on the job requirements
+- For behavioral questions: Ask about situations they'd face in THIS specific role
+- For technical questions: Focus on the technologies and skills from the job posting
+` : `
 - For technical: Include specific technologies, algorithms, or coding concepts
 - For behavioral: Use STAR method scenarios
+`}
 - Make it realistic and engaging
 
 Return valid JSON only:
 {
   "category": "${interviewType}",
-  "question": "detailed specific question text here",
+  "question": "detailed specific question text here - MUST BE RELEVANT TO THE JOB DESCRIPTION IF PROVIDED",
   "difficulty": "${difficulty}",
   "expectedKeywords": ["keyword1", "keyword2", "keyword3", "keyword4"],
   "followUpPrompts": ["follow-up1", "follow-up2"]
