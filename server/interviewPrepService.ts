@@ -1155,6 +1155,9 @@ export class InterviewPrepService {
     // Red flags to avoid
     const redFlags = this.getRedFlags(jobTitle, experienceLevel, companyType);
 
+    // Get location-specific insights
+    const locationInsights = this.getLocationInsights(location);
+
     return {
       roleInsights,
       questions,

@@ -243,6 +243,13 @@ export const userProfiles = pgTable("user_profiles", {
   totalInterviewsUsed: integer("total_interviews_used").default(0),
   totalRankingTestsUsed: integer("total_ranking_tests_used").default(0),
 
+  // Recruiter-specific fields
+  recruiterPosition: varchar("recruiter_position"), // e.g., "Talent Acquisition Manager", "HR Director"
+  recruiterDepartment: varchar("recruiter_department"), // e.g., "Engineering", "Marketing", "Sales"
+  hasHiredBefore: boolean("has_hired_before").default(false), // Have they hired before?
+  yearsHiringExperience: integer("years_hiring_experience"), // Years of hiring experience
+  recruiterOnboardingCompleted: boolean("recruiter_onboarding_completed").default(false),
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

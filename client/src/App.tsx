@@ -21,6 +21,7 @@ import JobSeekerPremium from "@/pages/JobSeekerPremium";
 import RecruiterPremium from "@/pages/RecruiterPremium";
 import RecruiterSubscription from "@/pages/recruiter-subscription";
 import Onboarding from "@/pages/onboarding";
+import RecruiterOnboarding from "@/pages/recruiter-onboarding";
 import Landing from "@/pages/landing";
 import UserTypeSelection from "@/pages/user-type-selection";
 import UnifiedRecruiterDashboard from "@/pages/unified-recruiter-dashboard";
@@ -421,62 +422,73 @@ function Router() {
           {/* Handle different user types */}
           {user?.currentRole === 'recruiter' || user?.userType === 'recruiter' || user?.userType === 'admin' || (user?.currentRole === 'autojobr' && user?.userType === 'recruiter') ? (
             <>
-              <Route path="/" component={UnifiedRecruiterDashboard} />
-              <Route path="/recruiter-dashboard" component={UnifiedRecruiterDashboard} />
-              <Route path="/recruiter/dashboard" component={UnifiedRecruiterDashboard} />
-              <Route path="/enhanced-dashboard" component={UnifiedRecruiterDashboard} />
-              <Route path="/advanced-dashboard" component={UnifiedRecruiterDashboard} />
-              <Route path="/dashboard" component={UnifiedRecruiterDashboard} />
-              <Route path="/recruiter/post-job" component={PostJob} />
-              <Route path="/recruiter/edit-job/:id" component={EditJob} />
-              <Route path="/premium-targeting" component={PremiumTargetingPage} />
-              <Route path="/premium-targeting-payment" component={PremiumTargetingPayment} />
-              <Route path="/job-promotion-payment/:id" component={JobPromotionPayment} />
-              <Route path="/recruiter/premium" component={RecruiterPremium} />
-              <Route path="/test-assignments" component={TestAssignments} />
-              <Route path="/recruiter/test-management" component={TestManagement} />
-              <Route path="/recruiter/test-assignments" component={TestAssignments} />
-              <Route path="/recruiter/scorecards" component={CollaborativeHiringScorecard} />
-              <Route path="/recruiter/question-builder/:templateId">
-                {(params) => <QuestionBuilder templateId={parseInt(params.templateId)} />}
-              </Route>
-              <Route path="/recruiter/question-bank" component={QuestionBank} />
-              <Route path="/admin/question-bank" component={QuestionBankAdmin} />
-              <Route path="/admin/jobspy" component={AdminJobSpyPage} />
-              <Route path="/recruiter/interview-assignments" component={InterviewAssignments} />
-              <Route path="/recruiter/applicants" component={ApplicantsPage} />
-              <Route path="/recruiter/pipeline" component={PipelineManagement} />
-              <Route path="/recruiter/enhanced-pipeline" component={EnhancedPipelineManagement} />
-              <Route path="/recruiter/ats" component={UnifiedAtsPlatform} />
-              <Route path="/unified-ats" component={UnifiedAtsPlatform} />
-              <Route path="/ats-platform" component={UnifiedAtsPlatform} />
-              <Route path="/collaborative-hiring-scorecard" component={CollaborativeHiringScorecard} />
-              <Route path="/recruiter/scorecards" component={CollaborativeHiringScorecard} />
-              <Route path="/recruiter/tasks" component={TaskManagement} />
-              <Route path="/recruiter/background-checks" component={BackgroundCheckIntegration} />
-              <Route path="/recruiter/settings" component={RecruiterSettings} />
-              <Route path="/recruiter/billing" component={RecruiterBilling} />
-              <Route path="/recruiter/profile" component={RecruiterProfile} />
-              <Route path="/admin/sso-configuration" component={SSOConfiguration} />
-              {/* Admin user management temporarily disabled */}
-              <Route path="/jobs/:id" component={ViewJob} />
-              <Route path="/profile" component={Profile} />
-              <Route path="/subscription" component={RecruiterSubscription} />
-              <Route path="/recruiter-premium" component={RecruiterPremium} />
-              <Route path="/premium-features" component={PremiumFeatures} />
-              <Route path="/premium-ai-tools" component={PremiumAITools} />
-              <Route path="/linkedin-optimizer" component={LinkedInOptimizer} />
-              <Route path="/integration-marketplace" component={IntegrationMarketplace} />
-              <Route path="/integration-settings" component={IntegrationSettings} />
-              <Route path="/chat" component={SimpleChatPage} />
-              <Route path="/messaging" component={SimpleChatPage} />
-              <Route path="/bidder-dashboard" component={BidderDashboard} />
-              <Route path="/bidder-profile" component={BidderProfile} />
-              <Route path="/job-seeker-view" component={Dashboard} />
-              {/* Add the enhanced-crm route here */}
-              <Route path="/enhanced-crm" component={EnhancedCrmDashboard} />
-              {/* Add the advanced-analytics-dashboard route here */}
-              <Route path="/advanced-analytics-dashboard" component={AdvancedAnalyticsDashboard} />
+              {/* Check if recruiter has completed onboarding */}
+              {user?.recruiterOnboardingCompleted === false && user?.userType !== 'admin' ? (
+                <>
+                  <Route path="/recruiter-onboarding" component={RecruiterOnboarding} />
+                  <Route path="/" component={RecruiterOnboarding} />
+                </>
+              ) : (
+                <>
+                  <Route path="/" component={UnifiedRecruiterDashboard} />
+                  <Route path="/recruiter-dashboard" component={UnifiedRecruiterDashboard} />
+                  <Route path="/recruiter/dashboard" component={UnifiedRecruiterDashboard} />
+                  <Route path="/enhanced-dashboard" component={UnifiedRecruiterDashboard} />
+                  <Route path="/advanced-dashboard" component={UnifiedRecruiterDashboard} />
+                  <Route path="/dashboard" component={UnifiedRecruiterDashboard} />
+                  <Route path="/recruiter-onboarding" component={RecruiterOnboarding} />
+                  <Route path="/recruiter/post-job" component={PostJob} />
+                  <Route path="/recruiter/edit-job/:id" component={EditJob} />
+                  <Route path="/premium-targeting" component={PremiumTargetingPage} />
+                  <Route path="/premium-targeting-payment" component={PremiumTargetingPayment} />
+                  <Route path="/job-promotion-payment/:id" component={JobPromotionPayment} />
+                  <Route path="/recruiter/premium" component={RecruiterPremium} />
+                  <Route path="/test-assignments" component={TestAssignments} />
+                  <Route path="/recruiter/test-management" component={TestManagement} />
+                  <Route path="/recruiter/test-assignments" component={TestAssignments} />
+                  <Route path="/recruiter/scorecards" component={CollaborativeHiringScorecard} />
+                  <Route path="/recruiter/question-builder/:templateId">
+                    {(params) => <QuestionBuilder templateId={parseInt(params.templateId)} />}
+                  </Route>
+                  <Route path="/recruiter/question-bank" component={QuestionBank} />
+                  <Route path="/admin/question-bank" component={QuestionBankAdmin} />
+                  <Route path="/admin/jobspy" component={AdminJobSpyPage} />
+                  <Route path="/recruiter/interview-assignments" component={InterviewAssignments} />
+                  <Route path="/recruiter/applicants" component={ApplicantsPage} />
+                  <Route path="/recruiter/pipeline" component={PipelineManagement} />
+                  <Route path="/recruiter/enhanced-pipeline" component={EnhancedPipelineManagement} />
+                  <Route path="/recruiter/ats" component={UnifiedAtsPlatform} />
+                  <Route path="/unified-ats" component={UnifiedAtsPlatform} />
+                  <Route path="/ats-platform" component={UnifiedAtsPlatform} />
+                  <Route path="/collaborative-hiring-scorecard" component={CollaborativeHiringScorecard} />
+                  <Route path="/recruiter/scorecards" component={CollaborativeHiringScorecard} />
+                  <Route path="/recruiter/tasks" component={TaskManagement} />
+                  <Route path="/recruiter/background-checks" component={BackgroundCheckIntegration} />
+                  <Route path="/recruiter/settings" component={RecruiterSettings} />
+                  <Route path="/recruiter/billing" component={RecruiterBilling} />
+                  <Route path="/recruiter/profile" component={RecruiterProfile} />
+                  <Route path="/admin/sso-configuration" component={SSOConfiguration} />
+                  {/* Admin user management temporarily disabled */}
+                  <Route path="/jobs/:id" component={ViewJob} />
+                  <Route path="/profile" component={Profile} />
+                  <Route path="/subscription" component={RecruiterSubscription} />
+                  <Route path="/recruiter-premium" component={RecruiterPremium} />
+                  <Route path="/premium-features" component={PremiumFeatures} />
+                  <Route path="/premium-ai-tools" component={PremiumAITools} />
+                  <Route path="/linkedin-optimizer" component={LinkedInOptimizer} />
+                  <Route path="/integration-marketplace" component={IntegrationMarketplace} />
+                  <Route path="/integration-settings" component={IntegrationSettings} />
+                  <Route path="/chat" component={SimpleChatPage} />
+                  <Route path="/messaging" component={SimpleChatPage} />
+                  <Route path="/bidder-dashboard" component={BidderDashboard} />
+                  <Route path="/bidder-profile" component={BidderProfile} />
+                  <Route path="/job-seeker-view" component={Dashboard} />
+                  {/* Add the enhanced-crm route here */}
+                  <Route path="/enhanced-crm" component={EnhancedCrmDashboard} />
+                  {/* Add the advanced-analytics-dashboard route here */}
+                  <Route path="/advanced-analytics-dashboard" component={AdvancedAnalyticsDashboard} />
+                </>
+              )}
             </>
           ) : user?.userType === 'job_seeker' ? (
             <>

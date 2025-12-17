@@ -572,7 +572,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subscriptionEndDate: user.subscriptionEndDate,
         aiModelTier: user.aiModelTier || 'premium',
         emailVerified: user.emailVerified,
-        onboardingCompleted: onboardingCompleted
+        onboardingCompleted: onboardingCompleted,
+        recruiterOnboardingCompleted: userProfile?.recruiterOnboardingCompleted ?? false
       };
 
       console.log(`👤 [USER_API] User ${userId} - planType: ${userResponse.planType}, status: ${userResponse.subscriptionStatus}`);
@@ -5680,12 +5681,27 @@ Generate ONLY the connection note text, nothing else.`
   // Get all networking events
   app.get('/api/networking/events', isAuthenticated, async (req: any, res) => {
     try {
-      const events = await db.query.networkingEvents.findMany({
-        orderBy: (events, { desc }) => [desc(events.eventDate)],
-        with: {
-          // We'll add relations after schema is deployed
-        }
-      });
+      // Use raw SQL to handle column name mismatch in database
+      // Map to camelCase field names expected by frontend
+      const result = await db.execute(sql`
+        SELECT 
+          id,
+          COALESCE("organizerId", creator_id) as "organizerId",
+          title,
+          description,
+          COALESCE("eventType", event_type) as "eventType",
+          COALESCE("eventDate", event_date) as "eventDate",
+          COALESCE(location, location_name) as location,
+          capacity,
+          COALESCE("registrationUrl", registration_url) as "registrationUrl",
+          status,
+          COALESCE("attendeesCount", attendees_count, 0) as "attendeesCount",
+          created_at as "createdAt",
+          updated_at as "updatedAt"
+        FROM networking_events 
+        ORDER BY COALESCE("eventDate", event_date) DESC
+      `);
+      const events = result.rows || [];
       
       res.json({
         success: true,
@@ -8439,6 +8455,7 @@ Generate ONLY the connection note text, nothing else.`
           currentRole: freshUser.currentRole,
           emailVerified: freshUser.emailVerified,
           onboardingCompleted: onboardingCompleted,
+          recruiterOnboardingCompleted: userProfile?.recruiterOnboardingCompleted ?? false,
           companyName: freshUser.companyName,
           planType: freshUser.planType || 'free',
           subscriptionStatus: freshUser.subscriptionStatus || 'free',
@@ -10998,6 +11015,54 @@ Respond directly without any JSON formatting.`;
     } catch (error) {
       console.error("Error completing onboarding:", error);
       res.status(500).json({ message: "Failed to complete onboarding" });
+    }
+  });
+
+  // Complete recruiter onboarding
+  app.post('/api/recruiter/complete-onboarding', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { recruiterPosition, recruiterDepartment, hasHiredBefore, yearsHiringExperience, companyName, companyWebsite } = req.body;
+
+      // Validate required fields
+      if (!recruiterPosition || typeof recruiterPosition !== 'string' || recruiterPosition.trim() === '') {
+        return res.status(400).json({ message: "Position is required" });
+      }
+      if (!recruiterDepartment || typeof recruiterDepartment !== 'string' || recruiterDepartment.trim() === '') {
+        return res.status(400).json({ message: "Department is required" });
+      }
+      if (!companyName || typeof companyName !== 'string' || companyName.trim() === '') {
+        return res.status(400).json({ message: "Company name is required" });
+      }
+
+      // Update user with company info
+      await db.update(schema.users)
+        .set({ 
+          companyName: companyName.trim(), 
+          companyWebsite: companyWebsite?.trim() || null 
+        })
+        .where(eq(schema.users.id, userId));
+
+      // Update user profile with recruiter-specific fields
+      await db.update(schema.userProfiles)
+        .set({
+          recruiterPosition: recruiterPosition.trim(),
+          recruiterDepartment: recruiterDepartment.trim(),
+          hasHiredBefore: hasHiredBefore === true,
+          yearsHiringExperience: typeof yearsHiringExperience === 'number' ? yearsHiringExperience : 0,
+          recruiterOnboardingCompleted: true,
+          onboardingCompleted: true,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.userProfiles.userId, userId));
+
+      // Invalidate user cache
+      invalidateUserCache(userId);
+
+      res.json({ message: "Recruiter onboarding completed successfully" });
+    } catch (error) {
+      console.error("Error completing recruiter onboarding:", error);
+      res.status(500).json({ message: "Failed to complete recruiter onboarding" });
     }
   });
 
