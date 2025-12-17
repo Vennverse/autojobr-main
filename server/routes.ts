@@ -543,6 +543,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'User not found' });
       }
 
+      // Get user profile to check onboarding status
+      const userProfile = await storage.getUserProfile(userId);
+      const onboardingCompleted = userProfile?.onboardingCompleted ?? false;
+
       // Update session with fresh data from database
       req.session.user = {
         ...req.session.user,
@@ -568,7 +572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subscriptionEndDate: user.subscriptionEndDate,
         aiModelTier: user.aiModelTier || 'premium',
         emailVerified: user.emailVerified,
-        onboardingCompleted: true
+        onboardingCompleted: onboardingCompleted
       };
 
       console.log(`👤 [USER_API] User ${userId} - planType: ${userResponse.planType}, status: ${userResponse.subscriptionStatus}`);
@@ -8421,6 +8425,10 @@ Generate ONLY the connection note text, nothing else.`
     try {
       const freshUser = await storage.getUser(req.user.id);
       if (freshUser) {
+        // Get user profile to check onboarding status
+        const userProfile = await storage.getUserProfile(req.user.id);
+        const onboardingCompleted = userProfile?.onboardingCompleted ?? false;
+        
         const userResponse = {
           id: freshUser.id,
           email: freshUser.email,
@@ -8430,7 +8438,7 @@ Generate ONLY the connection note text, nothing else.`
           userType: freshUser.userType,
           currentRole: freshUser.currentRole,
           emailVerified: freshUser.emailVerified,
-          onboardingCompleted: true, // Assume completed for existing users
+          onboardingCompleted: onboardingCompleted,
           companyName: freshUser.companyName,
           planType: freshUser.planType || 'free',
           subscriptionStatus: freshUser.subscriptionStatus || 'free',

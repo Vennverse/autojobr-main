@@ -552,46 +552,55 @@ function Router() {
           ) : (
             <>
               {/* Default routes for users without explicit type (treat as job seekers) */}
-              <Route path="/" component={EnhancedDashboard} />
-              <Route path="/dashboard" component={EnhancedDashboard} />
-              <Route path="/enhanced-dashboard" component={EnhancedDashboard} />
-              <Route path="/unified-crm-dashboard" component={UnifiedCrmDashboard} />
-              <Route path="/crm" component={EnhancedCrmDashboard} />
-              <Route path="/enhanced-crm" component={EnhancedCrmDashboard} />
-              <Route path="/onboarding" component={Onboarding} />
-              <Route path="/profile" component={Profile} />
-              <Route path="/applications" component={ApplicationsNew} />
-              <Route path="/applications-old" component={Applications} />
-              <Route path="/jobs" component={Jobs} />
-              <Route path="/jobs/:id" component={ViewJob} />
-              <Route path="/mock-interview" component={MockInterview} />
-              <Route path="/mock-interview/session/:sessionId" component={MockInterviewSession} />
-              <Route path="/mock-interview/:sessionId" component={MockInterviewSession} />
-              <Route path="/virtual-interview-start" component={VirtualInterviewStart} />
-              <Route path="/virtual-interview/start" component={VirtualInterviewStart} />
-              <Route path="/virtual-interview/new" component={VirtualInterviewStart} />
-              <Route path="/virtual-interview-complete/:sessionId" component={VirtualInterviewComplete} />
-              <Route path="/virtual-interview/:sessionId/feedback" component={VirtualInterviewFeedback} />
-              <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
-              <Route path="/chat-interview/:sessionId" component={ChatInterview} />
-              <Route path="/interview-link/:linkId" component={InterviewLink} />
-              <Route path="/subscription" component={Subscription} />
-              <Route path="/premium-features" component={PremiumFeatures} />
-              <Route path="/premium-ai-tools" component={PremiumAITools} />
-              <Route path="/career-ai-assistant" component={CareerAIAssistant} />
-              <Route path="/linkedin-optimizer" component={LinkedInOptimizer} />
-              <Route path="/cover-letter-generator" component={CoverLetterGenerator} />
-              <Route path="/referral-marketplace" component={ReferralMarketplace} />
-              <Route path="/become-referrer" component={BecomeReferrer} />
-              <Route path="/my-bookings" component={MyBookings} />
-              <Route path="/networking-hub" component={NetworkingHub} />
-              <Route path="/bidder-dashboard" component={BidderDashboard} />
-              <Route path="/bidder-profile" component={BidderProfile} />
-              <Route path="/chat" component={SimpleChatPage} />
-              <Route path="/messaging" component={SimpleChatPage} />
-              {/* AI Video Interview Practice Route */}
-              <Route path="/video-practice" component={VideoPractice} />
-              <Route path="/video-practice/feedback/:sessionId" component={VirtualInterviewFeedback} />
+              {user?.onboardingCompleted === false ? (
+                <>
+                  <Route path="/onboarding" component={Onboarding} />
+                  <Route path="/" component={Onboarding} />
+                </>
+              ) : (
+                <>
+                  <Route path="/" component={EnhancedDashboard} />
+                  <Route path="/dashboard" component={EnhancedDashboard} />
+                  <Route path="/enhanced-dashboard" component={EnhancedDashboard} />
+                  <Route path="/unified-crm-dashboard" component={UnifiedCrmDashboard} />
+                  <Route path="/crm" component={EnhancedCrmDashboard} />
+                  <Route path="/enhanced-crm" component={EnhancedCrmDashboard} />
+                  <Route path="/onboarding" component={Onboarding} />
+                  <Route path="/profile" component={Profile} />
+                  <Route path="/applications" component={ApplicationsNew} />
+                  <Route path="/applications-old" component={Applications} />
+                  <Route path="/jobs" component={Jobs} />
+                  <Route path="/jobs/:id" component={ViewJob} />
+                  <Route path="/mock-interview" component={MockInterview} />
+                  <Route path="/mock-interview/session/:sessionId" component={MockInterviewSession} />
+                  <Route path="/mock-interview/:sessionId" component={MockInterviewSession} />
+                  <Route path="/virtual-interview-start" component={VirtualInterviewStart} />
+                  <Route path="/virtual-interview/start" component={VirtualInterviewStart} />
+                  <Route path="/virtual-interview/new" component={VirtualInterviewStart} />
+                  <Route path="/virtual-interview-complete/:sessionId" component={VirtualInterviewComplete} />
+                  <Route path="/virtual-interview/:sessionId/feedback" component={VirtualInterviewFeedback} />
+                  <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
+                  <Route path="/chat-interview/:sessionId" component={ChatInterview} />
+                  <Route path="/interview-link/:linkId" component={InterviewLink} />
+                  <Route path="/subscription" component={Subscription} />
+                  <Route path="/premium-features" component={PremiumFeatures} />
+                  <Route path="/premium-ai-tools" component={PremiumAITools} />
+                  <Route path="/career-ai-assistant" component={CareerAIAssistant} />
+                  <Route path="/linkedin-optimizer" component={LinkedInOptimizer} />
+                  <Route path="/cover-letter-generator" component={CoverLetterGenerator} />
+                  <Route path="/referral-marketplace" component={ReferralMarketplace} />
+                  <Route path="/become-referrer" component={BecomeReferrer} />
+                  <Route path="/my-bookings" component={MyBookings} />
+                  <Route path="/networking-hub" component={NetworkingHub} />
+                  <Route path="/bidder-dashboard" component={BidderDashboard} />
+                  <Route path="/bidder-profile" component={BidderProfile} />
+                  <Route path="/chat" component={SimpleChatPage} />
+                  <Route path="/messaging" component={SimpleChatPage} />
+                  {/* AI Video Interview Practice Route */}
+                  <Route path="/video-practice" component={VideoPractice} />
+                  <Route path="/video-practice/feedback/:sessionId" component={VirtualInterviewFeedback} />
+                </>
+              )}
             </>
           )}
         </>
