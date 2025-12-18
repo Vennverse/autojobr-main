@@ -51,3 +51,4 @@ expertMode = true
 
 [userenv.shared]
 VITE_CLARITY_ID = "s8fk8vi4qj"
+DATABASE_URL = "postgresql://autojobr:autojobr123%24%24%401@172.179.233.227:5432/autojobr"
