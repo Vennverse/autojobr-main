@@ -1106,6 +1106,30 @@ export default function Onboarding() {
               />
             </div>
           </div>
+
+          <Separator className="my-6" />
+
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="w-4 h-4 text-yellow-500" />
+              <Label htmlFor="referralCode">Unlock 7-Day Premium Access (Optional)</Label>
+            </div>
+            <p className="text-sm text-gray-600 mb-3">
+              Have a referral code? Enter it below to unlock 7 days of premium features for free.
+            </p>
+            <Input
+              id="referralCode"
+              value={formData.referralCode || ""}
+              onChange={(e) => handleInputChange("referralCode", e.target.value.toUpperCase())}
+              placeholder="Enter referral code (e.g., PROMO7DAYS)"
+              data-testid="input-referral-code"
+            />
+            {formData.referralCode && (
+              <p className="text-xs text-gray-500 mt-2">
+                Code will be verified when you complete setup
+              </p>
+            )}
+          </div>
         </div>
       )
     }

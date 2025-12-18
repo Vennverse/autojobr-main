@@ -5079,6 +5079,50 @@ export type InsertPodActivity = z.infer<typeof insertPodActivitySchema>;
 export type MarketplaceMission = typeof marketplaceMissions.$inferSelect;
 export type InsertMarketplaceMission = z.infer<typeof insertMarketplaceMissionSchema>;
 
+// Referral Codes - For 7-day premium access
+export const referralCodes = pgTable("referral_codes", {
+  id: serial("id").primaryKey(),
+  code: varchar("code").unique().notNull(), // e.g., "PROMO7DAYS"
+  premiumDays: integer("premium_days").default(7), // Duration in days
+  maxUses: integer("max_uses"), // null for unlimited
+  currentUses: integer("current_uses").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at"), // null for no expiration
+}, (table) => [
+  index("idx_referral_codes_code").on(table.code),
+  index("idx_referral_codes_active").on(table.isActive),
+]);
+
+export const insertReferralCodeSchema = createInsertSchema(referralCodes).omit({
+  id: true,
+  currentUses: true,
+  createdAt: true,
+});
+
+export type ReferralCode = typeof referralCodes.$inferSelect;
+export type InsertReferralCode = z.infer<typeof insertReferralCodeSchema>;
+
+// Referral Code Usage - Track which users used which codes
+export const referralCodeUsages = pgTable("referral_code_usages", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  codeId: integer("code_id").references(() => referralCodes.id).notNull(),
+  appliedAt: timestamp("applied_at").defaultNow(),
+}, (table) => [
+  index("idx_usage_user").on(table.userId),
+  index("idx_usage_code").on(table.codeId),
+  unique("unique_user_code").on(table.userId, table.codeId),
+]);
+
+export const insertReferralCodeUsageSchema = createInsertSchema(referralCodeUsages).omit({
+  id: true,
+  appliedAt: true,
+});
+
+export type ReferralCodeUsage = typeof referralCodeUsages.$inferSelect;
+export type InsertReferralCodeUsage = z.infer<typeof insertReferralCodeUsageSchema>;
+
 // Career Coaching Chat - Space optimized (Q&A in one row, daily usage counted from createdAt)
 export const careerCoachingChats = pgTable("career_coaching_chats", {
   id: serial("id").primaryKey(),

@@ -8495,6 +8495,7 @@ Generate ONLY the connection note text, nothing else.`
   app.post('/api/profile', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      const referralCode = req.body.referralCode?.toUpperCase();
 
       const bodyData = { ...req.body, userId };
       if (bodyData.lastResumeAnalysis && typeof bodyData.lastResumeAnalysis === 'string') {
@@ -8503,6 +8504,71 @@ Generate ONLY the connection note text, nothing else.`
 
       const profileData = insertUserProfileSchema.parse(bodyData);
       const profile = await storage.upsertUserProfile(profileData);
+
+      // Handle referral code if provided
+      if (referralCode) {
+        try {
+          const code = await db.query.referralCodes.findFirst({
+            where: and(
+              eq(schema.referralCodes.code, referralCode),
+              eq(schema.referralCodes.isActive, true)
+            )
+          });
+
+          if (code && (!code.expiresAt || new Date(code.expiresAt) > new Date())) {
+            // Check if code has uses left
+            if (!code.maxUses || code.currentUses < code.maxUses) {
+              // Check if user has already used this code
+              const existingUsage = await db.query.referralCodeUsages.findFirst({
+                where: and(
+                  eq(schema.referralCodeUsages.userId, userId),
+                  eq(schema.referralCodeUsages.codeId, code.id)
+                )
+              });
+
+              if (!existingUsage) {
+                // Calculate premium end date
+                const now = new Date();
+                const premiumEndDate = new Date(now.getTime() + (code.premiumDays * 24 * 60 * 60 * 1000));
+
+                // Update user with premium trial
+                await db.update(schema.users)
+                  .set({
+                    planType: 'premium',
+                    subscriptionStatus: 'active',
+                    premiumTrialStartDate: now,
+                    premiumTrialEndDate: premiumEndDate,
+                    hasUsedPremiumTrial: true,
+                    subscriptionStartDate: now,
+                    subscriptionEndDate: premiumEndDate
+                  })
+                  .where(eq(schema.users.id, userId));
+
+                // Record code usage
+                await db.insert(schema.referralCodeUsages).values({
+                  userId,
+                  codeId: code.id
+                });
+
+                // Increment code usage count
+                await db.update(schema.referralCodes)
+                  .set({ currentUses: code.currentUses + 1 })
+                  .where(eq(schema.referralCodes.id, code.id));
+
+                invalidateUserCache(userId);
+                return res.json({ 
+                  ...profile, 
+                  premiumActivated: true,
+                  message: `✅ 7-day premium access activated! Enjoy ${code.premiumDays} days of premium features.`
+                });
+              }
+            }
+          }
+        } catch (codeError) {
+          console.error("Error validating referral code:", codeError);
+          // Continue without referral code if there's an error
+        }
+      }
 
       // Invalidate user-specific cache properly
       invalidateUserCache(userId);
