@@ -7,6 +7,7 @@ import { simpleWebSocketService } from "./simpleWebSocketService.js";
 import { aiService } from "./aiService.js";
 import { applyPerformanceOptimizations, createHighPerformanceRateLimiter } from "./performanceOptimizations.js";
 import { dailySyncService } from "./dailySyncService.js";
+import { subscriptionExpiryService } from "./subscriptionExpiryService.js";
 import seoRoutes from "./routes/seo.js";
 import communityRoutes from './communityRoutes';
 import { db } from './db';
@@ -177,6 +178,10 @@ app.use(seoRoutes);
   // Initialize daily sync service for automated internship updates
   // This will automatically sync internship data every 24 hours
   console.log("Daily Sync Service for internships initialized");
+
+  // Initialize subscription expiry service
+  // Handles premium downgrade and expiry warning emails
+  console.log("💳 Subscription Expiry Service started - monitors premium expiry and sends notifications");
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
