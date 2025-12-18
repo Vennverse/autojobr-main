@@ -21,27 +21,55 @@ export class SubscriptionExpiryService {
   }
 
   /**
-   * Start daily checks for subscription expiry
-   * Runs every hour to ensure timely notifications and downgrades
+   * Start daily checks for subscription expiry at 12 UTC
+   * Runs once per day at 12:00 UTC (noon)
    */
   private startExpiryChecks() {
     if (this.expiryCheckInterval) {
       clearInterval(this.expiryCheckInterval);
     }
 
-    // Run immediately on startup
-    this.performExpiryChecks().catch(err => 
-      console.error('❌ Error in initial expiry check:', err)
-    );
+    // Calculate time until next 12 UTC
+    const scheduleNextRun = () => {
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+      tomorrow.setUTCHours(12, 0, 0, 0);
 
-    // Set up hourly interval (3600000 ms = 1 hour)
-    this.expiryCheckInterval = setInterval(() => {
+      const timeUntilNext = tomorrow.getTime() - now.getTime();
+      
+      // If it's already past 12 UTC today, schedule for today at 12 UTC
+      if (timeUntilNext > 24 * 60 * 60 * 1000) {
+        const today = new Date(now);
+        today.setUTCHours(12, 0, 0, 0);
+        if (today.getTime() > now.getTime()) {
+          const runTime = today.toUTCString();
+          console.log(`⏰ Subscription expiry check scheduled for: ${runTime} (12:00 UTC)`);
+          return today.getTime() - now.getTime();
+        }
+      }
+
+      const runTime = tomorrow.toUTCString();
+      console.log(`⏰ Subscription expiry check scheduled for: ${runTime} (12:00 UTC)`);
+      return timeUntilNext;
+    };
+
+    // Schedule first run
+    const initialDelay = scheduleNextRun();
+    setTimeout(() => {
       this.performExpiryChecks().catch(err => 
         console.error('❌ Error in scheduled expiry check:', err)
       );
-    }, 60 * 60 * 1000); // Every hour
 
-    console.log('⏰ Subscription expiry check started - runs every hour');
+      // Set up daily interval (24 hours = 86400000 ms)
+      this.expiryCheckInterval = setInterval(() => {
+        this.performExpiryChecks().catch(err => 
+          console.error('❌ Error in scheduled expiry check:', err)
+        );
+      }, 24 * 60 * 60 * 1000); // Every 24 hours
+
+      console.log('⏰ Subscription expiry check started - runs daily at 12:00 UTC');
+    }, initialDelay);
   }
 
   /**
@@ -115,13 +143,15 @@ export class SubscriptionExpiryService {
   }
 
   /**
-   * Send warning emails to users expiring in exactly 1 day
+   * Send warning emails to users expiring in approximately 1 day (tomorrow)
+   * Runs once daily at 12 UTC, checks for users expiring in ~24 hours
    */
   private async sendExpiryWarningEmails(now: Date) {
     try {
+      // Calculate tomorrow at this time (24 hours from now)
       const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-      const tomorrowStart = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 0, 0, 0);
-      const tomorrowEnd = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 23, 59, 59);
+      const tomorrowStart = new Date(tomorrow.getTime() - 2 * 60 * 60 * 1000); // 2 hours buffer
+      const tomorrowEnd = new Date(tomorrow.getTime() + 2 * 60 * 60 * 1000); // 2 hours buffer
 
       const expiringTomorrow = await db.query.users.findMany({
         where: and(
@@ -140,7 +170,7 @@ export class SubscriptionExpiryService {
         return;
       }
 
-      console.log(`📧 Sending expiry warning emails to ${warningUsers.length} users...`);
+      console.log(`📧 Sending 1-day expiry warning emails to ${warningUsers.length} users...`);
 
       for (const user of warningUsers) {
         try {
@@ -159,31 +189,32 @@ export class SubscriptionExpiryService {
   }
 
   /**
-   * Send emails to users expiring today (hourly check)
+   * Send urgent emails to users expiring within the next few hours
+   * Runs once daily at 12 UTC, checks for users expiring soon
    */
   private async sendExpiryTodayEmails(now: Date) {
     try {
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+      // Check for users expiring in the next 12 hours from the daily run time
+      const soon = new Date(now.getTime() + 12 * 60 * 60 * 1000);
 
-      const expiringToday = await db.query.users.findMany({
+      const expiringUsers = await db.query.users.findMany({
         where: and(
           eq(schema.users.planType, 'premium'),
           eq(schema.users.subscriptionStatus, 'active')
         )
       });
 
-      const urgentUsers = expiringToday.filter(user => {
+      const urgentUsers = expiringUsers.filter(user => {
         if (!user.subscriptionEndDate) return false;
         const endDate = new Date(user.subscriptionEndDate);
-        return endDate >= today && endDate < tomorrow;
+        return endDate > now && endDate <= soon;
       });
 
       if (urgentUsers.length === 0) {
         return;
       }
 
-      console.log(`🚨 Sending urgent expiry emails to ${urgentUsers.length} users expiring TODAY...`);
+      console.log(`🚨 Sending urgent expiry emails to ${urgentUsers.length} users expiring within 12 hours...`);
 
       for (const user of urgentUsers) {
         try {
@@ -197,7 +228,7 @@ export class SubscriptionExpiryService {
         }
       }
     } catch (error) {
-      console.error('❌ Error sending today expiry emails:', error);
+      console.error('❌ Error sending urgent expiry emails:', error);
     }
   }
 
