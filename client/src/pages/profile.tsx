@@ -78,6 +78,9 @@ const profileSchema = z.object({
   disabilityStatus: z.string().optional(),
   backgroundCheckConsent: z.boolean().default(false),
   drugTestConsent: z.boolean().default(false),
+
+  // Referral Code
+  referralCode: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -152,6 +155,7 @@ export default function Profile() {
       disabilityStatus: "",
       backgroundCheckConsent: false,
       drugTestConsent: false,
+      referralCode: "",
     },
   });
 
@@ -196,6 +200,7 @@ export default function Profile() {
         disabilityStatus: profileData.disabilityStatus || "",
         backgroundCheckConsent: profileData.backgroundCheckConsent || false,
         drugTestConsent: profileData.drugTestConsent || false,
+        referralCode: profileData.referralCode || "",
       });
     }
   }, [profile, form]);
@@ -469,6 +474,10 @@ export default function Profile() {
                           <TabsTrigger value="legal" className="flex items-center gap-2">
                             <Shield className="w-4 h-4" />
                             Legal
+                          </TabsTrigger>
+                          <TabsTrigger value="referral" className="flex items-center gap-2">
+                            <Plus className="w-4 h-4" />
+                            Referral
                           </TabsTrigger>
                         </TabsList>
 
@@ -1206,6 +1215,44 @@ export default function Profile() {
                                 </FormItem>
                               )}
                             />
+                          </div>
+                        </TabsContent>
+
+                        {/* Referral Code Tab */}
+                        <TabsContent value="referral" className="space-y-6">
+                          <div className="text-sm text-muted-foreground mb-4">
+                            Enter a referral code to unlock premium benefits
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name="referralCode"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Referral Code</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Enter referral code (e.g., GREGORY)" 
+                                    {...field}
+                                    data-testid="input-referral-code"
+                                  />
+                                </FormControl>
+                                <div className="text-sm text-muted-foreground mt-2">
+                                  If you have a referral code, enter it here to claim your benefits
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="p-4 bg-muted rounded-lg border">
+                            <p className="text-sm font-medium mb-2">How Referral Codes Work:</p>
+                            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                              <li>Enter your referral code to unlock premium features</li>
+                              <li>Premium features include advanced job matching and priority support</li>
+                              <li>You can only use one referral code per account</li>
+                              <li>Codes may have expiration dates or limited uses</li>
+                            </ul>
                           </div>
                         </TabsContent>
                       </Tabs>
