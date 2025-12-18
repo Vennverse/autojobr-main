@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "bash", "python-3.11", "postgresql-16"]
+modules = ["nodejs-20", "web", "bash", "python-3.11"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
@@ -17,7 +17,7 @@ externalPort = 80
 
 [[ports]]
 localPort = 24678
-externalPort = 6800
+externalPort = 3000
 
 [workflows]
 runButton = "Project"
@@ -51,4 +51,3 @@ expertMode = true
 
 [userenv.shared]
 VITE_CLARITY_ID = "s8fk8vi4qj"
-DATABASE_URL = "postgresql://autojobr:autojobr123%24%24%401@172.179.233.227:5432/autojobr"

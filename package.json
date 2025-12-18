@@ -4,7 +4,7 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "dev": "tsx watch server/index.ts",
+    "dev": "npx tsx watch server/index.ts",
     "build": "npm run build:backend && npm run build:frontend",
     "build:backend": "esbuild server/index.ts --bundle --platform=node --target=es2022 --format=esm --packages=external --outfile=dist/index.js --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\"",
     "build:frontend": "vite build",
