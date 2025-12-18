@@ -8498,6 +8498,7 @@ Generate ONLY the connection note text, nothing else.`
       const referralCode = req.body.referralCode?.toUpperCase();
 
       const bodyData = { ...req.body, userId };
+      delete bodyData.referralCode; // Remove referralCode from profile data
       if (bodyData.lastResumeAnalysis && typeof bodyData.lastResumeAnalysis === 'string') {
         bodyData.lastResumeAnalysis = new Date(bodyData.lastResumeAnalysis);
       }
