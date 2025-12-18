@@ -43,6 +43,13 @@ interface Message {
   isPending?: boolean; // For optimistic updates
 }
 
+// Helper function to format user type for display
+const formatUserType = (userType: string) => {
+  if (userType === 'job_seeker') return 'Job Seeker';
+  if (userType === 'recruiter') return 'Recruiter';
+  return userType || 'User';
+};
+
 // Simple WebSocket hook for real-time messaging  
 const useWebSocket = (user: { id: string } | null | undefined) => {
   const [socket, setSocket] = useState<globalThis.WebSocket | null>(null);
@@ -551,7 +558,7 @@ export default function SimpleChatPage() {
                           {chatUser.companyName && (
                             <p className="text-xs text-gray-500">{chatUser.companyName}</p>
                           )}
-                          <p className="text-xs text-gray-400">{chatUser.userType}</p>
+                          <p className="text-xs text-gray-400">{formatUserType(chatUser.userType)}</p>
                         </div>
                       </div>
                     </div>
