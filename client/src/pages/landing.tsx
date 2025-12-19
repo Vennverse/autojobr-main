@@ -181,15 +181,25 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       
-      {/* SEO Hidden Content for Search Engines - Explains unique referral system */}
+      {/* SEO Hidden Content for Search Engines - Explains all key services */}
       <div className="sr-only">
-        <h2>Get Free Premium Job Search Access with Referral Codes</h2>
+        <h2>AutoJobr: Free Job Search Automation, AI Resume Optimization, and Career Coaching</h2>
         <p>
-          AutoJobr's unique referral code system gives you free premium features through shared referral links. 
-          Use code GREGORY to get 7 days of premium access with unlimited job applications, AI resume optimization, 
-          and career coaching. No subscription required - completely free premium access through our referral program. 
-          Join our referral network and get instant access to premium job search automation features.
+          AutoJobr is the leading job application automation platform offering free chrome extension for auto-apply on LinkedIn and Indeed, 
+          AI-powered resume optimization for ATS systems, AI interview prep with mock interviews, and career coaching. Use referral code GREGORY 
+          for 7 days free premium access. AutoJobr also features a unique recruiter bidding system connecting job seekers with top recruiters, 
+          plus AI-generated connection notes for LinkedIn networking. Apply to 1000+ jobs daily automatically across 500+ job boards.
         </p>
+        <h3>AutoJobr Services:</h3>
+        <ul>
+          <li>Job application automation chrome extension - auto apply on LinkedIn, Indeed, Glassdoor</li>
+          <li>AI resume optimizer - beat ATS systems with AI analysis</li>
+          <li>AI interview prep - mock interviews with real-time feedback</li>
+          <li>AI career coach - personalized job search guidance</li>
+          <li>Recruiter bidding marketplace - get discovered by top recruiters</li>
+          <li>Referral system - free premium with referral codes like GREGORY</li>
+          <li>AI connection notes - LinkedIn networking optimization</li>
+        </ul>
       </div>
       
       {/* Header */}

@@ -185,6 +185,50 @@ export default function ChromeExtension() {
             </CardContent>
           </Card>
 
+          {/* SEO Content: Chrome Extension Auto Apply Keywords */}
+          <div className="mb-16 bg-white dark:bg-gray-800 p-8 rounded-lg">
+            <h2 className="text-3xl font-bold mb-6">What is the AutoJobr Chrome Extension?</h2>
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              <div>
+                <h3 className="text-xl font-semibold mb-3">Job Application Extension for Chrome</h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                  AutoJobr is the most powerful job application extension for Chrome, enabling one-click automatic job applications 
+                  on LinkedIn, Indeed, Glassdoor, and 50+ job boards. Our Chrome extension auto-apply technology applies to 1000+ jobs daily 
+                  while you sleep, dramatically increasing your chances of landing interviews. Unlike other auto apply extensions, AutoJobr 
+                  uses AI to personalize every application and optimize for ATS systems.
+                </p>
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold mb-3">Why AutoJobr Chrome Extension is Different</h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                  Our job application browser extension goes beyond auto-fill by using advanced AI to intelligently match jobs to your profile 
+                  and customize applications for each position. The AutoJobr extension integrates seamlessly with your job search workflow on 
+                  LinkedIn, Indeed, Monster, ZipRecruiter, and other major platforms. One-click job applications have never been easier with 
+                  our job application automation extension for Chrome.
+                </p>
+              </div>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg mb-8">
+              <h3 className="text-xl font-bold mb-4">Chrome Extension Auto Apply Features:</h3>
+              <ul className="space-y-2 text-gray-600 dark:text-gray-300">
+                <li>✓ One-click auto apply on LinkedIn Jobs, Indeed, Glassdoor</li>
+                <li>✓ Browser extension auto-fills job application forms instantly</li>
+                <li>✓ AI job application matcher finds relevant opportunities 24/7</li>
+                <li>✓ Job application bot passes 98% of ATS systems</li>
+                <li>✓ Auto apply extension works on 50+ job boards</li>
+                <li>✓ Job application automation browser extension - 100% free</li>
+              </ul>
+            </div>
+            <h3 className="text-xl font-semibold mb-3">FAQ: Chrome Auto Apply Extension</h3>
+            <ul className="space-y-3 text-gray-600 dark:text-gray-300">
+              <li><strong>What is the best auto apply Chrome extension?</strong> AutoJobr is the highest-rated job application extension for Chrome with 4.9/5 stars and 100K+ users.</li>
+              <li><strong>Can I use auto apply on LinkedIn with a Chrome extension?</strong> Yes! Our job application extension supports LinkedIn Jobs auto apply, Indeed auto apply, and 50+ other job boards.</li>
+              <li><strong>Is the job application automation extension really free?</strong> Yes! AutoJobr is 100% free. No credit card required for the job application extension.</li>
+              <li><strong>Does the auto apply browser extension work for all job boards?</strong> The job application extension supports 50+ major job boards including LinkedIn, Indeed, Glassdoor, Monster, ZipRecruiter, and more.</li>
+              <li><strong>How many jobs can the auto apply extension apply to daily?</strong> AutoJobr's job application bot can apply to 1000+ jobs daily across all supported platforms.</li>
+            </ul>
+          </div>
+
           {/* How It Works */}
           <div className="mb-16">
             <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>

@@ -67,6 +67,12 @@ const recruiterStats = [
   { label: "Faster Hiring", value: "3x", icon: Zap }
 ];
 
+// SEO Keywords: recruiter bidding system, AI recruiter matching, talent marketplace
+const recruiterBiddingInfo = {
+  description: "AutoJobr's unique recruiter bidding system connects recruiters and hiring managers directly with pre-qualified job seekers. Our AI recruiter matching platform uses advanced algorithms to match top talent with the best opportunities.",
+  keywords: ["recruiter bidding system", "AI recruiter matching", "talent marketplace", "recruiter platform", "AI hiring platform"]
+};
+
 const aiPoweredFeatures = [
   {
     icon: Brain,
