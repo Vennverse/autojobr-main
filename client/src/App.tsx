@@ -125,6 +125,8 @@ import AICoverLettersGuide from "@/pages/blog/ai-cover-letters-guide";
 import RemoteJobSearch2025 from "@/pages/blog/remote-job-search-2025";
 import ReferralCodesPremiumGuide from "@/pages/blog/referral-codes-free-premium";
 import BestFreeJobAutomationTools from "@/pages/blog/best-free-job-automation-tools-2025";
+import Top10JobAutomationPlatforms from "@/pages/blog/top-10-job-automation-platforms-2025-ranked";
+import Top10JobAutomationPlatforms2026 from "@/pages/blog/top-10-job-automation-platforms-2026-predictions";
 
 // Company Hiring Guides
 import HowToGetHiredAtGoogle from "@/pages/blog/how-to-get-hired-at-google";
@@ -283,6 +285,8 @@ function Router() {
       <Route path="/blog/remote-job-search-2025" component={RemoteJobSearch2025} />
       <Route path="/blog/referral-codes-free-premium" component={ReferralCodesPremiumGuide} />
       <Route path="/blog/best-free-job-automation-tools-2025" component={BestFreeJobAutomationTools} />
+      <Route path="/blog/top-10-job-automation-platforms-2025-ranked" component={Top10JobAutomationPlatforms} />
+      <Route path="/blog/top-10-job-automation-platforms-2026-predictions" component={Top10JobAutomationPlatforms2026} />
       <Route path="/blog/how-to-get-hired-at-google" component={HowToGetHiredAtGoogle} />
       <Route path="/blog/how-to-get-hired-at-amazon" component={HowToGetHiredAtAmazon} />
       <Route path="/blog/how-to-get-hired-at-meta" component={HowToGetHiredAtMeta} />
