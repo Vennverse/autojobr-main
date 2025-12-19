@@ -829,20 +829,6 @@ export default function CareerAIAssistant() {
 
             {/* AI Tier Status Banner */}
             <div className="max-w-2xl mx-auto">
-              {aiTier === 'premium' && daysLeft > 0 && (
-                <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-green-600" />
-                    <span className="font-medium text-green-800 dark:text-green-200">
-                      Premium AI Model Trial Active
-                    </span>
-                  </div>
-                  <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                    {daysLeft} days left of premium AI model access with advanced analysis capabilities
-                  </p>
-                </div>
-              )}
-
               {upgradeMessage && (
                 <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
                   <div className="flex items-center gap-2">
