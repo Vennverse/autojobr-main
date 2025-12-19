@@ -9,7 +9,7 @@
 ✨ **For Job Seekers:**
 - 🤖 AI-powered job matching tailored to your unique profile
 - 📄 Resume optimization to beat applicant tracking systems
-- 🔗 Chrome extension for LinkedIn - apply to multiple jobs seamlessly without detection
+- 🔗 Chrome extension for 50+ job boards - apply to LinkedIn, Indeed, Glassdoor, and more seamlessly without detection
 - 💼 Referral marketplace - get hired through direct company referrals
 - 🎯 Virtual interview practice with personalized AI feedback
 - 🏆 Professional assessments and skill validation
@@ -38,7 +38,7 @@ After months of development, we've created a solution that tackles the biggest f
 **The Real Problem:**
 - Job seekers apply to hundreds of positions with minimal responses
 - Recruiters are overwhelmed by low-quality applications
-- LinkedIn job applications are time-consuming and cumbersome
+- Job applications across LinkedIn, Indeed, Glassdoor, and other boards are time-consuming and cumbersome
 - Finding the right career path feels like finding a needle in a haystack
 - Getting through company networks seems impossible for most candidates
 
@@ -55,8 +55,8 @@ After months of development, we've created a solution that tackles the biggest f
 - One-click applications with smart form auto-completion
 - LinkedIn profile analysis and optimization guidance
 
-🔗 **LinkedIn Pro Extension** ⭐ *Our Game-Changer*
-- Apply to LinkedIn jobs directly without the repetitive manual process
+🔗 **AutoJobR Multi-Board Extension** ⭐ *Our Game-Changer*
+- Apply across 50+ job boards (LinkedIn, Indeed, Glassdoor, Monster, ZipRecruiter, and more) without the repetitive manual process
 - Intelligent rate-limiting ensures your applications remain under the radar
 - No red flags, no account restrictions - just seamless applications
 - Apply to premium opportunities while maintaining a natural activity pattern
@@ -83,7 +83,7 @@ After months of development, we've created a solution that tackles the biggest f
 - Connect with recruitment tools you already use
 
 **Why AutoJobR Stands Out:**
-✅ The only platform combining AI matching with LinkedIn stealth applications
+✅ The only platform combining AI matching with multi-board stealth applications (50+ job boards including LinkedIn, Indeed, Glassdoor, and more)
 ✅ Referral marketplace that actually connects you with real employees
 ✅ Job seekers save dozens of hours; recruiters reduce hiring time by 60%
 ✅ Flexible pricing from free tier to premium recruiting suites
@@ -98,15 +98,15 @@ Ready to transform your hiring? Join thousands already using AutoJobR.
 
 ## Feature Highlight Posts (Individual Posts)
 
-### Post 1: LinkedIn Extension Magic
-⚡ Tired of manually filling out LinkedIn job applications?
+### Post 1: Multi-Board Application Automation
+⚡ Tired of manually filling out job applications on LinkedIn, Indeed, Glassdoor, and every other job board?
 
 We built something special - the AutoJobR Chrome extension:
 
-✅ Apply to LinkedIn jobs in seconds, not minutes
+✅ Apply across 50+ job boards in seconds, not minutes
 ✅ Intelligent pacing prevents detection and account restrictions
 ✅ Maintain a natural activity pattern while applying at scale
-✅ One extension, unlimited applications
+✅ One extension, unlimited applications across all platforms
 ✅ Your applications stay under the radar
 
 The difference? You submit 50 applications in the time it used to take you to do 5. No account warnings. No red flags.
@@ -201,7 +201,7 @@ Practice unlimited interviews. Nail the real thing.
 
 **AutoJobR** is the all-in-one platform for serious job seekers and forward-thinking recruiters.
 
-We've built the tools to eliminate job search friction: AI-powered matching, smart LinkedIn applications, referral connections, interview coaching, and recruiter infrastructure.
+We've built the tools to eliminate job search friction: AI-powered matching, smart multi-board applications (50+ job boards), referral connections, interview coaching, and recruiter infrastructure.
 
 Our mission: Make job searching efficient and rewarding. Make hiring predictable and successful.
 
@@ -215,7 +215,7 @@ Whether you're landing your next role or building your next team, AutoJobR deliv
 ## Key Accomplishments to Highlight
 
 🎯 **Job Seeker Superpowers**
-- Chrome extension for LinkedIn that applies intelligently without detection
+- Chrome extension for 50+ job boards (LinkedIn, Indeed, Glassdoor, and more) that applies intelligently without detection
 - Referral marketplace connecting you with company insiders
 - AI interview coaching that builds genuine confidence
 - Resume intelligence that shows exactly what hiring systems see
