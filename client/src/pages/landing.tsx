@@ -181,6 +181,17 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       
+      {/* SEO Hidden Content for Search Engines - Explains unique referral system */}
+      <div className="sr-only">
+        <h2>Get Free Premium Job Search Access with Referral Codes</h2>
+        <p>
+          AutoJobr's unique referral code system gives you free premium features through shared referral links. 
+          Use code GREGORY to get 7 days of premium access with unlimited job applications, AI resume optimization, 
+          and career coaching. No subscription required - completely free premium access through our referral program. 
+          Join our referral network and get instant access to premium job search automation features.
+        </p>
+      </div>
+      
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
