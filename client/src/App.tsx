@@ -124,6 +124,7 @@ import LinkedInAutomationGuide from "@/pages/blog/linkedin-automation-guide";
 import AICoverLettersGuide from "@/pages/blog/ai-cover-letters-guide";
 import RemoteJobSearch2025 from "@/pages/blog/remote-job-search-2025";
 import ReferralCodesPremiumGuide from "@/pages/blog/referral-codes-free-premium";
+import BestFreeJobAutomationTools from "@/pages/blog/best-free-job-automation-tools-2025";
 
 // Company Hiring Guides
 import HowToGetHiredAtGoogle from "@/pages/blog/how-to-get-hired-at-google";
@@ -281,6 +282,7 @@ function Router() {
       <Route path="/blog/ai-cover-letters-guide" component={AICoverLettersGuide} />
       <Route path="/blog/remote-job-search-2025" component={RemoteJobSearch2025} />
       <Route path="/blog/referral-codes-free-premium" component={ReferralCodesPremiumGuide} />
+      <Route path="/blog/best-free-job-automation-tools-2025" component={BestFreeJobAutomationTools} />
       <Route path="/blog/how-to-get-hired-at-google" component={HowToGetHiredAtGoogle} />
       <Route path="/blog/how-to-get-hired-at-amazon" component={HowToGetHiredAtAmazon} />
       <Route path="/blog/how-to-get-hired-at-meta" component={HowToGetHiredAtMeta} />
