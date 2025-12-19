@@ -8663,6 +8663,19 @@ Generate ONLY the connection note text, nothing else.`
   app.get('/api/career-ai/saved', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      
+      // Check if user is premium
+      const user = await storage.getUser(userId);
+      const isPremium = user?.planType === 'premium' && user?.subscriptionStatus === 'active';
+      
+      // Calculate days left in premium subscription
+      let daysLeft = 0;
+      if (isPremium && user?.subscriptionEndDate) {
+        const now = new Date();
+        const endDate = new Date(user.subscriptionEndDate);
+        daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      }
+      
       const analysis = await db.query.careerAiAnalyses.findFirst({
         where: (table, { eq, and }) => and(
           eq(table.userId, userId),
@@ -8682,10 +8695,18 @@ Generate ONLY the connection note text, nothing else.`
             skillGaps: analysis.skillGaps || [],
             networkingOpportunities: analysis.networkingOpportunities || [],
             marketTiming: analysis.marketTiming || []
-          }
+          },
+          aiTier: isPremium ? 'premium' : 'basic',
+          daysLeft: daysLeft,
+          upgradeMessage: isPremium ? null : "Using standard AI model. Upgrade to premium for advanced analysis with llama-3.3-70b-versatile"
         });
       } else {
-        res.json({ hasAnalysis: false });
+        res.json({ 
+          hasAnalysis: false,
+          aiTier: isPremium ? 'premium' : 'basic',
+          daysLeft: daysLeft,
+          upgradeMessage: isPremium ? null : "Using standard AI model. Upgrade to premium for advanced analysis with llama-3.3-70b-versatile"
+        });
       }
     } catch (error) {
       console.error("Error fetching saved career analysis:", error);
@@ -8823,6 +8844,18 @@ Return ONLY the JSON object, no additional text.`;
         throw new Error('AI response parsing failed');
       }
 
+      // Check if user is premium
+      const user = await storage.getUser(userId);
+      const isPremium = user?.planType === 'premium' && user?.subscriptionStatus === 'active';
+      
+      // Calculate days left in premium subscription
+      let daysLeft = 0;
+      if (isPremium && user?.subscriptionEndDate) {
+        const now = new Date();
+        const endDate = new Date(user.subscriptionEndDate);
+        daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      }
+
       // Save to database
       const [savedAnalysis] = await db.insert(schema.careerAiAnalyses).values({
         userId,
@@ -8841,7 +8874,13 @@ Return ONLY the JSON object, no additional text.`;
       }).returning();
 
       console.log('💾 Career AI analysis saved to database');
-      res.json({ ...aiAnalysis, id: savedAnalysis.id });
+      res.json({ 
+        ...aiAnalysis, 
+        id: savedAnalysis.id,
+        aiTier: isPremium ? 'premium' : 'basic',
+        daysLeft: daysLeft,
+        upgradeMessage: isPremium ? `${daysLeft} days left of premium AI model access with advanced analysis capabilities` : "Using standard AI model. Upgrade to premium for advanced analysis with llama-3.3-70b-versatile"
+      });
     } catch (error) {
       console.error("Error analyzing career:", error);
       res.status(500).json({ message: "Failed to analyze career path" });
