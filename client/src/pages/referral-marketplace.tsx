@@ -334,36 +334,6 @@ const ReferralMarketplace: React.FC = () => {
           </div>
         </div>
 
-        {/* Important Disclaimer */}
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-l-4 border-amber-500 rounded-lg p-6 mb-8 shadow-md">
-          <div className="flex items-start gap-3">
-            <Shield className="w-6 h-6 text-amber-600 flex-shrink-0 mt-1" />
-            <div>
-              <h3 className="font-bold text-amber-900 dark:text-amber-200 text-lg mb-2">
-                Important Information About Our Marketplace
-              </h3>
-              <div className="text-amber-800 dark:text-amber-300 space-y-2 text-sm">
-                <p>
-                  <strong>No Guarantee of Job Offer:</strong> Purchasing a referral service does NOT guarantee you will receive a job offer.
-                  Referrers provide guidance, interview preparation, and can submit your resume internally, but final hiring decisions rest with the company.
-                </p>
-                <p>
-                  <strong>Escrow Protection:</strong> All payments are held in escrow until both parties confirm service delivery.
-                  If you're not satisfied with the service, you can dispute the transaction within 48 hours.
-                </p>
-                <p>
-                  <strong>Verified Referrers:</strong> We verify company employment through email domain verification.
-                  All referrers must use their official company email address (not personal emails like Gmail).
-                </p>
-                <p>
-                  <strong>Meeting Confirmation Required:</strong> Both you and the referrer must confirm that your scheduled meeting took place.
-                  Payment is only released after both parties verify service completion.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* How It Works - Step by Step Process */}
         <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 mb-8 shadow-xl border border-gray-100 dark:border-slate-700">
           <h2 className="text-3xl font-bold text-center mb-3 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
