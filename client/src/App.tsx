@@ -97,6 +97,7 @@ import CoverLetterGenerator from "@/pages/cover-letter-generator";
 import LinkedInOptimizer from "@/pages/LinkedInOptimizer";
 import IntegrationMarketplace from "@/pages/integration-marketplace";
 import IntegrationSettings from "@/pages/integration-settings";
+import HowToUse from "@/pages/how-to-use";
 
 // SEO Landing Pages to Beat Competition
 import FreeJobApplicationAutomation from "@/pages/seo/FreeJobApplicationAutomation";
@@ -427,6 +428,9 @@ function Router() {
 
       {isAuthenticated ? (
         <>
+          {/* How to Use page - available to all authenticated users */}
+          <Route path="/how-to-use" component={HowToUse} />
+          
           {/* Handle different user types */}
           {user?.currentRole === 'recruiter' || user?.userType === 'recruiter' || user?.userType === 'admin' || (user?.currentRole === 'autojobr' && user?.userType === 'recruiter') ? (
             <>

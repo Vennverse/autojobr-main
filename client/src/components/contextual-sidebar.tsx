@@ -130,7 +130,8 @@ import {
   Thermometer,
   Umbrella,
   Rainbow,
-  Heart
+  Heart,
+  HelpCircle
 } from "lucide-react";
 
 interface SidebarItem {
@@ -629,6 +630,22 @@ export function ContextualSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
+        {/* How to Use Link - Always at Top */}
+        <div className="px-2 py-3 border-b dark:border-gray-800 mb-2">
+          <Link href="/how-to-use">
+            <SidebarMenuButton
+              asChild
+              isActive={location === "/how-to-use"}
+              className="w-full bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-200 dark:border-blue-800"
+            >
+              <a className="flex items-center gap-2 px-3 py-2 rounded-lg text-blue-700 dark:text-blue-300 font-semibold hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/50 dark:hover:to-indigo-900/50 transition-all">
+                <HelpCircle className="h-5 w-5 flex-shrink-0" />
+                <span>How to Use AutoJobR</span>
+              </a>
+            </SidebarMenuButton>
+          </Link>
+        </div>
+
         {sidebarContent.groups.map((group, index) => (
           <SidebarGroup key={index}>
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
