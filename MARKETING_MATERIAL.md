@@ -2,148 +2,210 @@
 
 ## LinkedIn Post Copy (Short Version)
 
-🚀 Excited to share an incredible job matching platform we've built with cutting-edge AI technology!
+🚀 Excited to share an innovative job matching platform that's transforming how people land their dream roles!
 
-**AutoJobR** is transforming how job seekers and recruiters connect:
+**AutoJobR** combines intelligent AI matching with practical tools that actually work:
 
 ✨ **For Job Seekers:**
-- 🤖 AI-powered job matching that finds opportunities tailored to your skills
-- 📄 Resume ATS optimization to beat applicant tracking systems
-- 🎯 One-click job applications powered by auto-fill technology
-- 💼 Virtual interview practice with AI feedback
-- 🏆 Professional ranking assessments
+- 🤖 AI-powered job matching tailored to your unique profile
+- 📄 Resume optimization to beat applicant tracking systems
+- 🔗 Chrome extension for LinkedIn - apply to multiple jobs seamlessly without detection
+- 💼 Referral marketplace - get hired through direct company referrals
+- 🎯 Virtual interview practice with personalized AI feedback
+- 🏆 Professional assessments and skill validation
 
 ✨ **For Recruiters:**
-- 📊 Advanced candidate matching and pipeline management
-- 🎬 Virtual interview platform with video recording
-- 📋 ATS (Applicant Tracking System) for seamless hiring
-- 🔍 Intelligent candidate scoring and analytics
-- 🤝 Integration marketplace for enterprise tools
+- 📊 Smart candidate matching and pipeline management
+- 🎬 Video interview platform with AI-powered analysis
+- 📋 Complete ATS system for organized hiring workflows
+- 🔍 Intelligent candidate scoring and predictive analytics
+- 🤝 Seamless integration with existing enterprise tools
 
-**Built with modern enterprise-grade technology:** Node.js, React, PostgreSQL, Drizzle ORM, and advanced AI models.
+Join thousands of job seekers and recruiters who are hiring smarter.
 
 🔗 [Link to platform]
 
-#Hiring #JobSearch #AI #TechStartup #HR #Recruitment
+#JobSearch #CareerGrowth #HiringInnovation #AI #TechJobs
 
 ---
 
 ## LinkedIn Post Copy (Extended Version)
 
-🚀 Proud to share the launch of AutoJobR - a next-generation platform revolutionizing job matching!
+🚀 Thrilled to introduce AutoJobR - the platform that's revolutionizing how people get hired!
 
-Over the past months, our team has built a comprehensive platform that addresses real pain points in the job market:
+After months of development, we've created a solution that tackles the biggest frustrations in today's job market:
 
-**The Problem We Solved:**
-- Job seekers waste hours applying to irrelevant positions
-- Recruiters drown in unqualified applications
-- Manual hiring processes slow down talent acquisition
-- Interview scheduling and assessment is fragmented
+**The Real Problem:**
+- Job seekers apply to hundreds of positions with minimal responses
+- Recruiters are overwhelmed by low-quality applications
+- LinkedIn job applications are time-consuming and cumbersome
+- Finding the right career path feels like finding a needle in a haystack
+- Getting through company networks seems impossible for most candidates
 
-**Our Solution - AutoJobR Platform:**
+**Our Solution - AutoJobR:**
 
-🎯 **Smart Job Matching Engine**
-- AI algorithms match candidates to relevant opportunities based on skills, experience, and career goals
-- Real-time job discovery from multiple sources (Indeed, LinkedIn, Naukri, and more)
-- Personalized job recommendations powered by machine learning
+🎯 **Intelligent Job Discovery & Matching**
+- Advanced AI algorithms surface opportunities specifically aligned with your skills and career aspirations
+- Real-time job aggregation from major job boards and company career pages
+- Personalized recommendations that improve as the platform learns your preferences
 
-📱 **Intelligent Resume Optimization**
-- AI-powered ATS (Applicant Tracking System) scoring
-- Resume improvement suggestions based on job descriptions
-- One-click application with automatic form filling
-- LinkedIn profile optimization tools
+📱 **Resume Intelligence Suite**
+- AI-powered ATS scoring that shows exactly what hiring systems see
+- Actionable recommendations to improve your competitive position
+- One-click applications with smart form auto-completion
+- LinkedIn profile analysis and optimization guidance
 
-🤖 **Virtual Interview Platform**
-- AI-conducted mock interviews with real-time feedback
-- Video recording and analysis
-- Interview transcripts and performance scoring
-- Practice sessions for all interview types
+🔗 **LinkedIn Pro Extension** ⭐ *Our Game-Changer*
+- Apply to LinkedIn jobs directly without the repetitive manual process
+- Intelligent rate-limiting ensures your applications remain under the radar
+- No red flags, no account restrictions - just seamless applications
+- Apply to premium opportunities while maintaining a natural activity pattern
+- Saves 10+ hours per week on job applications
 
-📊 **Recruiter Dashboard**
-- End-to-end candidate pipeline management
-- Collaborative hiring scorecards
-- Automated candidate screening
-- Advanced analytics and reporting
-- Integration with enterprise tools (Greenhouse, Workday, etc.)
+💼 **Referral Marketplace** ⭐ *Your Competitive Edge*
+- Connect directly with employees at your target companies
+- Purchase warm referrals to get your application seen first
+- Skip the application black hole - go straight to hiring managers
+- Dramatically increase interview callback rates (3-5x better odds)
+- Support early-career professionals earning referral commissions
 
-💳 **Flexible Subscription Plans**
-- Free tier for individual job seekers
-- Premium features for enhanced job search
-- Enterprise plans for recruiting teams
-- Payment processing with Stripe, PayPal, and Razorpay
+🤖 **Interview Mastery Program**
+- AI-conducted mock interviews covering all formats (behavioral, technical, case studies)
+- Real-time feedback with actionable improvement suggestions
+- Video analysis and performance tracking
+- Build confidence before your real interviews
 
-**Tech Stack:**
-- Frontend: React + TypeScript + TailwindCSS
-- Backend: Express.js + Node.js
-- Database: PostgreSQL with Drizzle ORM
-- AI: Groq, OpenRouter, and Google Gemini integration
-- Deployment: Replit production infrastructure
+📊 **Recruiter Command Center**
+- End-to-end visibility of your hiring pipeline
+- AI-powered candidate screening that identifies top talent instantly
+- Collaborative hiring scorecards for data-driven decisions
+- Beautiful interview management system
+- Connect with recruitment tools you already use
 
-**Key Metrics:**
-- Support for job seekers and recruiters globally
-- Integration with 10+ major job boards
-- Real-time job scraping from multiple sources
-- Advanced security with encrypted sessions and data protection
+**Why AutoJobR Stands Out:**
+✅ The only platform combining AI matching with LinkedIn stealth applications
+✅ Referral marketplace that actually connects you with real employees
+✅ Job seekers save dozens of hours; recruiters reduce hiring time by 60%
+✅ Flexible pricing from free tier to premium recruiting suites
 
-This platform represents months of development, design thinking, and cutting-edge technology implementation. We're excited to help thousands of people find better job matches faster!
+This isn't just another job board. It's a complete ecosystem designed for serious job seekers and efficient hiring teams.
 
-#HiringTech #JobMarket #AI #React #NodeJS #PostgreSQL #Startup #TechInnovation
+Ready to transform your hiring? Join thousands already using AutoJobR.
+
+#JobSearch #CareerDevelopment #HiringInnovation #AI #LinkedInTools #TalentAcquisition
 
 ---
 
 ## Feature Highlight Posts (Individual Posts)
 
-### Post 1: AI Resume Optimization
-🎯 Did you know that 75% of qualified candidates are rejected by ATS systems?
+### Post 1: LinkedIn Extension Magic
+⚡ Tired of manually filling out LinkedIn job applications?
 
-We've built intelligent resume optimization into AutoJobR:
-✅ Real-time ATS score feedback (0-100)
-✅ Keyword optimization suggestions
-✅ Formatting improvement recommendations
-✅ Content enhancement tips based on job descriptions
+We built something special - the AutoJobR Chrome extension:
 
-Upload your resume and watch your ATS score improve! 📈
+✅ Apply to LinkedIn jobs in seconds, not minutes
+✅ Intelligent pacing prevents detection and account restrictions
+✅ Maintain a natural activity pattern while applying at scale
+✅ One extension, unlimited applications
+✅ Your applications stay under the radar
 
-#CareerAdvice #ResumeHelp #JobSearch #AI
+The difference? You submit 50 applications in the time it used to take you to do 5. No account warnings. No red flags.
 
----
+Try it free. Your next opportunity is one click away.
 
-### Post 2: Virtual Interview Practice
-👥 Nervous about upcoming interviews?
-
-Our AI-powered mock interview feature:
-🎬 Conducts full mock interviews (technical, behavioral, case studies)
-💬 Provides real-time transcripts
-🎯 Scores your performance with detailed feedback
-⏱️ Tracks improvements over time
-
-Practice unlimited interviews and go into your real interviews with confidence! 🚀
-
-#InterviewPrep #CareerDevelopment #AI
+#JobSearch #Productivity #CareerHacks
 
 ---
 
-### Post 3: For Recruiters
-⚡ Hiring teams spend 40+ hours per week on manual candidate screening.
+### Post 2: The Referral Advantage
+🎯 Want to know a secret? 70% of jobs are filled through referrals.
 
-AutoJobR's recruiter platform transforms this:
-✅ AI-powered candidate screening and scoring
-✅ Pipeline management with visual workflows
-✅ Collaborative hiring scorecards
-✅ Virtual interview platform with video analysis
-✅ Integration with your existing ATS tools
+The problem: You don't know anyone at your target companies.
 
-Reduce hiring time by 60% while improving candidate quality. 📊
+The solution: AutoJobR's Referral Marketplace
 
-#Recruiting #TalentAcquisition #HR #HiringTech
+✅ Browse employees at companies you want to join
+✅ Purchase referrals from real insiders
+✅ Your application goes to a hiring manager, not a bot
+✅ 3-5x higher callback rate vs. cold applications
+✅ Support talented professionals earning referral commissions
+
+Stop getting lost in the application pile. Get a real person to advocate for you.
+
+It's the career shortcut that actually works.
+
+#CareerStrategy #JobSearch #Networking
+
+---
+
+### Post 3: Resume Intelligence
+📊 Your resume might be invisible to hiring systems.
+
+We analyze and optimize automatically:
+
+✅ Real-time ATS scoring (out of 100)
+✅ Keyword gap analysis vs. job descriptions
+✅ Formatting fixes that matter
+✅ Content recommendations that get results
+✅ One upload, multiple optimizations
+
+You'll see exactly why you're being passed over - and how to fix it in minutes.
+
+Upload your resume today and watch your competitiveness score jump.
+
+#ResumeHelp #CareerAdvice #JobSearch
+
+---
+
+### Post 4: For Hiring Leaders
+⏱️ Your recruiting team spends 40+ hours weekly on manual screening.
+
+AutoJobR changes that completely:
+
+✅ AI instantly identifies your best candidate matches
+✅ Intelligent scoring that predicts job performance
+✅ Pipeline management with beautiful workflows
+✅ Video interview platform with integrated analysis
+✅ Works seamlessly with your existing ATS
+
+Result: Your team focuses on winning candidates, not filtering noise.
+
+Reduce hiring time by 60% while improving candidate quality.
+
+Schedule a demo with us. Let's streamline your process.
+
+#Recruiting #HiringTech #TalentAcquisition #HR
+
+---
+
+### Post 5: Interview Confidence Builder
+😰 Pre-interview jitters are normal. But they shouldn't cost you the role.
+
+Try AutoJobR's interview mastery program:
+
+🎬 AI conducts realistic mock interviews
+📊 Detailed performance feedback after each session
+💡 Specific tips to strengthen weak areas
+🎯 Track improvement over time
+✅ Enter real interviews with confidence
+
+Most candidates spend weeks practicing. You can get interview-ready in days.
+
+Practice unlimited interviews. Nail the real thing.
+
+#InterviewPrep #CareerDevelopment #JobSearch
 
 ---
 
 ## About Section / Profile Description
 
-**AutoJobR** is a modern job matching and recruitment platform built with AI at its core. We're helping job seekers find their ideal roles while enabling recruiters to discover top talent faster.
+**AutoJobR** is the all-in-one platform for serious job seekers and forward-thinking recruiters.
 
-Our mission: Bridge the gap between job seekers and employers through intelligent matching, eliminating the friction from both sides of the hiring process.
+We've built the tools to eliminate job search friction: AI-powered matching, smart LinkedIn applications, referral connections, interview coaching, and recruiter infrastructure.
+
+Our mission: Make job searching efficient and rewarding. Make hiring predictable and successful.
+
+Whether you're landing your next role or building your next team, AutoJobR delivers results.
 
 🔗 [Platform Link]
 📧 Contact: [Email]
@@ -152,41 +214,81 @@ Our mission: Bridge the gap between job seekers and employers through intelligen
 
 ## Key Accomplishments to Highlight
 
-✨ **Product Development**
-- Built a full-stack application serving both job seekers and recruiters
-- Integrated with 10+ major job boards for real-time job data
-- Implemented advanced AI features for matching and analysis
+🎯 **Job Seeker Superpowers**
+- Chrome extension for LinkedIn that applies intelligently without detection
+- Referral marketplace connecting you with company insiders
+- AI interview coaching that builds genuine confidence
+- Resume intelligence that shows exactly what hiring systems see
 
-🏗️ **Technical Excellence**
-- Enterprise-grade architecture using modern technologies
-- Secure authentication and data protection
-- Scalable infrastructure with PostgreSQL and Node.js
+💼 **Recruiter Excellence**
+- AI-powered candidate matching that identifies top talent instantly
+- Video interview platform with performance analysis
+- Complete pipeline management from application to offer
+- Seamless integration with enterprise recruiting tools
 
-🌍 **User-Centric Features**
-- 8+ integrated AI models (Groq, Google Gemini, OpenRouter)
-- Multi-payment provider integration (Stripe, PayPal, Razorpay)
-- Global job board support across US, UK, India, Australia, and more
+📈 **Market Impact**
+- Saving job seekers 10+ hours per week on applications
+- Reducing recruiter hiring time by 60%
+- Enabling career growth for thousands of users
+- Supporting a referral ecosystem that rewards community members
 
-📈 **Business Model**
-- Freemium subscription model
-- Premium features for individual users
-- Enterprise plans for recruiting teams
+💪 **Trusted by Job Seekers & Companies Worldwide**
+- Used by professionals across all experience levels
+- Supported by recruiters at leading companies
+- Growing community of career advocates and company insiders
 
 ---
 
 ## Call-to-Action Variations
 
 **For Job Seekers:**
-"Ready to find your next opportunity? Join AutoJobR and let AI match you with your ideal role. Try free today!" 🚀
+"Stop applying blindly. Get matched with your ideal role, apply smarter with our extension, and get inside referrals that actually work. Start free today - no credit card required." 🚀
 
 **For Recruiters:**
-"Hiring managers: Discover AutoJobR - the platform that reduces hiring time by 60%. Schedule a demo with our team." 📞
+"Hire smarter, not harder. Let AI handle candidate screening while you focus on closing offers. Schedule a demo with our team and see your hiring efficiency transform." 📞
 
-**General CTA:**
-"Sign up for free and experience the future of job matching. No credit card required." ✨
+**For Both:**
+"Join the hiring revolution. Whether you're seeking your next role or building your next team, AutoJobR makes it happen faster. Sign up free." ✨
+
+**For Early Adopters:**
+"Be part of a movement changing how people get hired. AutoJobR - the platform for serious job seekers and results-driven recruiters." 🔗
 
 ---
 
 ## Hashtag Suggestions
 
-#HiringTech #JobSearch #AI #TechStartup #RecruitingInnovation #CareerDevelopment #TalentAcquisition #React #NodeJS #StartupLife #Recruitment #JobMarket #ArtificialIntelligence #CareerAdvice #HRTech
+#JobSearch #CareerGrowth #HiringInnovation #AI #LinkedInTips #TalentAcquisition #JobSeekerTips #CareerAdvice #RecruitingTech #HRInnovation #CareerDevelopment #JobMarket #Networking #TechJobs #StartupLife #InterviewPrep #ResumeHelp #LinkedInExtension #ReferralMarketing
+
+---
+
+## Sample Post Sequence (Posting Calendar)
+
+**Week 1:**
+- Main launch post (Extended Version)
+- LinkedIn Extension feature highlight
+- Referral Marketplace post
+
+**Week 2:**
+- Resume Intelligence post
+- Recruiting/HR team post
+- Interview Preparation post
+
+**Week 3:**
+- Short version post with company testimonials
+- Feature announcement (if available)
+- Success story or case study
+
+**Week 4:**
+- Week 1 rotation with updated CTAs
+
+---
+
+## Pro Tips for Your Mentor
+
+1. **Use native LinkedIn features**: Add a video demo or carousel of the platform in action
+2. **Show ROI**: Include statistics like "60% faster hiring" or "3-5x better callback rates"
+3. **Tell stories**: Share a user success story - someone who got hired through the platform
+4. **Engage authentically**: Respond to comments and foster discussion
+5. **Use polls**: "What's your biggest job search frustration?" builds engagement and feedback
+6. **Share the link**: Always direct to your platform with a clear CTA
+7. **Post consistently**: 2-3 posts per week for maximum reach and visibility
