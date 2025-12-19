@@ -23,7 +23,7 @@
 
 Join thousands of job seekers and recruiters who are hiring smarter.
 
-🔗 [Link to platform]
+🔗 https://autojobr.com/
 
 #JobSearch #CareerGrowth #HiringInnovation #AI #TechJobs
 
@@ -92,6 +92,8 @@ This isn't just another job board. It's a complete ecosystem designed for seriou
 
 Ready to transform your hiring? Join thousands already using AutoJobR.
 
+🔗 https://autojobr.com/
+
 #JobSearch #CareerDevelopment #HiringInnovation #AI #LinkedInTools #TalentAcquisition
 
 ---
@@ -112,6 +114,8 @@ We built something special - the AutoJobR Chrome extension:
 The difference? You submit 50 applications in the time it used to take you to do 5. No account warnings. No red flags.
 
 Try it free. Your next opportunity is one click away.
+
+🔗 https://autojobr.com/
 
 #JobSearch #Productivity #CareerHacks
 
@@ -134,6 +138,8 @@ Stop getting lost in the application pile. Get a real person to advocate for you
 
 It's the career shortcut that actually works.
 
+🔗 https://autojobr.com/referral-marketplace
+
 #CareerStrategy #JobSearch #Networking
 
 ---
@@ -152,6 +158,8 @@ We analyze and optimize automatically:
 You'll see exactly why you're being passed over - and how to fix it in minutes.
 
 Upload your resume today and watch your competitiveness score jump.
+
+🔗 https://autojobr.com/
 
 #ResumeHelp #CareerAdvice #JobSearch
 
@@ -174,6 +182,8 @@ Reduce hiring time by 60% while improving candidate quality.
 
 Schedule a demo with us. Let's streamline your process.
 
+🔗 https://autojobr.com/
+
 #Recruiting #HiringTech #TalentAcquisition #HR
 
 ---
@@ -193,6 +203,8 @@ Most candidates spend weeks practicing. You can get interview-ready in days.
 
 Practice unlimited interviews. Nail the real thing.
 
+🔗 https://autojobr.com/
+
 #InterviewPrep #CareerDevelopment #JobSearch
 
 ---
@@ -207,7 +219,7 @@ Our mission: Make job searching efficient and rewarding. Make hiring predictable
 
 Whether you're landing your next role or building your next team, AutoJobR delivers results.
 
-🔗 [Platform Link]
+🔗 https://autojobr.com/
 📧 Contact: [Email]
 
 ---
@@ -242,16 +254,16 @@ Whether you're landing your next role or building your next team, AutoJobR deliv
 ## Call-to-Action Variations
 
 **For Job Seekers:**
-"Stop applying blindly. Get matched with your ideal role, apply smarter with our extension, and get inside referrals that actually work. Start free today - no credit card required." 🚀
+"Stop applying blindly. Get matched with your ideal role, apply smarter with our extension, and get inside referrals that actually work. Start free today - no credit card required. https://autojobr.com/" 🚀
 
 **For Recruiters:**
-"Hire smarter, not harder. Let AI handle candidate screening while you focus on closing offers. Schedule a demo with our team and see your hiring efficiency transform." 📞
+"Hire smarter, not harder. Let AI handle candidate screening while you focus on closing offers. Schedule a demo with our team and see your hiring efficiency transform. https://autojobr.com/" 📞
 
 **For Both:**
-"Join the hiring revolution. Whether you're seeking your next role or building your next team, AutoJobR makes it happen faster. Sign up free." ✨
+"Join the hiring revolution. Whether you're seeking your next role or building your next team, AutoJobR makes it happen faster. Sign up free at https://autojobr.com/" ✨
 
 **For Early Adopters:**
-"Be part of a movement changing how people get hired. AutoJobR - the platform for serious job seekers and results-driven recruiters." 🔗
+"Be part of a movement changing how people get hired. AutoJobR - the platform for serious job seekers and results-driven recruiters. https://autojobr.com/" 🔗
 
 ---
 
@@ -290,5 +302,5 @@ Whether you're landing your next role or building your next team, AutoJobR deliv
 3. **Tell stories**: Share a user success story - someone who got hired through the platform
 4. **Engage authentically**: Respond to comments and foster discussion
 5. **Use polls**: "What's your biggest job search frustration?" builds engagement and feedback
-6. **Share the link**: Always direct to your platform with a clear CTA
+6. **Share the link**: Always direct to https://autojobr.com/ with a clear CTA
 7. **Post consistently**: 2-3 posts per week for maximum reach and visibility
