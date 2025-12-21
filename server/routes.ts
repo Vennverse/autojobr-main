@@ -6473,19 +6473,31 @@ Generate ONLY the connection note text, nothing else.`
       }
 
       // OPTIMIZATION: Fast format without heavy operations
-      const formattedResumes = resumeList.map(resume => ({
-        id: resume.id,
-        name: resume.name,
-        fileName: resume.fileName,
-        fileSize: resume.fileSize,
-        mimeType: resume.mimeType,
-        isActive: resume.isActive,
-        atsScore: resume.atsScore || 0,
-        analysis: typeof resume.analysisData === 'string' 
-          ? JSON.parse(resume.analysisData).catch(() => null) 
-          : resume.analysisData,
-        uploadedAt: resume.createdAt
-      }));
+      const formattedResumes = resumeList.map(resume => {
+        let analysisData = null;
+        if (resume.analysisData) {
+          try {
+            analysisData = typeof resume.analysisData === 'string' 
+              ? JSON.parse(resume.analysisData) 
+              : resume.analysisData;
+          } catch (e) {
+            console.warn('Failed to parse analysis data:', e);
+            analysisData = null;
+          }
+        }
+        
+        return {
+          id: resume.id,
+          name: resume.name,
+          fileName: resume.fileName,
+          fileSize: resume.fileSize,
+          mimeType: resume.mimeType,
+          isActive: resume.isActive,
+          atsScore: resume.atsScore || 0,
+          analysis: analysisData,
+          uploadedAt: resume.createdAt
+        };
+      });
 
       setCache(cacheKey, formattedResumes, 300000, userId); // 5 min cache
       res.json(formattedResumes);

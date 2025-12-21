@@ -408,16 +408,37 @@ Rules:
       rawText = fileBuffer.toString('utf-8');
     }
 
-    const status = apiKeyRotationService.getStatus();
-    if (status.groq.totalKeys === 0) {
-      return {
-        parsedData: { fullText: rawText },
-        analysis: null
-      };
-    }
-
     // OPTIMIZED: Extract key sections only (80% token reduction)
     const keyInfo = OptimizedResumeParser.extractKeyInfo(rawText);
+
+    const status = apiKeyRotationService.getStatus();
+    if (status.groq.totalKeys === 0) {
+      // No API keys available - use dynamic scoring fallback
+      console.log('⚠️ No Groq API keys available - using dynamic scoring fallback');
+      const dynamicScore = this.calculateDynamicScore(rawText, keyInfo);
+      
+      return {
+        parsedData: { 
+          fullName: keyInfo.email?.split('@')[0] || 'Unknown',
+          email: keyInfo.email,
+          phone: keyInfo.phone,
+          skills: keyInfo.skills || [],
+          yearsExperience: keyInfo.workExperience?.length || 0,
+          fullText: rawText 
+        },
+        analysis: {
+          atsScore: dynamicScore,
+          recommendations: this.generateRecommendations(keyInfo, dynamicScore),
+          keywordOptimization: {
+            missingKeywords: this.findMissingKeywords(keyInfo)
+          },
+          content: {
+            strengthsFound: this.findStrengths(keyInfo),
+            weaknesses: this.findWeaknesses(keyInfo)
+          }
+        }
+      };
+    }
     
     // Calculate preliminary score based on content quality
     const hasSkills = (keyInfo.skills?.length || 0) > 0;
