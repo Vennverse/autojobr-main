@@ -637,61 +637,6 @@ const ReferralMarketplace: React.FC = () => {
         </div>
       </div>
 
-      {/* Important Information About Our Marketplace */}
-      <div className="mt-12 bg-amber-50 dark:bg-amber-950/20 border-l-4 border-amber-600 p-8 rounded-lg">
-        <h3 className="text-2xl font-bold text-amber-900 dark:text-amber-100 mb-6 flex items-center gap-2">
-          <Shield className="w-6 h-6" />
-          Important Information About Our Marketplace
-        </h3>
-        
-        <div className="space-y-6">
-          {/* No Guarantee */}
-          <div>
-            <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-2 text-lg">
-              ❌ No Guarantee of Job Offer
-            </h4>
-            <p className="text-amber-800 dark:text-amber-200">
-              Purchasing a referral service does NOT guarantee you will receive a job offer. Referrers provide guidance, interview preparation, and can submit your resume internally, but final hiring decisions rest with the company. Many factors influence hiring outcomes beyond a referral.
-            </p>
-          </div>
-
-          {/* Escrow Protection */}
-          <div>
-            <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-2 text-lg">
-              🔒 Escrow Protection
-            </h4>
-            <p className="text-amber-800 dark:text-amber-200">
-              All payments are held in escrow until both parties confirm service delivery. If you're not satisfied with the service, you can dispute the transaction within 48 hours. Payment is only released after both you and the referrer verify service completion.
-            </p>
-          </div>
-
-          {/* Verified Referrers */}
-          <div>
-            <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-2 text-lg">
-              ✅ Verified Referrers
-            </h4>
-            <p className="text-amber-800 dark:text-amber-200">
-              We verify company employment through email domain verification. All referrers must use their official company email address (not personal emails like Gmail). This ensures you're connecting with legitimate employees of the companies you're targeting.
-            </p>
-          </div>
-
-          {/* Meeting Confirmation Required */}
-          <div>
-            <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-2 text-lg">
-              📅 Meeting Confirmation Required
-            </h4>
-            <p className="text-amber-800 dark:text-amber-200">
-              Both you and the referrer must confirm that your scheduled meeting took place. Payment is only released after both parties verify service completion. This protects both job seekers and referrers and ensures accountability.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-6 pt-6 border-t border-amber-200 dark:border-amber-800">
-          <p className="text-sm text-amber-700 dark:text-amber-300">
-            By using AutoJobR's Referral Marketplace, you agree to our terms of service. We're committed to creating a safe, transparent marketplace for both job seekers and referrers. Have questions? <Link href="/contact"><span className="text-amber-900 dark:text-amber-100 font-semibold hover:underline">Contact our support team</span></Link>.
-          </p>
-        </div>
-      </div>
     </div>
   );
 };
