@@ -7734,7 +7734,7 @@ Generate ONLY the connection note text, nothing else.`
 
   // New Razorpay subscription creation endpoint for frontend
   app.post("/api/payments/razorpay/create-subscription", isAuthenticated, asyncHandler(async (req: any, res: any) => {
-    const { amount, currency, planType, planName } = req.body;
+    const { amount, currency, planType, planName, discountApplied, isStudent, isJobless } = req.body;
     const userId = req.user.id;
     const userEmail = req.user.email;
 
@@ -7751,25 +7751,27 @@ Generate ONLY the connection note text, nothing else.`
     }
 
     try {
-      // Convert USD to INR for Razorpay (amount is in cents, so divide by 100 first)
-      const usdPrice = amount / 100;
+      // Use the discounted amount if applicable
+      const finalAmount = discountApplied ? amount / 2 : amount;
       
-      // Create Razorpay subscription
+      // Create Razorpay subscription with the final amount
       const subscription = await razorpayService.createSubscription(
         userId,
         planName,
-        usdPrice,
+        finalAmount,
         'monthly',
         userEmail
       );
 
-      console.log(`✅ Razorpay subscription created for ${planType}: ${subscription.subscriptionId}`);
+      console.log(`✅ Razorpay subscription created for ${planType}: ${subscription.subscriptionId}${discountApplied ? ' (50% DISCOUNT APPLIED)' : ''}`);
 
       return res.json({
         success: true,
         subscriptionId: subscription.subscriptionId,
         keyId: process.env.RAZORPAY_KEY_ID,
-        amountInINR: subscription.amountInINR
+        amountInINR: subscription.amountInINR,
+        discountApplied: discountApplied,
+        finalAmount: finalAmount
       });
     } catch (error: any) {
       console.error('❌ Razorpay subscription creation error:', error);
@@ -7873,7 +7875,7 @@ Generate ONLY the connection note text, nothing else.`
 
   // PayPal subscription creation endpoint for frontend
   app.post("/api/payments/paypal/create-subscription", isAuthenticated, asyncHandler(async (req: any, res: any) => {
-    const { amount, currency, planType, planName } = req.body;
+    const { amount, currency, planType, planName, discountApplied, isStudent, isJobless } = req.body;
     const userId = req.user.id;
     const userEmail = req.user.email;
 
@@ -7885,11 +7887,14 @@ Generate ONLY the connection note text, nothing else.`
     const paypalService = new PayPalSubscriptionService();
 
     try {
+      // Use the discounted amount if applicable
+      const finalAmount = discountApplied ? amount / 2 : amount;
+      
       // Create or get product for this plan
       const productId = await paypalService.createOrGetProduct(planName, 'jobseeker');
       
-      // Create billing plan
-      const planId = await paypalService.createBillingPlan(productId, amount, currency, planName);
+      // Create billing plan with the final amount
+      const planId = await paypalService.createBillingPlan(productId, finalAmount, currency, planName);
       
       // Create subscription
       const subscription = await paypalService.createSubscription(planId, userEmail);
@@ -7901,7 +7906,7 @@ Generate ONLY the connection note text, nothing else.`
         throw new Error('No approval URL returned from PayPal');
       }
 
-      console.log(`✅ PayPal subscription created for ${planType}: ${subscription.id}`);
+      console.log(`✅ PayPal subscription created for ${planType}: ${subscription.id}${discountApplied ? ' (50% DISCOUNT APPLIED)' : ''}`);
 
       // Store subscription info temporarily (will be finalized on webhook/return)
       await db.insert(schema.subscriptions).values({
@@ -7911,7 +7916,7 @@ Generate ONLY the connection note text, nothing else.`
         paypalSubscriptionId: subscription.id,
         status: 'pending',
         paymentMethod: 'paypal',
-        amount: amount.toString(),
+        amount: finalAmount.toString(),
         currency: currency || 'USD',
         billingCycle: 'monthly',
         createdAt: new Date()
@@ -7920,7 +7925,9 @@ Generate ONLY the connection note text, nothing else.`
       return res.json({
         success: true,
         subscriptionId: subscription.id,
-        approvalUrl: approvalUrl
+        approvalUrl: approvalUrl,
+        discountApplied: discountApplied,
+        finalAmount: finalAmount
       });
     } catch (error: any) {
       console.error('❌ PayPal subscription creation error:', error);

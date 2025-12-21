@@ -181,14 +181,16 @@ export default function Subscription() {
   };
 
   const handlePayPalPayment = async () => {
-    // Create PayPal order
+    // Create PayPal subscription
     try {
       const baseAmount = pricingInfo?.tiers?.premium?.displayPrice || 10;
       const finalAmount = (discountApplied ? baseAmount / 2 : baseAmount).toFixed(2);
       
-      const response = await apiRequest('/api/payments/paypal/create-order', 'POST', {
-        amount: finalAmount,
+      const response = await apiRequest('/api/payments/paypal/create-subscription', 'POST', {
+        amount: parseFloat(finalAmount),
         currency: 'USD',
+        planType: 'premium',
+        planName: discountApplied ? 'Premium - Student/Jobless' : 'Premium',
         discountApplied: discountApplied,
         discountPercentage: discountApplied ? 50 : 0,
         isStudent: isStudent,
@@ -199,7 +201,7 @@ export default function Subscription() {
         // Redirect to PayPal for approval
         window.location.href = response.approvalUrl;
       } else {
-        throw new Error('Failed to create PayPal order');
+        throw new Error('Failed to create PayPal subscription');
       }
     } catch (error) {
       console.error('PayPal payment error:', error);
@@ -208,14 +210,16 @@ export default function Subscription() {
   };
 
   const handleRazorpayPayment = async () => {
-    // Create Razorpay order
+    // Create Razorpay subscription
     try {
-      const baseAmount = (pricingInfo?.tiers?.premium?.displayPrice || 10) * 100; // in paise
-      const finalAmount = discountApplied ? Math.floor(baseAmount / 2) : baseAmount;
+      const baseAmount = (pricingInfo?.tiers?.premium?.displayPrice || 10);
+      const finalAmount = discountApplied ? baseAmount / 2 : baseAmount;
       
-      const response = await apiRequest('/api/payments/razorpay/create-order', 'POST', {
-        amount: finalAmount, // in paise
-        currency: 'INR',
+      const response = await apiRequest('/api/payments/razorpay/create-subscription', 'POST', {
+        amount: finalAmount,
+        currency: 'USD',
+        planType: 'premium',
+        planName: discountApplied ? 'Premium - Student/Jobless' : 'Premium',
         discountApplied: discountApplied,
         discountPercentage: discountApplied ? 50 : 0,
         isStudent: isStudent,
