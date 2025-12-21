@@ -32,6 +32,9 @@ export default function Subscription() {
   const [pendingTargetingJob, setPendingTargetingJob] = useState<any>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'stripe' | 'paypal' | 'razorpay'>('paypal');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [isStudent, setIsStudent] = useState(false);
+  const [isJobless, setIsJobless] = useState(false);
+  const [discountApplied, setDiscountApplied] = useState(false);
 
   // Fetch location-based pricing
   const { data: pricingInfo, isLoading: pricingLoading } = useQuery({
@@ -145,12 +148,24 @@ export default function Subscription() {
     }
   };
 
+  const getDiscountedPrice = () => {
+    const basePrice = pricingInfo?.tiers?.premium?.displayPrice || 5;
+    return discountApplied ? (basePrice / 2).toFixed(2) : basePrice.toFixed(2);
+  };
+
   const handleStripePayment = async () => {
     // Create Stripe Checkout session
     try {
+      const baseAmount = (pricingInfo?.tiers?.premium?.displayPrice || 10) * 100;
+      const finalAmount = discountApplied ? Math.floor(baseAmount / 2) : baseAmount;
+      
       const response = await apiRequest('/api/payments/stripe/create-checkout', 'POST', {
-        amount: 1000, // $10 in cents
-        currency: 'usd'
+        amount: finalAmount, // in cents
+        currency: 'usd',
+        discountApplied: discountApplied,
+        discountPercentage: discountApplied ? 50 : 0,
+        isStudent: isStudent,
+        isJobless: isJobless
       });
       
       if (response.url) {
@@ -168,9 +183,16 @@ export default function Subscription() {
   const handlePayPalPayment = async () => {
     // Create PayPal order
     try {
+      const baseAmount = pricingInfo?.tiers?.premium?.displayPrice || 10;
+      const finalAmount = (discountApplied ? baseAmount / 2 : baseAmount).toFixed(2);
+      
       const response = await apiRequest('/api/payments/paypal/create-order', 'POST', {
-        amount: '10.00',
-        currency: 'USD'
+        amount: finalAmount,
+        currency: 'USD',
+        discountApplied: discountApplied,
+        discountPercentage: discountApplied ? 50 : 0,
+        isStudent: isStudent,
+        isJobless: isJobless
       });
       
       if (response.approvalUrl) {
@@ -188,9 +210,16 @@ export default function Subscription() {
   const handleRazorpayPayment = async () => {
     // Create Razorpay order
     try {
+      const baseAmount = (pricingInfo?.tiers?.premium?.displayPrice || 10) * 100; // in paise
+      const finalAmount = discountApplied ? Math.floor(baseAmount / 2) : baseAmount;
+      
       const response = await apiRequest('/api/payments/razorpay/create-order', 'POST', {
-        amount: 1000, // ₹10 in paise
-        currency: 'INR'
+        amount: finalAmount, // in paise
+        currency: 'INR',
+        discountApplied: discountApplied,
+        discountPercentage: discountApplied ? 50 : 0,
+        isStudent: isStudent,
+        isJobless: isJobless
       });
       
       if (response.orderId) {
@@ -372,6 +401,50 @@ export default function Subscription() {
                         )}
                       </div>
                       
+                      {/* Discount Eligibility */}
+                      <div className="space-y-3 border-t pt-3">
+                        <h4 className="font-medium text-sm">Available Discounts - 50% OFF</h4>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950 rounded">
+                            <input 
+                              type="checkbox" 
+                              id="student" 
+                              checked={isStudent}
+                              onChange={(e) => {
+                                setIsStudent(e.target.checked);
+                                setDiscountApplied(e.target.checked || isJobless);
+                              }}
+                              className="w-4 h-4"
+                              data-testid="checkbox-student"
+                            />
+                            <label htmlFor="student" className="text-sm cursor-pointer flex-1">
+                              I'm a Student (with valid .edu email)
+                            </label>
+                          </div>
+                          <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950 rounded">
+                            <input 
+                              type="checkbox" 
+                              id="jobless" 
+                              checked={isJobless}
+                              onChange={(e) => {
+                                setIsJobless(e.target.checked);
+                                setDiscountApplied(isStudent || e.target.checked);
+                              }}
+                              className="w-4 h-4"
+                              data-testid="checkbox-jobless"
+                            />
+                            <label htmlFor="jobless" className="text-sm cursor-pointer flex-1">
+                              I'm Unemployed/Recently Laid Off
+                            </label>
+                          </div>
+                          {discountApplied && (
+                            <div className="p-2 bg-blue-100 dark:bg-blue-950 rounded text-sm text-blue-800 dark:text-blue-200">
+                              ✓ You qualify for 50% discount! Price: ${(pricingInfo?.tiers?.premium?.displayPrice || 5) / 2}/month
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
                       {/* Payment Method Selection */}
                       <div className="space-y-3">
                         <h4 className="font-medium text-sm">Payment Method</h4>
@@ -431,6 +504,7 @@ export default function Subscription() {
                         onClick={handleUpgrade} 
                         disabled={upgradeMutation.isPending || isProcessingPayment}
                         className="w-full"
+                        data-testid="button-subscribe"
                       >
                         {upgradeMutation.isPending || isProcessingPayment ? (
                           <div className="flex items-center gap-2">
@@ -438,7 +512,7 @@ export default function Subscription() {
                             Processing Payment...
                           </div>
                         ) : (
-                          `Pay $10/month with ${selectedPaymentMethod === 'stripe' ? 'Stripe' : selectedPaymentMethod === 'paypal' ? 'PayPal' : 'Razorpay'}`
+                          `Pay $${getDiscountedPrice()}/month${discountApplied ? ' (50% OFF!)' : ''} with ${selectedPaymentMethod === 'stripe' ? 'Stripe' : selectedPaymentMethod === 'paypal' ? 'PayPal' : 'Razorpay'}`
                         )}
                       </Button>
                     </div>

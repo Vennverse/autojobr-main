@@ -96,6 +96,10 @@ export const users = pgTable("users", {
   hasUsedPremiumTrial: boolean("has_used_premium_trial").default(false),
   // Ranking test limits for free users
   freeRankingTestsRemaining: integer("freeRankingTestsRemaining").default(1).notNull(),
+  // Discount eligibility
+  isStudent: boolean("is_student").default(false),
+  isJobless: boolean("is_jobless").default(false),
+  studentEmailVerified: boolean("student_email_verified").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 },
