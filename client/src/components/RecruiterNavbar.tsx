@@ -101,9 +101,12 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
       return await response.json();
     },
     onSuccess: (data) => {
-      console.log('✅ [RECRUITER] Logout successful, clearing all state...');
+      console.log('✅ [RECRUITER] Logout successful, clearing cache...');
 
-      // CRITICAL: Clear ALL cached data
+      // CRITICAL: Invalidate auth query FIRST before clearing all cache
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+
+      // Then clear ALL other cached data
       queryClient.clear();
 
       // CRITICAL: Clear all browser storage
@@ -114,10 +117,9 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
       localStorage.clear();
       if (theme) localStorage.setItem('theme', theme);
 
-      console.log('✅ [RECRUITER] All state cleared, redirecting...');
+      console.log('✅ [RECRUITER] All state cleared, redirecting to login...');
 
-      // CRITICAL: Use replace to prevent back button issues and ensure clean redirect
-      // Redirect to auth page to ensure user sees login screen
+      // Use replace to prevent back button issues and ensure clean redirect
       window.location.replace('/auth');
     },
     onError: (error: any) => {

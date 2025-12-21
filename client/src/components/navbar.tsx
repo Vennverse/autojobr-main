@@ -87,9 +87,12 @@ export function Navbar() {
       return await response.json();
     },
     onSuccess: (data) => {
-      console.log('✅ [NAVBAR] Logout successful, forcing full page reload...');
+      console.log('✅ [NAVBAR] Logout successful, clearing cache...');
 
-      // CRITICAL: Clear ALL cached data immediately
+      // CRITICAL: Invalidate auth query FIRST before clearing all cache
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      
+      // Then clear ALL other cached data
       queryClient.clear();
 
       // CRITICAL: Clear all browser storage
@@ -100,12 +103,10 @@ export function Navbar() {
       localStorage.clear();
       if (theme) localStorage.setItem('theme', theme);
 
-      console.log('✅ [NAVBAR] All state cleared');
+      console.log('✅ [NAVBAR] All state cleared, redirecting to login...');
 
-      // CRITICAL: Force a HARD reload to completely refresh the page
-      // This ensures all JavaScript state is cleared and page fully reloads
-      window.location.href = '/auth';
-      window.location.reload();
+      // Use replace to prevent back button issues and ensure clean redirect
+      window.location.replace('/auth');
     },
     onError: (error: any) => {
       console.error('❌ [NAVBAR] Logout error:', error);

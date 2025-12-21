@@ -26,9 +26,9 @@ export function useAuth() {
   } = useQuery<User | undefined, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
-    staleTime: 5 * 60 * 1000, // 5 minutes - auth state doesn't change frequently
-    refetchOnWindowFocus: false,
-    refetchOnMount: false, // Use cached data, don't refetch on every mount
+    staleTime: 0, // Always fetch fresh auth state - critical for logout to work
+    refetchOnWindowFocus: true, // Refetch when window refocuses (tab switch/logout)
+    refetchOnMount: true, // Always verify auth state on mount
     retry: false,
   });
 
