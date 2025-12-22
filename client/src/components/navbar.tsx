@@ -103,10 +103,10 @@ export function Navbar() {
       localStorage.clear();
       if (theme) localStorage.setItem('theme', theme);
 
-      console.log('✅ [NAVBAR] All state cleared, redirecting to login...');
+      console.log('✅ [NAVBAR] All state cleared, redirecting to landing page...');
 
-      // Use replace to prevent back button issues and ensure clean redirect
-      window.location.replace('/auth');
+      // Use replace to prevent back button issues and redirect to landing page with refresh
+      window.location.replace('/');
     },
     onError: (error: any) => {
       console.error('❌ [NAVBAR] Logout error:', error);

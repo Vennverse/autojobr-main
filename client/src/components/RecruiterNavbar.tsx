@@ -117,10 +117,10 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
       localStorage.clear();
       if (theme) localStorage.setItem('theme', theme);
 
-      console.log('✅ [RECRUITER] All state cleared, redirecting to login...');
+      console.log('✅ [RECRUITER] All state cleared, redirecting to landing page...');
 
-      // Use replace to prevent back button issues and ensure clean redirect
-      window.location.replace('/auth');
+      // Use replace to prevent back button issues and redirect to landing page with refresh
+      window.location.replace('/');
     },
     onError: (error: any) => {
       console.error('❌ [RECRUITER] Logout error:', error);
@@ -139,8 +139,8 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
         variant: "destructive",
       });
 
-      // Force redirect to auth page anyway for security
-      window.location.replace('/auth');
+      // Force redirect to landing page anyway for security
+      window.location.replace('/');
     }
   });
 
