@@ -708,44 +708,128 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing with Social Proof & Urgency */}
-      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-900">
+      {/* Pricing with Discounts & Special Offers */}
+      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-8">
+          {/* Header */}
+          <div className="text-center mb-12">
             <Badge className="mb-4 bg-gradient-to-r from-orange-600 to-red-600 text-white px-4 py-2 animate-pulse">
-              <Clock className="w-4 h-4 mr-2" />
-              Limited Time: First 1,000 users get Premium FREE for 30 days
+              <Gift className="w-4 h-4 mr-2" />
+              Limited Time: Unlock up to 35% discount with our special offers
             </Badge>
-            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
-              Choose Your Plan
+            <h2 className="text-5xl font-bold bg-gradient-to-r from-slate-900 to-blue-600 dark:from-white dark:to-blue-400 bg-clip-text text-transparent mb-4">
+              Simple, Transparent Pricing
             </h2>
-            <p className="text-xl text-slate-600 dark:text-slate-300">
-              From quick wins to career transformation
+            <p className="text-xl text-slate-600 dark:text-slate-300 mb-2">
+              Choose the plan that fits your needs
             </p>
             <div className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-500">
               <Users className="w-4 h-4" />
-              <span>847 users upgraded to Premium this week</span>
+              <span>10,000+ users getting hired faster</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Special Discounts Section */}
+          <Card className="mb-12 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800">
+            <CardContent className="p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Left side - Discount Info */}
+                <div>
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+                    <Gift className="w-6 h-6 text-green-600" />
+                    Special Discounts Available
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="p-4 bg-white dark:bg-slate-800 rounded-lg border-l-4 border-green-600">
+                      <div className="flex items-center gap-3 mb-2">
+                        <BookOpen className="w-5 h-5 text-green-600" />
+                        <span className="font-semibold text-slate-900 dark:text-white">Student Discount</span>
+                        <Badge className="bg-green-600 text-white">-15%</Badge>
+                      </div>
+                      <p className="text-sm text-slate-600 dark:text-slate-300">Valid with student email or ID</p>
+                    </div>
+                    
+                    <div className="p-4 bg-white dark:bg-slate-800 rounded-lg border-l-4 border-green-600">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Briefcase className="w-5 h-5 text-green-600" />
+                        <span className="font-semibold text-slate-900 dark:text-white">Jobless Discount</span>
+                        <Badge className="bg-green-600 text-white">-20%</Badge>
+                      </div>
+                      <p className="text-sm text-slate-600 dark:text-slate-300">We support your career transition</p>
+                    </div>
+
+                    <div className="p-4 bg-white dark:bg-slate-800 rounded-lg border-l-4 border-green-600">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Sparkles className="w-5 h-5 text-green-600" />
+                        <span className="font-semibold text-slate-900 dark:text-white">Combine Both</span>
+                        <Badge className="bg-gradient-to-r from-green-600 to-emerald-600 text-white">-35%</Badge>
+                      </div>
+                      <p className="text-sm text-slate-600 dark:text-slate-300">Student + Jobless = save the most</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right side - Discount Selector & Examples */}
+                <div>
+                  <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Claim Your Discount</h4>
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-3 p-3 rounded-lg border-2 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer transition-colors"
+                         onClick={() => setIsStudent(!isStudent)}>
+                      <Checkbox 
+                        checked={isStudent}
+                        onCheckedChange={setIsStudent}
+                        className="w-5 h-5"
+                      />
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">I'm a Student</span>
+                    </div>
+
+                    <div className="flex items-center space-x-3 p-3 rounded-lg border-2 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer transition-colors"
+                         onClick={() => setIsJobless(!isJobless)}>
+                      <Checkbox 
+                        checked={isJobless}
+                        onCheckedChange={setIsJobless}
+                        className="w-5 h-5"
+                      />
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Currently Jobless</span>
+                    </div>
+                  </div>
+
+                  {(isStudent || isJobless) && (
+                    <div className="mt-4 p-3 rounded-lg bg-green-100 dark:bg-green-900/40 border border-green-300 dark:border-green-700">
+                      <p className="text-sm font-semibold text-green-700 dark:text-green-300">
+                        Your Discount: {(isStudent ? 15 : 0) + (isJobless ? 20 : 0)}% off
+                      </p>
+                      <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                        Apply this at checkout on our pricing page
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pricing Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
             {/* Monthly Access Plan */}
-            <Card className="border-2 hover:shadow-xl transition-shadow">
+            <Card className="border-2 hover:shadow-xl transition-all duration-300 group">
               <CardContent className="p-8">
                 <div className="text-center mb-4">
                   <Badge className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">
                     ⚡ Flexible Plan
                   </Badge>
                 </div>
-                <h3 className="text-2xl font-bold mb-2 text-center">MONTHLY ACCESS</h3>
-                <div className="text-center">
-                  <div className="text-4xl font-bold mb-2">$19<span className="text-lg text-slate-500">/month</span></div>
-                  <p className="text-sm text-slate-500 mb-4">$0.63/day</p>
+                <h3 className="text-2xl font-bold mb-2 text-center text-slate-900 dark:text-white">MONTHLY ACCESS</h3>
+                <div className="text-center mb-4">
+                  <div className="text-5xl font-bold text-slate-900 dark:text-white">$19
+                    <span className="text-lg text-slate-500 dark:text-slate-400">/mo</span>
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">$0.63/day</p>
                 </div>
                 <p className="text-sm text-center text-slate-600 dark:text-slate-300 mb-6 italic">
                   Try full access for a month — no subscription.
                 </p>
-                <ul className="space-y-3 mb-6">
+                <ul className="space-y-3 mb-8">
                   {[
                     "Same AI tools & Resume Builder",
                     "Ideal for quick job hunts",
@@ -753,25 +837,25 @@ export default function LandingPage() {
                     "Full access — no auto-renew"
                   ].map((feature, idx) => (
                     <li key={idx} className="flex items-start">
-                      <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm">{feature}</span>
+                      <CheckCircle className="w-5 h-5 text-yellow-500 mr-3 flex-shrink-0 mt-0.5" />
+                      <span className="text-sm text-slate-700 dark:text-slate-300">{feature}</span>
                     </li>
                   ))}
                 </ul>
                 <Link href="/job-seeker-premium">
-                  <Button className="w-full" variant="outline" size="lg" data-testid="button-monthly-access">
+                  <Button className="w-full group-hover:shadow-lg transition-all" variant="outline" size="lg" data-testid="button-monthly-access">
                     Start Monthly — $19
                   </Button>
                 </Link>
-                <p className="text-xs text-center text-slate-500 mt-3">One-time payment • No auto-renew</p>
+                <p className="text-xs text-center text-slate-500 dark:text-slate-400 mt-3">One-time payment • No auto-renew</p>
               </CardContent>
             </Card>
 
-            {/* Smart Saver Plan */}
-            <Card className="border-2 border-green-500 relative shadow-2xl hover:shadow-3xl transition-shadow scale-105">
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                <Badge className="bg-green-500 hover:bg-green-600 text-white px-4 py-1">
-                  <Star className="w-3 h-3 mr-1" />
+            {/* Smart Saver Plan - Most Popular */}
+            <Card className="border-2 border-green-500 relative shadow-2xl hover:shadow-3xl transition-all duration-300 scale-105 md:scale-100 lg:scale-105">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
+                <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-4 py-1 shadow-lg">
+                  <Star className="w-3 h-3 mr-1 fill-current" />
                   MOST POPULAR
                 </Badge>
               </div>
@@ -780,20 +864,22 @@ export default function LandingPage() {
                   <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
                     🏷️ Smart Saver
                   </Badge>
-                  <Badge className="mt-2 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 border-green-200">
-                    💚 Save $72/year — Cancel Anytime
+                  <Badge className="mt-2 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 border-green-200 dark:border-green-800">
+                    💚 Save $26–72/year
                   </Badge>
                 </div>
-                <h3 className="text-2xl font-bold mb-2 text-center">SMART SAVER</h3>
-                <div className="text-center">
-                  <div className="text-4xl font-bold mb-2">$13<span className="text-lg text-slate-500">/month</span></div>
-                  <p className="text-sm text-green-600 dark:text-green-400 mb-2">Save $26/year (billed yearly at $130)</p>
-                  <p className="text-sm text-slate-500 mb-4">$0.43/day — less than a coffee</p>
+                <h3 className="text-2xl font-bold mb-2 text-center text-slate-900 dark:text-white">SMART SAVER</h3>
+                <div className="text-center mb-4">
+                  <div className="text-5xl font-bold text-green-600 dark:text-green-400">$13
+                    <span className="text-lg text-slate-500 dark:text-slate-400">/mo</span>
+                  </div>
+                  <p className="text-sm text-green-600 dark:text-green-400 font-medium mt-2">With discount: from $11.05/mo</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">$0.43/day — less than a coffee</p>
                 </div>
                 <p className="text-sm text-center text-slate-600 dark:text-slate-300 mb-6 italic">
                   Everything you need to get hired — faster.
                 </p>
-                <ul className="space-y-3 mb-6">
+                <ul className="space-y-3 mb-8">
                   {[
                     "Unlimited Resumes & Job Tracking",
                     "AI Resume & Cover Letter Builder",
@@ -804,41 +890,43 @@ export default function LandingPage() {
                   ].map((feature, idx) => (
                     <li key={idx} className="flex items-start">
                       <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm font-medium">{feature}</span>
+                      <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{feature}</span>
                     </li>
                   ))}
                 </ul>
                 <Link href="/job-seeker-premium">
-                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white" size="lg" data-testid="button-smart-saver">
+                  <Button className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all" size="lg" data-testid="button-smart-saver">
                     Get Started — $13/mo
                     <Sparkles className="w-4 h-4 ml-2" />
                   </Button>
                 </Link>
-                <p className="text-xs text-center text-slate-500 mt-3">Auto-renew • Cancel anytime</p>
+                <p className="text-xs text-center text-slate-500 dark:text-slate-400 mt-3">Auto-renew • Cancel anytime</p>
               </CardContent>
             </Card>
 
             {/* Ultra Plan */}
-            <Card className="border-2 border-blue-500 hover:shadow-xl transition-shadow">
+            <Card className="border-2 border-blue-500 hover:shadow-xl transition-all duration-300 group">
               <CardContent className="p-8">
                 <div className="text-center mb-4">
                   <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                     💎 Premium Experience
                   </Badge>
-                  <Badge className="mt-2 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 border-blue-200">
-                    ✨ For serious professionals
+                  <Badge className="mt-2 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-800">
+                    ✨ Save $48/year
                   </Badge>
                 </div>
-                <h3 className="text-2xl font-bold mb-2 text-center">ULTRA PLAN</h3>
-                <div className="text-center">
-                  <div className="text-4xl font-bold mb-2">$24<span className="text-lg text-slate-500">/month</span></div>
-                  <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">Save $48/year (billed yearly at $240)</p>
-                  <p className="text-sm text-slate-500 mb-4">$0.80/day</p>
+                <h3 className="text-2xl font-bold mb-2 text-center text-slate-900 dark:text-white">ULTRA PLAN</h3>
+                <div className="text-center mb-4">
+                  <div className="text-5xl font-bold text-blue-600 dark:text-blue-400">$24
+                    <span className="text-lg text-slate-500 dark:text-slate-400">/mo</span>
+                  </div>
+                  <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mt-2">With discount: from $15.60/mo</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">$0.80/day</p>
                 </div>
                 <p className="text-sm text-center text-slate-600 dark:text-slate-300 mb-6 italic">
                   Go beyond applications — accelerate your entire career.
                 </p>
-                <ul className="space-y-3 mb-6">
+                <ul className="space-y-3 mb-8">
                   {[
                     "Everything in Smart Saver, plus:",
                     "Unlimited AI Applications & Interviews",
@@ -849,17 +937,17 @@ export default function LandingPage() {
                   ].map((feature, idx) => (
                     <li key={idx} className="flex items-start">
                       <CheckCircle className="w-5 h-5 text-blue-500 mr-3 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm font-medium">{feature}</span>
+                      <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{feature}</span>
                     </li>
                   ))}
                 </ul>
                 <Link href="/job-seeker-premium">
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white" size="lg" data-testid="button-ultra-plan">
+                  <Button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white group-hover:shadow-lg transition-all" size="lg" data-testid="button-ultra-plan">
                     Upgrade to Ultra — $24/mo
                     <Crown className="w-4 h-4 ml-2" />
                   </Button>
                 </Link>
-                <p className="text-xs text-center text-slate-500 mt-3">Auto-renew • Cancel anytime</p>
+                <p className="text-xs text-center text-slate-500 dark:text-slate-400 mt-3">Auto-renew • Cancel anytime</p>
               </CardContent>
             </Card>
           </div>
