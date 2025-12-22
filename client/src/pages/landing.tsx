@@ -30,8 +30,11 @@ import {
   Shield,
   Lock,
   HelpCircle,
-  FileText
+  FileText,
+  BookOpen,
+  Gift
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import logoImage from "@assets/generated_images/AutoJobr_professional_logo_17c702fa_optimized.png";
 
 // Top companies in referral network
@@ -146,6 +149,8 @@ export default function LandingPage() {
   const [liveApplications, setLiveApplications] = useState(14789);
   const [filteredCompanies, setFilteredCompanies] = useState<string[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isStudent, setIsStudent] = useState(false);
+  const [isJobless, setIsJobless] = useState(false);
 
   // Auto-rotate hero slides
   useEffect(() => {
