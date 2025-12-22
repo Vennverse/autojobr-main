@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Check, 
@@ -23,7 +24,9 @@ import {
   Award,
   Gift,
   Coffee,
-  Star
+  Star,
+  BookOpen,
+  Briefcase as JoblessIcon
 } from "lucide-react";
 import PayPalSubscriptionButton from "@/components/PayPalSubscriptionButton";
 import SimplePaymentGatewaySelector from "@/components/SimplePaymentGatewaySelector";
@@ -125,6 +128,8 @@ export default function JobSeekerPremium() {
   const [paymentGateway, setPaymentGateway] = useState<'paypal' | 'razorpay' | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [isStudent, setIsStudent] = useState(false);
+  const [isJobless, setIsJobless] = useState(false);
 
   // Fetch user data for email
   const { data: user } = useQuery<{email?: string}>({
@@ -163,6 +168,23 @@ export default function JobSeekerPremium() {
     return selectedBillingCycle === 'yearly' && selectedTier.yearlyPrice 
       ? selectedTier.yearlyPrice 
       : selectedTier.monthlyPrice;
+  };
+
+  const getDiscountedPrice = (basePrice: number) => {
+    let discountPercent = 0;
+    if (isStudent) discountPercent += 15;
+    if (isJobless) discountPercent += 20;
+    if (discountPercent > 0) {
+      return Math.round(basePrice * (1 - discountPercent / 100) * 100) / 100;
+    }
+    return basePrice;
+  };
+
+  const getTotalDiscount = () => {
+    let discount = 0;
+    if (isStudent) discount += 15;
+    if (isJobless) discount += 20;
+    return discount;
   };
 
   const getCardGlow = (color: string) => {
@@ -250,6 +272,68 @@ export default function JobSeekerPremium() {
           </Button>
         </div>
 
+        {/* Student & Jobless Discount Section */}
+        <Card className="max-w-2xl mx-auto border-green-500/30 bg-green-50 dark:bg-green-950/20" data-testid="card-student-jobless-discount">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Gift className="w-5 h-5 text-green-600" />
+              Special Discounts Available
+            </CardTitle>
+            <CardDescription>
+              Claim your discount if applicable
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="flex items-center space-x-3 p-3 rounded-lg border border-green-200 dark:border-green-800 hover-elevate cursor-pointer" 
+                   onClick={() => setIsStudent(!isStudent)}
+                   data-testid="checkbox-student-discount">
+                <Checkbox 
+                  checked={isStudent}
+                  onCheckedChange={setIsStudent}
+                  className="w-5 h-5"
+                  data-testid="input-student-checkbox"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-green-600" />
+                    <label className="font-medium text-sm cursor-pointer">Student Discount</label>
+                    <Badge className="bg-green-600 text-white text-xs">-15%</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Valid with student email or ID</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3 p-3 rounded-lg border border-green-200 dark:border-green-800 hover-elevate cursor-pointer"
+                   onClick={() => setIsJobless(!isJobless)}
+                   data-testid="checkbox-jobless-discount">
+                <Checkbox 
+                  checked={isJobless}
+                  onCheckedChange={setIsJobless}
+                  className="w-5 h-5"
+                  data-testid="input-jobless-checkbox"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <JoblessIcon className="w-4 h-4 text-green-600" />
+                    <label className="font-medium text-sm cursor-pointer">Currently Jobless</label>
+                    <Badge className="bg-green-600 text-white text-xs">-20%</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">We support your career transition</p>
+                </div>
+              </div>
+            </div>
+            
+            {getTotalDiscount() > 0 && (
+              <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700">
+                <p className="text-sm font-semibold text-green-700 dark:text-green-400">
+                  Total Discount: {getTotalDiscount()}% off all plans!
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Pricing Cards */}
         <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
           {pricingTiers.map((tier, index) => {
@@ -310,12 +394,22 @@ export default function JobSeekerPremium() {
                   {/* Price */}
                   <div className="text-center space-y-1">
                     <div className="flex items-baseline justify-center gap-1">
+                      {getTotalDiscount() > 0 && (
+                        <span className="text-2xl font-semibold text-muted-foreground line-through">
+                          ${displayPrice}
+                        </span>
+                      )}
                       <span className="text-5xl font-bold" data-testid={`text-price-${tier.id}`}>
-                        ${displayPrice}
+                        ${getDiscountedPrice(displayPrice)}
                       </span>
                       <span className="text-muted-foreground text-lg">/ {priceLabel}</span>
                     </div>
-                    {billingCycle === 'yearly' && tier.yearlyDiscount && (
+                    {getTotalDiscount() > 0 && (
+                      <p className="text-sm text-green-600 dark:text-green-400 font-semibold">
+                        You save ${(displayPrice - getDiscountedPrice(displayPrice)).toFixed(2)}/{priceLabel}
+                      </p>
+                    )}
+                    {billingCycle === 'yearly' && tier.yearlyDiscount && getTotalDiscount() === 0 && (
                       <p className="text-sm text-green-600 dark:text-green-400 font-medium">
                         Save ${tier.yearlyDiscount}/year
                       </p>
