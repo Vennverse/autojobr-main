@@ -577,7 +577,8 @@ export default function JobSeekerPremium() {
               Complete Your Subscription
             </DialogTitle>
             <DialogDescription>
-              You've selected: <strong>{selectedTier?.name}</strong> at ${getSelectedPrice()}/{selectedBillingCycle === 'yearly' ? 'year' : 'month'}
+              You've selected: <strong>{selectedTier?.name}</strong> at ${getDiscountedPrice(getSelectedPrice())}/{selectedBillingCycle === 'yearly' ? 'year' : 'month'}
+              {getTotalDiscount() > 0 && <span className="text-green-600 dark:text-green-400 font-semibold ml-1">({getTotalDiscount()}% off applied)</span>}
             </DialogDescription>
           </DialogHeader>
 
@@ -600,7 +601,7 @@ export default function JobSeekerPremium() {
                 {paymentGateway === 'paypal' && user?.email && selectedTier && (
                   <PayPalSubscriptionButton
                     tierId={getSelectedTierId()}
-                    amount={getSelectedPrice().toString()}
+                    amount={getDiscountedPrice(getSelectedPrice()).toString()}
                     currency="USD"
                     planName={selectedTier.name}
                     userType="jobseeker"
@@ -627,7 +628,7 @@ export default function JobSeekerPremium() {
                   <RazorpaySubscriptionButton
                     tierId={getSelectedTierId()}
                     tierName={selectedTier.name}
-                    price={getSelectedPrice()}
+                    price={getDiscountedPrice(getSelectedPrice())}
                     userEmail={user.email}
                     onSuccess={() => {
                       toast({

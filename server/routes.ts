@@ -7584,7 +7584,7 @@ Generate ONLY the connection note text, nothing else.`
   }));
 
   app.post("/api/subscription/create", isAuthenticated, asyncHandler(async (req: any, res: any) => {
-    const { tierId, paymentMethod = 'paypal', userType } = req.body;
+    const { tierId, amount, paymentMethod = 'paypal', userType } = req.body;
     const userId = req.user.id;
     const userEmail = req.user.email;
 
@@ -7600,6 +7600,9 @@ Generate ONLY the connection note text, nothing else.`
       return res.status(400).json({ error: 'Invalid tier ID' });
     }
 
+    // Use the provided amount (which may be discounted) or fall back to tier price
+    const paymentAmount = amount ? parseFloat(amount) : selectedTier.price;
+
     // For PayPal subscriptions, create monthly recurring subscription
     if (paymentMethod === 'paypal') {
       const { PayPalSubscriptionService } = await import('./paypalSubscriptionService');
@@ -7609,7 +7612,7 @@ Generate ONLY the connection note text, nothing else.`
         const subscription = await paypalService.createSubscription(
           userId,
           selectedTier.name,
-          selectedTier.price,
+          paymentAmount,
           userType,
           userEmail
         );
@@ -7622,7 +7625,7 @@ Generate ONLY the connection note text, nothing else.`
           paypalSubscriptionId: subscription.subscriptionId,
           status: 'pending',
           paymentMethod: 'paypal',
-          amount: selectedTier.price.toString(),
+          amount: paymentAmount.toString(),
           currency: 'USD',
           billingCycle: 'monthly',
           startDate: new Date(),
@@ -7656,7 +7659,7 @@ Generate ONLY the connection note text, nothing else.`
         const subscription = await razorpayService.createSubscription(
           userId,
           selectedTier.name,
-          selectedTier.price,
+          paymentAmount,
           'monthly',
           userEmail
         );
@@ -7681,7 +7684,7 @@ Generate ONLY the connection note text, nothing else.`
 
   // Razorpay-specific subscription endpoint for frontend component
   app.post("/api/subscription/razorpay/create", isAuthenticated, asyncHandler(async (req: any, res: any) => {
-    const { tierId, userEmail } = req.body;
+    const { tierId, amount, userEmail } = req.body;
     const userId = req.user.id;
     const email = userEmail || req.user.email;
 
@@ -7707,11 +7710,14 @@ Generate ONLY the connection note text, nothing else.`
         return res.status(400).json({ error: 'Invalid tier ID' });
       }
 
+      // Use the provided amount (which may be discounted) or fall back to tier price
+      const paymentAmount = amount ? parseFloat(amount) : selectedTier.price;
+
       // Create Razorpay subscription
       const subscription = await razorpayService.createSubscription(
         userId,
         selectedTier.name,
-        selectedTier.price,
+        paymentAmount,
         selectedTier.billingCycle || 'monthly',
         email
       );

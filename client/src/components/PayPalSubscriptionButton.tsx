@@ -49,6 +49,7 @@ export default function PayPalSubscriptionButton({
         },
         body: JSON.stringify({
           tierId: tierId,
+          amount: amount,
           paymentMethod: 'paypal',
           userType: userType
         }),

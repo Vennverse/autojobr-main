@@ -57,6 +57,7 @@ export default function RazorpaySubscriptionButton({
     mutationFn: async () => {
       const response = await apiRequest('/api/subscription/razorpay/create', 'POST', {
         tierId,
+        amount: price,
         userEmail
       });
       return response;
