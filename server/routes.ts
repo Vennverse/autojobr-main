@@ -11163,13 +11163,29 @@ Respond directly without any JSON formatting.`;
         return res.status(400).json({ message: "Department is required" });
       }
       if (!companyName || typeof companyName !== 'string' || companyName.trim() === '') {
-        return res.status(400).json({ message: "Company name is required" });
+        // Fallback to email domain if company name is missing
+        const userEmail = req.user.email;
+        if (userEmail && userEmail.includes('@')) {
+          const domain = userEmail.split('@')[1];
+          const blockedDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com'];
+          if (!blockedDomains.includes(domain.toLowerCase())) {
+            const domainName = domain.split('.')[0];
+            const fallbackCompanyName = domainName.charAt(0).toUpperCase() + domainName.slice(1);
+            req.body.companyName = fallbackCompanyName;
+          } else {
+            return res.status(400).json({ message: "Company name is required" });
+          }
+        } else {
+          return res.status(400).json({ message: "Company name is required" });
+        }
       }
+
+      const finalCompanyName = req.body.companyName;
 
       // Update user with company info
       await db.update(schema.users)
         .set({ 
-          companyName: companyName.trim(), 
+          companyName: finalCompanyName.trim(), 
           companyWebsite: companyWebsite?.trim() || null 
         })
         .where(eq(schema.users.id, userId));
