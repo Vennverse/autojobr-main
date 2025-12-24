@@ -77,7 +77,7 @@ const heroSlides = [
     badge: "AI Interview Prep",
     title: "Ace Interviews with AI Feedback",
     highlight: "Real-Time",
-    subtitle: "Practice with AI that analyzes your body language, speech, and answers. Get real-time feedback for every interview.",
+    subtitle: "Practice realistic interviews with AI that analyzes your body language, speech clarity, and answers in real time. Get instant, actionable feedback after every response—so you know exactly what to improve before the real interview.",
     stat: "Video + Voice Analysis",
     cta: "Start Practicing",
     ctaLink: "/auth",
