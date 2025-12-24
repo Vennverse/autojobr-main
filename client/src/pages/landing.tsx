@@ -51,95 +51,40 @@ const metrics = {
   avgTimeToInterview: "7 days"
 };
 
-// Hero slides showcasing different features - AI tools first, then unique differentiators
+// Hero slides - 3 key value propositions
 const heroSlides = [
   {
-    badge: "AI Coach",
-    title: "Your Personal AI Career Coach",
-    highlight: "AI-Powered",
-    subtitle: "Get personalized career guidance, interview prep, and job search strategies powered by advanced AI",
-    stat: "85% Success Rate",
-    cta: "Start Coaching",
-    ctaLink: "/virtual-interview/new",
-    icon: Brain,
+    badge: "Get Referred to Top Companies",
+    title: "Direct Referrals Skip HR",
+    highlight: "Referrals",
+    subtitle: "Connect with employees at 500+ top companies who provide guaranteed referrals. Get 300% higher interview rates.",
+    stat: "300% Higher Interview Rate",
+    cta: "Get Started",
+    ctaLink: "/auth",
+    icon: Handshake,
     color: "from-blue-600 to-purple-600"
   },
   {
-    badge: "Practice Makes Perfect",
+    badge: "AI Interview Prep",
     title: "Ace Interviews with AI Feedback",
     highlight: "Real-Time",
-    subtitle: "Practice with AI that analyzes body language, speech, and answers in real-time",
+    subtitle: "Practice with AI that analyzes your body language, speech, and answers. Get real-time feedback for every interview.",
     stat: "Video + Voice Analysis",
     cta: "Start Practicing",
-    ctaLink: "/virtual-interview/new",
+    ctaLink: "/auth",
     icon: Video,
-    color: "from-orange-600 to-red-600"
-  },
-  {
-    badge: "Daily Essential",
-    title: "Generate Perfect Cover Letters",
-    highlight: "AI-Powered",
-    subtitle: "Create personalized, compelling cover letters in seconds using advanced AI",
-    stat: "10x Faster Applications",
-    cta: "Generate Cover Letter",
-    ctaLink: "/cover-letter-generator",
-    icon: Sparkles,
     color: "from-purple-600 to-pink-600"
   },
   {
-    badge: "Smart Analysis",
-    title: "Optimize Your Resume with AI",
-    highlight: "ATS Score",
-    subtitle: "Get instant AI analysis and optimization tips to pass automated screening",
-    stat: "Pass 95% of ATS Systems",
-    cta: "Analyze Resume Free",
-    ctaLink: "/resumes",
-    icon: Target,
-    color: "from-green-600 to-teal-600"
-  },
-  {
-    badge: "AI Job Search",
-    title: "Find Perfect Jobs Instantly",
-    highlight: "Smart Matching",
-    subtitle: "AI learns your preferences and shows only relevant opportunities from 100+ boards",
-    stat: "Better Job Matches",
-    cta: "Search Jobs Now",
-    ctaLink: "/jobs",
-    icon: Search,
-    color: "from-indigo-600 to-blue-600"
-  },
-  {
-    badge: "Time Saver",
-    title: "Apply to Jobs in 1 Click",
-    highlight: "Chrome Extension",
-    subtitle: "Auto-fill applications across 100+ job boards with human-like precision",
+    badge: "One-Click Applications",
+    title: "Apply to 10x More Jobs",
+    highlight: "Automatically",
+    subtitle: "Auto-fill and apply across 100+ job boards with precision. Spend more time preparing, less time applying.",
     stat: "Apply 10x Faster",
     cta: "Install Extension",
-    ctaLink: "/extension",
+    ctaLink: "/auth",
     icon: Zap,
-    color: "from-yellow-600 to-orange-600"
-  },
-  {
-    badge: "Unique Advantage",
-    title: "Get Referred to Your Dream Company",
-    highlight: "Referrals",
-    subtitle: "Skip HR. Get direct referrals from 10,000+ employees at 500+ top companies",
-    stat: "300% Higher Interview Rate",
-    cta: "Browse Referral Partners",
-    ctaLink: "/referral-marketplace",
-    icon: Handshake,
-    color: "from-blue-600 to-cyan-600"
-  },
-  {
-    badge: "For Recruiters",
-    title: "Hire Top Talent with AI Screening",
-    highlight: "60% Faster",
-    subtitle: "Post jobs, screen candidates with AI, and find perfect matches in minutes",
-    stat: "AI-Powered Matching",
-    cta: "Start Recruiting",
-    ctaLink: "/employer-features",
-    icon: Users,
-    color: "from-teal-600 to-emerald-600"
+    color: "from-green-600 to-teal-600"
   }
 ];
 
@@ -151,14 +96,16 @@ export default function LandingPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isStudent, setIsStudent] = useState(false);
   const [isJobless, setIsJobless] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
 
-  // Auto-rotate hero slides
+  // Auto-rotate hero slides with pause on hover
   useEffect(() => {
+    if (isHovering) return;
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-    }, 5000); // Change slide every 5 seconds
+    }, 8000); // Change slide every 8 seconds
     return () => clearInterval(interval);
-  }, []);
+  }, [isHovering]);
 
   // Live application counter
   useEffect(() => {
@@ -265,47 +212,28 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero Section - Auto-Rotating Slider with Animated Background */}
+      {/* Hero Section - Auto-Rotating Slider */}
       <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        {/* Animated Background Elements */}
+        {/* Simplified Background - Reduced animations */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {/* Gradient Orbs */}
-          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-          <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-pink-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-          
-          {/* Floating Icons */}
-          <div className="absolute top-32 right-1/4 animate-bounce" style={{ animationDuration: '3s' }}>
-            <Brain className="w-12 h-12 text-blue-400/30" />
-          </div>
-          <div className="absolute bottom-40 left-1/4 animate-bounce" style={{ animationDuration: '4s', animationDelay: '0.5s' }}>
-            <Zap className="w-10 h-10 text-yellow-400/30" />
-          </div>
-          <div className="absolute top-1/3 right-20 animate-bounce" style={{ animationDuration: '3.5s', animationDelay: '1s' }}>
-            <Target className="w-14 h-14 text-green-400/30" />
-          </div>
-          <div className="absolute bottom-1/3 left-16 animate-bounce" style={{ animationDuration: '4.5s', animationDelay: '1.5s' }}>
-            <Video className="w-11 h-11 text-orange-400/30" />
-          </div>
-          <div className="absolute top-2/3 right-1/3 animate-bounce" style={{ animationDuration: '3.8s', animationDelay: '0.8s' }}>
-            <Handshake className="w-13 h-13 text-purple-400/30" />
-          </div>
-          
-          {/* Animated Gradient Lines */}
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent animate-pulse"></div>
-          <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-500/50 to-transparent animate-pulse" style={{ animationDelay: '1.5s' }}></div>
+          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
         </div>
 
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-12">
             {/* Live Stats Badge */}
             <Badge className="mb-6 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 border-green-200 dark:border-green-800 px-4 py-2 text-sm font-medium">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
               {liveApplications.toLocaleString()} applications submitted today
             </Badge>
             
-            {/* Auto-Rotating Hero Content */}
-            <div className="relative min-h-[400px] flex items-center justify-center">
+            {/* Auto-Rotating Hero Content with hover pause */}
+            <div 
+              className="relative min-h-[400px] flex items-center justify-center"
+              onMouseEnter={() => setIsHovering(true)}
+              onMouseLeave={() => setIsHovering(false)}
+            >
               {heroSlides.map((slide, index) => (
                 <div
                   key={index}
