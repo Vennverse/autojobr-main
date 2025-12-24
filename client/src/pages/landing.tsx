@@ -37,10 +37,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   SiGoogle,
-  SiMicrosoft,
   SiApple,
   SiAmazon,
-  SiMeta,
   SiNetflix,
   SiTesla,
   SiNvidia
@@ -342,8 +340,8 @@ export default function LandingPage() {
             <div className="flex items-center justify-center" data-testid="logo-google">
               <SiGoogle className="w-10 h-10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors" title="Google" />
             </div>
-            <div className="flex items-center justify-center" data-testid="logo-microsoft">
-              <SiMicrosoft className="w-10 h-10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors" title="Microsoft" />
+            <div className="flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors font-bold text-lg" data-testid="logo-microsoft" title="Microsoft">
+              M
             </div>
             <div className="flex items-center justify-center" data-testid="logo-apple">
               <SiApple className="w-10 h-10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors" title="Apple" />
@@ -351,8 +349,8 @@ export default function LandingPage() {
             <div className="flex items-center justify-center" data-testid="logo-amazon">
               <SiAmazon className="w-10 h-10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors" title="Amazon" />
             </div>
-            <div className="flex items-center justify-center" data-testid="logo-meta">
-              <SiMeta className="w-10 h-10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors" title="Meta" />
+            <div className="flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors font-bold text-lg" data-testid="logo-meta" title="Meta">
+              f
             </div>
             <div className="flex items-center justify-center" data-testid="logo-netflix">
               <SiNetflix className="w-10 h-10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors" title="Netflix" />
