@@ -46,6 +46,7 @@ import {
   SiNvidia
 } from "react-icons/si";
 import logoImage from "@assets/generated_images/AutoJobr_professional_logo_17c702fa_optimized.png";
+import interviewPrepImage from "@assets/image_1766587292974.png";
 
 // Top companies in referral network
 const topCompanies = [
@@ -112,10 +113,10 @@ export default function LandingPage() {
   useEffect(() => {
     if (isHovering) return;
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+      setCurrentSlide((prev) => (prev + 1) % 3);
     }, 8000); // Change slide every 8 seconds
     return () => clearInterval(interval);
-  }, [isHovering]);
+  }, [isHovering, currentSlide]);
 
   // Live application counter
   useEffect(() => {
@@ -361,6 +362,96 @@ export default function LandingPage() {
             </div>
             <div className="flex items-center justify-center" data-testid="logo-nvidia">
               <SiNvidia className="w-10 h-10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors" title="Nvidia" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* AI Premium Products Section - Main Value Proposition */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-50 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Premium AI-Powered Tools
+            </Badge>
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
+              Why Premium Users Get <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">3X More Interviews</span>
+            </h2>
+            <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
+              AI-powered interview prep, resume optimization, and cover letter generation give you the competitive edge
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6">
+              <div className="flex gap-4">
+                <div className="flex-shrink-0">
+                  <div className="flex items-center justify-center h-12 w-12 rounded-md bg-gradient-to-br from-purple-600 to-pink-600">
+                    <Video className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">AI Interview Prep</h3>
+                  <p className="text-slate-600 dark:text-slate-300">Real-time video & voice analysis with personalized feedback for Google, Microsoft, Amazon & more</p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex-shrink-0">
+                  <div className="flex items-center justify-center h-12 w-12 rounded-md bg-gradient-to-br from-blue-600 to-purple-600">
+                    <Brain className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Resume Optimization</h3>
+                  <p className="text-slate-600 dark:text-slate-300">AI beats ATS systems and gets past initial screening with keyword optimization</p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex-shrink-0">
+                  <div className="flex items-center justify-center h-12 w-12 rounded-md bg-gradient-to-br from-green-600 to-teal-600">
+                    <FileText className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Cover Letter Generator</h3>
+                  <p className="text-slate-600 dark:text-slate-300">AI-generated, personalized cover letters for every job application</p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex-shrink-0">
+                  <div className="flex items-center justify-center h-12 w-12 rounded-md bg-gradient-to-br from-orange-600 to-red-600">
+                    <Zap className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Premium Referrals</h3>
+                  <p className="text-slate-600 dark:text-slate-300">Get priority referrals from verified employees at FAANG companies</p>
+                </div>
+              </div>
+              <Link href="/auth">
+                <Button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white mt-4" size="lg" data-testid="button-try-premium">
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  Try Premium Free (7 Days)
+                </Button>
+              </Link>
+            </div>
+
+            <div className="relative">
+              <img 
+                src={interviewPrepImage} 
+                alt="Premium Interview Prep Offerings" 
+                className="rounded-lg shadow-2xl w-full h-auto" 
+                data-testid="image-premium-offerings"
+              />
+              <div className="absolute -bottom-4 -right-4 bg-white dark:bg-slate-800 rounded-lg p-4 shadow-lg border border-slate-200 dark:border-slate-700">
+                <p className="text-sm font-bold text-slate-900 dark:text-white mb-2">Premium Includes:</p>
+                <ul className="text-xs space-y-1 text-slate-600 dark:text-slate-300">
+                  <li>✓ Video Interview Analysis</li>
+                  <li>✓ Real Company Prep</li>
+                  <li>✓ Verified Referrals Included</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
