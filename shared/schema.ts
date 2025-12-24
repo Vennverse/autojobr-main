@@ -1632,18 +1632,19 @@ export const insertUserProfileSchema = createInsertSchema(userProfiles).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-}).refine((data) => {
-  // Coerce string values to proper types for form submissions
-  if (typeof data.hasHiredBefore === 'string') {
-    data.hasHiredBefore = data.hasHiredBefore === 'true' || data.hasHiredBefore === '1';
-  }
-  if (typeof data.yearsHiringExperience === 'string') {
-    data.yearsHiringExperience = parseInt(data.yearsHiringExperience, 10);
-  }
-  if (typeof data.requiresSponsorship === 'string') {
-    data.requiresSponsorship = data.requiresSponsorship === 'true' || data.requiresSponsorship === '1';
-  }
-  return data;
+}).extend({
+  hasHiredBefore: z.preprocess((val) => {
+    if (typeof val === 'string') return val === 'true' || val === '1';
+    return val;
+  }, z.boolean().default(false)),
+  yearsHiringExperience: z.preprocess((val) => {
+    if (typeof val === 'string') return parseInt(val, 10);
+    return val;
+  }, z.number().nullable()),
+  requiresSponsorship: z.preprocess((val) => {
+    if (typeof val === 'string') return val === 'true' || val === '1';
+    return val;
+  }, z.boolean().default(false)),
 });
 
 export const insertUserSkillSchema = createInsertSchema(userSkills).omit({
