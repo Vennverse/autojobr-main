@@ -35,6 +35,16 @@ import {
   Gift
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  SiGoogle,
+  SiMicrosoft,
+  SiApple,
+  SiAmazon,
+  SiMeta,
+  SiNetflix,
+  SiTesla,
+  SiNvidia
+} from "react-icons/si";
 import logoImage from "@assets/generated_images/AutoJobr_professional_logo_17c702fa_optimized.png";
 
 // Top companies in referral network
@@ -314,6 +324,43 @@ export default function LandingPage() {
                 <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
                 No spam, guaranteed
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Company Logos - Referrer Network */}
+      <section className="py-16 bg-gradient-to-b from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border-t border-slate-200 dark:border-slate-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <p className="text-slate-600 dark:text-slate-300 font-medium mb-8">
+              Our premium users have referrers from leading companies
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
+            <div className="flex items-center justify-center" data-testid="logo-google">
+              <SiGoogle className="w-10 h-10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors" title="Google" />
+            </div>
+            <div className="flex items-center justify-center" data-testid="logo-microsoft">
+              <SiMicrosoft className="w-10 h-10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors" title="Microsoft" />
+            </div>
+            <div className="flex items-center justify-center" data-testid="logo-apple">
+              <SiApple className="w-10 h-10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors" title="Apple" />
+            </div>
+            <div className="flex items-center justify-center" data-testid="logo-amazon">
+              <SiAmazon className="w-10 h-10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors" title="Amazon" />
+            </div>
+            <div className="flex items-center justify-center" data-testid="logo-meta">
+              <SiMeta className="w-10 h-10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors" title="Meta" />
+            </div>
+            <div className="flex items-center justify-center" data-testid="logo-netflix">
+              <SiNetflix className="w-10 h-10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors" title="Netflix" />
+            </div>
+            <div className="flex items-center justify-center" data-testid="logo-tesla">
+              <SiTesla className="w-10 h-10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors" title="Tesla" />
+            </div>
+            <div className="flex items-center justify-center" data-testid="logo-nvidia">
+              <SiNvidia className="w-10 h-10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors" title="Nvidia" />
             </div>
           </div>
         </div>
