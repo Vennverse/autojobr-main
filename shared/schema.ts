@@ -1632,6 +1632,18 @@ export const insertUserProfileSchema = createInsertSchema(userProfiles).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).refine((data) => {
+  // Coerce string values to proper types for form submissions
+  if (typeof data.hasHiredBefore === 'string') {
+    data.hasHiredBefore = data.hasHiredBefore === 'true' || data.hasHiredBefore === '1';
+  }
+  if (typeof data.yearsHiringExperience === 'string') {
+    data.yearsHiringExperience = parseInt(data.yearsHiringExperience, 10);
+  }
+  if (typeof data.requiresSponsorship === 'string') {
+    data.requiresSponsorship = data.requiresSponsorship === 'true' || data.requiresSponsorship === '1';
+  }
+  return data;
 });
 
 export const insertUserSkillSchema = createInsertSchema(userSkills).omit({
