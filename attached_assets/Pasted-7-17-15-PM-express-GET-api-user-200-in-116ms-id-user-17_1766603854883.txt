@@ -1,0 +1,66 @@
+7:17:15 PM [express] GET /api/user 200 in 116ms :: {"id":"user-1758023269899-edltdmjgu","email":"shu…
+Error updating profile: ZodError: [
+  {
+    "code": "invalid_type",
+    "expected": "boolean",
+    "received": "string",
+    "path": [
+      "hasHiredBefore"
+    ],
+    "message": "Expected boolean, received string"
+  },
+  {
+    "code": "invalid_type",
+    "expected": "number",
+    "received": "string",
+    "path": [
+      "yearsHiringExperience"
+    ],
+    "message": "Expected number, received string"
+  }
+]
+    at get error [as error] (file:///home/runner/workspace/node_modules/zod/v3/types.js:39:31)
+    at ZodObject.parse (file:///home/runner/workspace/node_modules/zod/v3/types.js:114:22)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:8531:51)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at next (/home/runner/workspace/node_modules/express/lib/router/route.js:149:13)
+    at isAuthenticated (/home/runner/workspace/server/auth.ts:1953:16)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at next (/home/runner/workspace/node_modules/express/lib/router/route.js:149:13)
+    at Route.dispatch (/home/runner/workspace/node_modules/express/lib/router/route.js:119:3)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5) {
+  issues: [
+    {
+      code: 'invalid_type',
+      expected: 'boolean',
+      received: 'string',
+      path: [Array],
+      message: 'Expected boolean, received string'
+    },
+    {
+      code: 'invalid_type',
+      expected: 'number',
+      received: 'string',
+      path: [Array],
+      message: 'Expected number, received string'
+    }
+  ],
+  addIssue: [Function (anonymous)],
+  addIssues: [Function (anonymous)],
+  errors: [
+    {
+      code: 'invalid_type',
+      expected: 'boolean',
+      received: 'string',
+      path: [Array],
+      message: 'Expected boolean, received string'
+    },
+    {
+      code: 'invalid_type',
+      expected: 'number',
+      received: 'string',
+      path: [Array],
+      message: 'Expected number, received string'
+    }
+  ]
+}
