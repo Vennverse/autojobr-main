@@ -64,8 +64,8 @@ const metrics = {
 const heroSlides = [
   {
     badge: "Get Referred to Top Companies",
-    title: "Direct Referrals Skip HR",
-    highlight: "Referrals",
+    title: "Skip Cold Applications. Get Seen Faster.",
+    highlight: "Skip Cold Applications",
     subtitle: "Connect with employees at 500+ top companies who provide guaranteed referrals. Get 300% higher interview rates.",
     stat: "300% Higher Interview Rate",
     cta: "Get Started",
