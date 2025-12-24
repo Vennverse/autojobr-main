@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
+import { SEOMeta, landingPageSchema, faqSchema, breadcrumbSchema } from "@/components/seo-meta";
 import { 
   Rocket, 
   Users, 
@@ -74,6 +75,17 @@ const heroSlides = [
     color: "from-blue-600 to-purple-600"
   },
   {
+    badge: "Direct Referrals",
+    title: "Connect with Verified Referrers",
+    highlight: "Referrers",
+    subtitle: "Get direct access to verified employees at Google, Microsoft, Amazon, Meta, and 500+ other companies ready to refer you.",
+    stat: "500+ Top Companies",
+    cta: "Join Now",
+    ctaLink: "/auth",
+    icon: Users,
+    color: "from-indigo-600 to-blue-600"
+  },
+  {
     badge: "AI Interview Prep",
     title: "Ace Interviews with AI Feedback",
     highlight: "Real-Time",
@@ -107,11 +119,11 @@ export default function LandingPage() {
   const [isJobless, setIsJobless] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
 
-  // Auto-rotate hero slides with pause on hover
+  // Auto-rotate hero slides with pause on hover (4 slides now)
   useEffect(() => {
     if (isHovering) return;
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % 3);
+      setCurrentSlide((prev) => (prev + 1) % 4);
     }, 8000); // Change slide every 8 seconds
     return () => clearInterval(interval);
   }, [isHovering, currentSlide]);
@@ -139,8 +151,35 @@ export default function LandingPage() {
 
   const currentHeroSlide = heroSlides[currentSlide];
 
+  const faqItems = [
+    {
+      question: "How much does AutoJobr cost?",
+      answer: "AutoJobr is completely free to use with unlimited job applications, AI resume analysis, and access to our referral network. Premium features include advanced interview prep and priority referrals.",
+    },
+    {
+      question: "Does AutoJobr really work?",
+      answer: "Yes! 75,000+ users report 300% higher interview rates using AutoJobr. We use AI to optimize your applications and connect you with verified employee referrers at 500+ companies.",
+    },
+    {
+      question: "How do I get started?",
+      answer: "Sign up for free in 2 minutes, upload your resume, and start applying. Our Chrome extension auto-fills applications across 100+ job boards.",
+    },
+    {
+      question: "Is my data safe?",
+      answer: "Absolutely. We use enterprise-grade encryption, never share your data, and are fully compliant with data privacy regulations.",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      <SEOMeta
+        title="Skip Cold Applications. Get Seen Faster."
+        description="AI-powered job application automation platform. Auto-apply to 1000+ jobs daily, beat ATS systems, get direct referrals from 500+ top companies. 300% higher interview rates. Free forever."
+        keywords="job application automation, AI job search, auto apply jobs, ATS resume checker, free job automation, LinkedIn auto apply, beat ATS systems, job referrals"
+        url="https://autojobr.com"
+        image="https://autojobr.com/logo.png"
+        schema={landingPageSchema}
+      />
       
       {/* SEO Hidden Content for Search Engines - Explains all key services */}
       <div className="sr-only">
@@ -1038,8 +1077,13 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* FAQ Section */}
+      {/* FAQ Section with Schema Markup */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
+        {faqSchema && (
+          <script type="application/ld+json">
+            {JSON.stringify(faqSchema(faqItems))}
+          </script>
+        )}
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
