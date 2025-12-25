@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
+import { SEO } from "@/components/seo";
 import { SEOMeta, landingPageSchema, faqSchema, breadcrumbSchema } from "@/components/seo-meta";
 import { 
   Rocket, 
@@ -172,6 +173,10 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      <SEO 
+        title="Skip Cold Applications. Get Seen Faster."
+        description="AI-powered job application automation platform. Auto-apply to 1000+ jobs daily, beat ATS systems, get direct referrals from 500+ top companies. 300% higher interview rates. Free forever."
+      />
       <SEOMeta
         title="Skip Cold Applications. Get Seen Faster."
         description="AI-powered job application automation platform. Auto-apply to 1000+ jobs daily, beat ATS systems, get direct referrals from 500+ top companies. 300% higher interview rates. Free forever."
