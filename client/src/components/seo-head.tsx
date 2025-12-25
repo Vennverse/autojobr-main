@@ -27,6 +27,7 @@ export default function SEOHead({
 }: SEOHeadProps) {
   const fullTitle = title.includes("AutoJobR") ? title : `${title} | AutoJobR`;
   const currentUrl = canonicalUrl || (typeof window !== 'undefined' ? window.location.href : 'https://autojobr.com');
+  const baseCanonical = currentUrl.split('?')[0];
   
   // Enhanced structured data for AI Engine Optimization (AEO) and Generative Engine Optimization (GEO)
   const defaultStructuredData = {
@@ -285,13 +286,12 @@ export default function SEOHead({
       <meta name="geo.placename" content="United States" />
       
       {/* Canonical URL - Stronger enforcement */}
-      <link rel="canonical" href={currentUrl} />
+      <link rel="canonical" href={baseCanonical} />
       
       {/* Prevent duplicate indexing */}
       {currentUrl.includes('?') && (
         <>
           <meta name="robots" content="noindex, follow" />
-          <link rel="canonical" href={currentUrl.split('?')[0]} />
         </>
       )}
       

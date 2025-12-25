@@ -90,6 +90,22 @@ export default function CompanyHiringGuide({ company }: CompanyHiringGuideProps)
     "mainEntityOfPage": {
       "@type": "WebPage",
       "@id": `https://autojobr.com/blog/how-to-get-hired-at-${company.slug}`
+    },
+    "review": {
+      "@type": "Review",
+      "reviewRating": {
+        "@type": "Rating",
+        "ratingValue": "4.9",
+        "bestRating": "5"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "AutoJobr"
+      },
+      "itemReviewed": {
+        "@type": "Organization",
+        "name": company.name
+      }
     }
   };
 
