@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -42,7 +41,8 @@ import {
   Activity,
   Workflow,
   Sparkles,
-  Play
+  Play,
+  Video
 } from "lucide-react";
 import {
   SiGoogle,
