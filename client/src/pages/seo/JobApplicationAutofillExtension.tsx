@@ -1,3 +1,4 @@
+import { SEO } from "@/components/seo";
 import SEOHead from "@/components/seo-head";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,6 +56,10 @@ export default function JobApplicationAutofillExtension() {
 
   return (
     <>
+      <SEO 
+        title="Job Application Autofill Chrome Extension"
+        description="Free Chrome extension that automatically fills job application forms on LinkedIn, Indeed, Glassdoor & 50+ job boards. Save 15+ minutes per application with smart autofill."
+      />
       <SEOHead
         title="Job Application Autofill Chrome Extension | Auto-Fill LinkedIn, Indeed Forms"
         description="Free Chrome extension that automatically fills job application forms on LinkedIn, Indeed, Glassdoor & 50+ job boards. Save 15+ minutes per application with smart autofill."

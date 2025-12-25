@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { SEO } from "@/components/seo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,10 @@ export default function FreeJobApplicationAutomation() {
 
   return (
     <>
+      <SEO 
+        title="FREE Job Application Automation"
+        description="FREE job application automation that applies to 1000+ jobs daily! Beat competitors with our superior AI platform. Auto-apply to LinkedIn, Indeed, Glassdoor instantly."
+      />
       <Helmet>
         <title>FREE Job Application Automation | Apply to 1000+ Jobs Daily | AutoJobr</title>
         <meta name="description" content="🔥 FREE job application automation that applies to 1000+ jobs daily! Beat competitors like autojob.app with our superior AI platform. Auto-apply to LinkedIn, Indeed, Glassdoor instantly. No subscription required!" />

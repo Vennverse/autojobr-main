@@ -1,3 +1,4 @@
+import { SEO } from "@/components/seo";
 import SEOHead from "@/components/seo-head";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,6 +46,10 @@ export default function BestJobApplicationTools() {
 
   return (
     <>
+      <SEO 
+        title="Best Job Application Tools 2025 Free"
+        description="Discover the best free job application tools for 2025. AI-powered automation, 1-click apply, ATS optimization, and application tracking. Compare top tools for students and professionals."
+      />
       <SEOHead
         title="Best Job Application Tools 2025 Free | AI-Powered Application Automation"
         description="Discover the best free job application tools for 2025. AI-powered automation, 1-click apply, ATS optimization, and application tracking. Compare top tools for students and professionals."

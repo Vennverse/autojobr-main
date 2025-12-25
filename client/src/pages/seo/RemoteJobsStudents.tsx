@@ -1,3 +1,4 @@
+import { SEO } from "@/components/seo";
 import SEOHead from "@/components/seo-head";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,6 +58,10 @@ export default function RemoteJobsStudents() {
 
   return (
     <>
+      <SEO 
+        title="Best Remote Jobs for Students 2025"
+        description="Discover 40,000+ remote jobs perfect for students and freshers in 2025. Entry-level work from home opportunities, flexible part-time positions."
+      />
       <SEOHead
         title="Best Remote Jobs for Students 2025 | Entry Level Work From Home Jobs"
         description="Discover 40,000+ remote jobs perfect for students and freshers in 2025. Entry-level work from home opportunities, flexible part-time positions, and student-friendly remote careers with top companies."

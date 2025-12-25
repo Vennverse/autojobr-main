@@ -1,3 +1,4 @@
+import { SEO } from "@/components/seo";
 import SEOHead from "@/components/seo-head";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,6 +38,10 @@ export default function OneClickApplyJobs() {
 
   return (
     <>
+      <SEO 
+        title="1 Click Apply Jobs"
+        description="Apply to jobs instantly with 1 click! Auto-fill applications on LinkedIn, Indeed, Glassdoor & 50+ job boards. AI-powered job application automation tool."
+      />
       <SEOHead
         title="1 Click Apply Jobs | Instant Job Applications on LinkedIn, Indeed & More"
         description="Apply to jobs instantly with 1 click! Auto-fill applications on LinkedIn, Indeed, Glassdoor & 50+ job boards. AI-powered job application automation tool. Apply to 1000+ jobs daily."

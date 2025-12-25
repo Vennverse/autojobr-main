@@ -1,3 +1,4 @@
+import { SEO } from "@/components/seo";
 import SEOHead from "@/components/seo-head";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -120,6 +121,10 @@ export default function CompanyHiringGuide({ company }: CompanyHiringGuideProps)
 
   return (
     <>
+      <SEO 
+        title={`How to Get Hired at ${company.name} in 2025`}
+        description={`Complete guide to getting hired at ${company.name}. Learn the ${company.interviewProcess.length}-step interview process, salary ranges, and required skills.`}
+      />
       <SEOHead
         title={`How to Get Hired at ${company.name} in 2025 - Interview Guide & Tips | AutoJobr`}
         description={`Complete guide to getting hired at ${company.name}. Learn the ${company.interviewProcess.length}-step interview process, salary ranges (${company.salaryRange.entry} - ${company.salaryRange.senior}), required skills, and insider tips. Updated for 2025.`}
