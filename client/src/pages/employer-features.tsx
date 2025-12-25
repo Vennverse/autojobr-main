@@ -40,8 +40,18 @@ import {
   Layout,
   Layers,
   Activity,
-  Workflow
+  Workflow,
+  Sparkles,
+  Play
 } from "lucide-react";
+import {
+  SiGoogle,
+  SiApple,
+  SiAmazon,
+  SiNetflix,
+  SiTesla,
+  SiNvidia
+} from "react-icons/si";
 import logoImage from "@assets/generated_images/AutoJobr_professional_logo_17c702fa.png";
 import dashboardMockup from "@assets/generated_images/Recruitment_dashboard_mockup_2b680657.png";
 
@@ -489,42 +499,173 @@ export default function RecruiterFeaturesPage() {
         </div>
       </section>
 
-      {/* Platform Capabilities Section */}
-      <section className="py-24 bg-white dark:bg-slate-900/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-blue-100 text-blue-700">
-              <Layers className="w-3 h-3 mr-1" />
-              Comprehensive HR Suite
+      {/* Premium Hero Section */}
+      <section className="relative pt-32 pb-48 overflow-hidden bg-slate-900">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] animate-pulse"></div>
+          <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-purple-600/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className={`transition-all duration-1000 transform ${isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-20 scale-95'}`}>
+            <Badge className="mb-8 bg-white/10 text-blue-400 border-white/20 backdrop-blur-md px-6 py-2 text-sm font-medium tracking-wider uppercase">
+              <Sparkles className="w-4 h-4 mr-2 animate-spin-slow" />
+              The Future of Talent Acquisition
             </Badge>
-            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
-              All-in-One Recruitment Ecosystem
-            </h2>
-            <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
-              From first contact to final offer, manage your entire talent pipeline with a unified set of powerful tools.
+
+            <h1 className="text-6xl md:text-8xl font-black text-white mb-8 tracking-tighter leading-[0.9]">
+              DOMINATE THE<br />
+              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">TALENT MARKET</span>
+            </h1>
+
+            <p className="text-xl md:text-2xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed font-light">
+              Stop searching. Start selecting. Our AI-first platform gives startups the same hiring power as big tech, without the enterprise overhead.
             </p>
+
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+              <Link href="/auth">
+                <Button size="lg" className="h-16 px-10 text-xl bg-white text-slate-900 hover:bg-blue-50 hover:scale-105 transition-all duration-300 shadow-[0_0_40px_rgba(255,255,255,0.2)] rounded-full group">
+                  Start Your Empire
+                  <Rocket className="w-6 h-6 ml-3 group-hover:translate-x-2 group-hover:-translate-y-2 transition-transform" />
+                </Button>
+              </Link>
+              <Button variant="outline" size="lg" className="h-16 px-10 text-xl border-white/20 text-white hover:bg-white/5 backdrop-blur-md rounded-full group">
+                Watch AI in Action
+                <Play className="w-6 h-6 ml-3 fill-white group-hover:scale-110 transition-transform" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Floating Interactive Features Section */}
+      <section id="ai-features" className="relative -mt-24 pb-32 px-4 z-20">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: Video,
+                title: "AI Virtual Interviews",
+                desc: "Real-time facial & sentiment analysis for deep candidate insight.",
+                color: "blue"
+              },
+              {
+                icon: Brain,
+                title: "Predictive Ranking",
+                desc: "AI scores candidates based on success patterns of top performers.",
+                color: "purple"
+              },
+              {
+                icon: Workflow,
+                title: "Smart Automations",
+                desc: "One-click pipeline workflows that eliminate 90% of manual tasks.",
+                color: "pink"
+              }
+            ].map((f, i) => (
+              <Card key={i} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-white/20 dark:border-slate-800 shadow-2xl hover-elevate transition-all duration-500 overflow-hidden group">
+                <CardContent className="p-8">
+                  <div className={`w-14 h-14 rounded-2xl bg-${f.color}-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500`}>
+                    <f.icon className={`w-8 h-8 text-${f.color}-500`} />
+                  </div>
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">{f.title}</h3>
+                  <p className="text-slate-600 dark:text-slate-400 text-lg leading-relaxed">{f.desc}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Social Proof Bar */}
+      <section className="py-20 bg-slate-50 dark:bg-slate-950 border-y border-slate-200 dark:border-slate-900">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <p className="text-sm font-bold text-slate-500 uppercase tracking-[0.3em] mb-12">Trusted by the fastest growing startups</p>
+          <div className="flex flex-wrap justify-center items-center gap-16 opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
+            <SiGoogle className="w-10 h-10" />
+            <SiAmazon className="w-10 h-10" />
+            <SiNvidia className="w-10 h-10" />
+            <SiNetflix className="w-10 h-10" />
+            <SiApple className="w-10 h-10" />
+          </div>
+        </div>
+      </section>
+
+      {/* Detailed Features Section */}
+      <section id="features" className="py-32 bg-white dark:bg-slate-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-24 items-center mb-32">
+            <div>
+              <Badge className="mb-6 bg-blue-500/10 text-blue-600 border-blue-500/20 px-4 py-1">Virtual Interview System</Badge>
+              <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-8 leading-tight">
+                Interviews that <br />
+                <span className="text-blue-600">Screen for You</span>
+              </h2>
+              <div className="space-y-8">
+                {[
+                  { t: "Live Sentiment Tracking", d: "Detect confidence and emotional engagement in real-time." },
+                  { t: "Automated Transcription", d: "Get searchable text logs of every interview session." },
+                  { t: "AI Decision Support", d: "Instant scoring based on technical and behavioral answers." }
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-4">
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mt-1">
+                      <CheckCircle className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 dark:text-white">{item.t}</h4>
+                      <p className="text-slate-600 dark:text-slate-400">{item.d}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="relative">
+              <div className="absolute inset-0 bg-blue-500/10 blur-[100px] rounded-full"></div>
+              <img src={dashboardMockup} alt="AI Interviews" className="relative rounded-2xl shadow-3xl border border-slate-200 dark:border-slate-800" />
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-              <Video className="w-10 h-10 text-blue-600 mb-4" />
-              <h3 className="text-xl font-bold mb-2">Virtual Interviews</h3>
-              <p className="text-slate-600 dark:text-slate-300">Scalable video interview platform with AI-driven sentiment analysis and transcription.</p>
+          <div className="grid lg:grid-cols-2 gap-24 items-center direction-rtl">
+            <div className="order-2 lg:order-1">
+              <div className="grid grid-cols-2 gap-6">
+                <Card className="p-8 bg-slate-50 dark:bg-slate-800/50 border-none shadow-none hover-elevate">
+                  <Layout className="w-10 h-10 text-purple-500 mb-4" />
+                  <h4 className="font-bold mb-2">Integrated ATS</h4>
+                  <p className="text-sm text-slate-600">Full lifecycle tracking.</p>
+                </Card>
+                <Card className="p-8 bg-slate-50 dark:bg-slate-800/50 border-none shadow-none hover-elevate">
+                  <Users className="w-10 h-10 text-green-500 mb-4" />
+                  <h4 className="font-bold mb-2">CRM Integration</h4>
+                  <p className="text-sm text-slate-600">Sync with your tools.</p>
+                </Card>
+                <Card className="p-8 bg-slate-50 dark:bg-slate-800/50 border-none shadow-none hover-elevate">
+                  <Workflow className="w-10 h-10 text-orange-500 mb-4" />
+                  <h4 className="font-bold mb-2">Automated Tasks</h4>
+                  <p className="text-sm text-slate-600">90% faster flows.</p>
+                </Card>
+                <Card className="p-8 bg-slate-50 dark:bg-slate-800/50 border-none shadow-none hover-elevate">
+                  <Activity className="w-10 h-10 text-pink-500 mb-4" />
+                  <h4 className="font-bold mb-2">Real-time Analytics</h4>
+                  <p className="text-sm text-slate-600">Data-driven decisions.</p>
+                </Card>
+              </div>
             </div>
-            <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-              <Layout className="w-10 h-10 text-purple-600 mb-4" />
-              <h3 className="text-xl font-bold mb-2">Integrated ATS</h3>
-              <p className="text-slate-600 dark:text-slate-300">Modern Applicant Tracking System designed for the speed of fast-growing startups.</p>
-            </div>
-            <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-              <Activity className="w-10 h-10 text-green-600 mb-4" />
-              <h3 className="text-xl font-bold mb-2">Pipeline Management</h3>
-              <p className="text-slate-600 dark:text-slate-300">Visual drag-and-drop candidate stages with real-time conversion analytics.</p>
-            </div>
-            <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-              <Workflow className="w-10 h-10 text-orange-600 mb-4" />
-              <h3 className="text-xl font-bold mb-2">Smart Workflows</h3>
-              <p className="text-slate-600 dark:text-slate-300">Automate repetitive HR tasks and focus on building relationships with top talent.</p>
+            <div className="order-1 lg:order-2">
+              <Badge className="mb-6 bg-purple-500/10 text-purple-600 border-purple-500/20 px-4 py-1">Enterprise Power</Badge>
+              <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-8 leading-tight">
+                The Most Advanced <br />
+                <span className="text-purple-600">Pipeline Management</span>
+              </h2>
+              <p className="text-xl text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
+                We've combined ATS, CRM, and task automation into a single powerhouse. Manage thousands of candidates with the ease of a simple to-do list.
+              </p>
+              <Link href="/auth">
+                <Button variant="link" className="text-purple-600 p-0 text-lg group">
+                  Explore full feature list
+                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform" />
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
