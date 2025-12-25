@@ -60,6 +60,8 @@ export function SEOMeta({
         <meta property="article:modified_time" content={modifiedDate} />
       )}
       
+      <meta name="msvalidate.01" content="BING_VERIFICATION_CODE" />
+      
       {/* Schema.org Structured Data */}
       {schema && (
         <script type="application/ld+json">

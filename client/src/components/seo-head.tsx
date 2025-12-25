@@ -364,6 +364,21 @@ export default function SEOHead({
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link rel="preconnect" href="https://api.autojobr.com" />
       
+      <meta name="msvalidate.01" content="BING_VERIFICATION_CODE" />
+      <meta name="msapplication-TileImage" content="/web-app-manifest-512x512.png" />
+      <meta name="msapplication-TileColor" content="#3b82f6" />
+      
+      {/* Microsoft Clarity Tracking */}
+      <script type="text/javascript">
+        {`
+          (function(c,l,a,r,i,t,y){
+              c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+              t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+              y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+          })(window, document, "clarity", "script", "clarity_id_placeholder");
+        `}
+      </script>
+      
       {/* Enhanced Favicon */}
       <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
       <link rel="icon" type="image/x-icon" href="/favicon.ico" />
