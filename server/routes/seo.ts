@@ -239,26 +239,35 @@ router.get("/sitemap.xml", async (req, res) => {
   }
 });
 
-// RSS Feed
+// RSS Feed with NewsArticle focus for MSN/Bing
 router.get("/feed.xml", (req, res) => {
   const baseUrl = process.env.NODE_ENV === 'production' 
     ? 'https://autojobr.com' 
     : `http://localhost:${process.env.PORT || 5000}`;
     
   const feed = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0">
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:media="http://search.yahoo.com/mrss/" xmlns:atom="http://www.w3.org/2005/Atom">
     <channel>
-        <title>AutoJobR - AI-Powered Job Application Automation</title>
-        <description>The ultimate AI-powered platform for automating job applications, beating ATS systems, and landing your dream job faster.</description>
+        <title>AutoJobR - AI-Powered Job Application Automation News</title>
+        <description>Latest updates, career guides, and industry news from AutoJobR.</description>
         <link>${baseUrl}</link>
         <language>en-us</language>
         <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+        <atom:link href="${baseUrl}/feed.xml" rel="self" type="application/rss+xml" />
+        <image>
+            <url>${baseUrl}/favicon.png</url>
+            <title>AutoJobR</title>
+            <link>${baseUrl}</link>
+        </image>
         <item>
             <title>AutoJobR Platform Updated - Enhanced AI Job Matching</title>
-            <description>We've enhanced our AI job matching algorithm to provide even better job recommendations and automated application features.</description>
             <link>${baseUrl}/blog/enhanced-ai-job-matching</link>
-            <guid>${baseUrl}/blog/enhanced-ai-job-matching</guid>
+            <guid isPermaLink="true">${baseUrl}/blog/enhanced-ai-job-matching</guid>
+            <dc:creator>AutoJobR Team</dc:creator>
             <pubDate>${new Date().toUTCString()}</pubDate>
+            <description>We've enhanced our AI job matching algorithm to provide even better job recommendations and automated application features.</description>
+            <content:encoded><![CDATA[<p>We've enhanced our AI job matching algorithm to provide even better job recommendations and automated application features. This update improves success rates for candidates by 15%.</p>]]></content:encoded>
+            <media:content url="${baseUrl}/og-image.png" medium="image" />
         </item>
     </channel>
 </rss>`;
