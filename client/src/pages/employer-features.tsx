@@ -515,9 +515,9 @@ export default function RecruiterFeaturesPage() {
               The Future of Talent Acquisition
             </Badge>
 
-            <h1 className="text-6xl md:text-8xl font-black text-white mb-8 tracking-tighter leading-[0.9]">
+            <h1 className="text-6xl md:text-8xl font-black text-white mb-8 tracking-tighter leading-[0.9] animate-in fade-in slide-in-from-bottom-10 duration-1000">
               DOMINATE THE<br />
-              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">TALENT MARKET</span>
+              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(168,85,247,0.5)]">TALENT MARKET</span>
             </h1>
 
             <p className="text-xl md:text-2xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed font-light">
@@ -526,7 +526,7 @@ export default function RecruiterFeaturesPage() {
 
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
               <Link href="/auth">
-                <Button size="lg" className="h-16 px-10 text-xl bg-white text-slate-900 hover:bg-blue-50 hover:scale-105 transition-all duration-300 shadow-[0_0_40px_rgba(255,255,255,0.2)] rounded-full group">
+                <Button size="lg" className="h-16 px-10 text-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:scale-110 transition-all duration-300 shadow-[0_0_50px_rgba(59,130,246,0.4)] rounded-full group border-0 font-bold uppercase tracking-widest">
                   Start Your Empire
                   <Rocket className="w-6 h-6 ml-3 group-hover:translate-x-2 group-hover:-translate-y-2 transition-transform" />
                 </Button>
@@ -549,28 +549,31 @@ export default function RecruiterFeaturesPage() {
                 icon: Video,
                 title: "AI Virtual Interviews",
                 desc: "Real-time facial & sentiment analysis for deep candidate insight.",
-                color: "blue"
+                color: "blue",
+                delay: "0ms"
               },
               {
                 icon: Brain,
                 title: "Predictive Ranking",
                 desc: "AI scores candidates based on success patterns of top performers.",
-                color: "purple"
+                color: "purple",
+                delay: "200ms"
               },
               {
                 icon: Workflow,
                 title: "Smart Automations",
                 desc: "One-click pipeline workflows that eliminate 90% of manual tasks.",
-                color: "pink"
+                color: "pink",
+                delay: "400ms"
               }
             ].map((f, i) => (
-              <Card key={i} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-white/20 dark:border-slate-800 shadow-2xl hover-elevate transition-all duration-500 overflow-hidden group">
-                <CardContent className="p-8">
-                  <div className={`w-14 h-14 rounded-2xl bg-${f.color}-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500`}>
-                    <f.icon className={`w-8 h-8 text-${f.color}-500`} />
+              <Card key={i} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-white/20 dark:border-slate-800 shadow-2xl hover-elevate transition-all duration-500 overflow-hidden group animate-in fade-in slide-in-from-bottom-10" style={{ animationDelay: f.delay }}>
+                <CardContent className="p-10">
+                  <div className={`w-16 h-16 rounded-2xl bg-${f.color}-500/10 flex items-center justify-center mb-8 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500`}>
+                    <f.icon className={`w-10 h-10 text-${f.color}-500`} />
                   </div>
-                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">{f.title}</h3>
-                  <p className="text-slate-600 dark:text-slate-400 text-lg leading-relaxed">{f.desc}</p>
+                  <h3 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">{f.title}</h3>
+                  <p className="text-slate-600 dark:text-slate-400 text-xl leading-relaxed">{f.desc}</p>
                 </CardContent>
               </Card>
             ))}
@@ -620,9 +623,21 @@ export default function RecruiterFeaturesPage() {
                 ))}
               </div>
             </div>
-            <div className="relative">
-              <div className="absolute inset-0 bg-blue-500/10 blur-[100px] rounded-full"></div>
-              <img src={dashboardMockup} alt="AI Interviews" className="relative rounded-2xl shadow-3xl border border-slate-200 dark:border-slate-800" />
+            <div className="relative group">
+              <div className="absolute inset-0 bg-blue-500/20 blur-[120px] rounded-full group-hover:bg-blue-500/30 transition-all duration-700"></div>
+              <img src={dashboardMockup} alt="AI Interviews" className="relative rounded-2xl shadow-3xl border border-slate-200 dark:border-slate-800 transform group-hover:scale-[1.02] transition-transform duration-700" />
+              {/* Floating UI element */}
+              <div className="absolute -bottom-10 -right-10 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 animate-bounce-slow">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                    <UserCheck className="text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">Match Score: 98%</p>
+                    <p className="text-xs text-slate-500">AI Verified Candidate</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
