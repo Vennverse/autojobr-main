@@ -347,22 +347,143 @@ export default function SEOHead({
       <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
       <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       <link rel="manifest" href="/site.webmanifest" />
-
-      {/* Bing Webmaster Verification */}
-      <meta name="msvalidate.01" content="BING_VERIFICATION_CODE" />
-      <meta name="msapplication-TileImage" content="/web-app-manifest-512x512.png" />
-      <meta name="msapplication-TileColor" content="#3b82f6" />
-      
-      {/* Microsoft Clarity Tracking */}
-      <script type="text/javascript">
-        {`
-          (function(c,l,a,r,i,t,y){
-              c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-              t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-              y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-          })(window, document, "clarity", "script", "clarity_id_placeholder");
-        `}
-      </script>
     </Helmet>
   );
 }
+
+// ============================================
+// EXAMPLE USAGE PATTERNS
+// ============================================
+
+// 1. Homepage with ratings (only if you have real data)
+export function HomePageSEO() {
+  return (
+    <SEOHead
+      title="AutoJobR - AI Job Application Automation"
+      description="Apply to thousands of jobs automatically with AI-powered automation. Optimize your resume for ATS and land more interviews."
+      includeRatings={true}
+      actualRatingValue={4.7}
+      actualRatingCount={1250}
+      preserveQueryParams={['utm_source', 'utm_medium', 'utm_campaign', 'ref']}
+    />
+  );
+}
+
+// 2. Blog post with article schema
+export function BlogPostSEO() {
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "How to Beat ATS Systems in 2025",
+    "image": "https://autojobr.com/blog/ats-guide.jpg",
+    "author": {
+      "@type": "Person",
+      "name": "Shubham Dubey",
+      "url": "https://autojobr.com/about"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "AutoJobR",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://autojobr.com/logo.png"
+      }
+    },
+    "datePublished": "2024-12-25T08:00:00Z",
+    "dateModified": "2024-12-25T08:00:00Z",
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "https://autojobr.com/blog/beat-ats-2025"
+    }
+  };
+
+  return (
+    <SEOHead
+      title="How to Beat ATS Systems in 2025"
+      description="Learn proven strategies to optimize your resume for Applicant Tracking Systems and increase your interview chances."
+      ogType="article"
+      articleSchema={articleSchema}
+      breadcrumbs={[
+        { name: "Home", url: "https://autojobr.com" },
+        { name: "Blog", url: "https://autojobr.com/blog" },
+        { name: "ATS Guide", url: "https://autojobr.com/blog/beat-ats-2025" }
+      ]}
+    />
+  );
+}
+
+// 3. Product page
+export function ProductPageSEO() {
+  return (
+    <SEOHead
+      title="Features - AutoJobR"
+      description="Discover AutoJobR's powerful features: AI job matching, automated applications, ATS optimization, and more."
+      breadcrumbs={[
+        { name: "Home", url: "https://autojobr.com" },
+        { name: "Features", url: "https://autojobr.com/features" }
+      ]}
+    />
+  );
+}
+
+// 4. Search results page (should be noindex)
+export function SearchResultsSEO() {
+  return (
+    <SEOHead
+      title="Search Results"
+      noIndex={true}
+      includeOrganizationSchema={false}
+    />
+  );
+}
+
+// ============================================
+// KEY IMPROVEMENTS MADE:
+// ============================================
+// 
+// 1. ✅ Removed fake ratings (Google penalty risk)
+// 2. ✅ Optional ratings with real data only
+// 3. ✅ Cleaned emojis from meta descriptions
+// 4. ✅ Smart canonical URL handling
+// 5. ✅ Preserve important query params (UTM, pagination)
+// 6. ✅ Reduced duplicate structured data
+// 7. ✅ Optimized title/description lengths
+// 8. ✅ Removed unnecessary preloads
+// 9. ✅ Simplified and accurate schema markup
+// 10. ✅ Better robots directive logic
+// 11. ✅ Support for alternate languages (i18n)
+// 12. ✅ Removed keywords meta tag (not used by Google)
+// 
+// ============================================
+
+/*
+TESTING CHECKLIST:
+==================
+
+1. Google Rich Results Test
+   https://search.google.com/test/rich-results
+   
+2. Schema Markup Validator
+   https://validator.schema.org/
+   
+3. Facebook Sharing Debugger
+   https://developers.facebook.com/tools/debug/
+   
+4. Twitter Card Validator
+   https://cards-dev.twitter.com/validator
+   
+5. Lighthouse SEO Audit
+   Run in Chrome DevTools
+   
+6. Mobile-Friendly Test
+   https://search.google.com/test/mobile-friendly
+   
+7. Page Speed Insights
+   https://pagespeed.web.dev/
+
+8. Verify canonical tags in production
+   Check actual rendered HTML
+   
+9. Test with Google Search Console
+   Submit sitemap and check coverage
+*/
