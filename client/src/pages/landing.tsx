@@ -212,11 +212,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3 group cursor-pointer">
-              <img 
-                src={logoImage} 
-                alt="AutoJobr" 
-                className="w-8 h-8 transition-transform duration-300 group-hover:rotate-12" 
-              />
+              <Rocket className="w-8 h-8 text-orange-500 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
               <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 AutoJobr
               </span>
