@@ -370,9 +370,10 @@ class JobSpyIntegration:
                         
                         for _, job in jobs_df.iterrows():
                             try:
-                                title = str(job.get('title', ''))
-                                description = str(job.get('description', ''))
-                                job_location = str(job.get('location', location))
+                                title = str(job.get('title', 'Unknown Position'))
+                                description = str(job.get('description', 'No description available'))
+                                raw_job_location = str(job.get('location', 'Remote')).strip()
+                                job_location = raw_job_location if raw_job_location and raw_job_location.lower() != 'none' else 'Remote'
                                 
                                 # Enhanced data processing
                                 country_code, region, city, normalized_location = self.parse_location(job_location)
