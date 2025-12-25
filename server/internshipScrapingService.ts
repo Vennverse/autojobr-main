@@ -144,6 +144,11 @@ export class InternshipScrapingService {
           // Extract location (handle <br> tags)
           let location = $(tds[2]).html() || '';
           location = location.replace(/<br\s*\/?>/gi, ', ').replace(/<[^>]*>/g, '').trim();
+          
+          // DEFAULT FALLBACK: Ensure location is never empty
+          if (!location || location.toLowerCase() === 'none') {
+            location = 'Remote';
+          }
 
           // Skip if essential data is missing
           if (!company || !role || company === 'Company' || role === 'Role') {

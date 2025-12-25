@@ -147,18 +147,22 @@ class ImprovedJobSpyIntegration:
             for _, job in jobs_df.iterrows():
                 try:
                     # Prepare job data
+                    # LOCATION FALLBACK: Ensure we always have a location
+                    raw_location = str(job.get('location', 'Remote')).strip()
+                    location = raw_location if raw_location and raw_location.lower() != 'none' else 'Remote'
+                    
                     job_data = {
-                        'title': str(job.get('title', '')),
-                        'company': str(job.get('company', '')),
-                        'location': str(job.get('location', 'Remote')),
-                        'description': str(job.get('description', ''))[:3000],
+                        'title': str(job.get('title', 'Unknown Position')),
+                        'company': str(job.get('company', 'Unknown Company')),
+                        'location': location,
+                        'description': str(job.get('description', 'No description available'))[:3000],
                         'date_posted': job.get('date_posted'),
                         'job_url': str(job.get('job_url', '')),
                         'site': str(job.get('site', 'jobspy')),
                         'job_type': str(job.get('job_type', 'Full-time')),
                         'salary_min': job.get('min_amount'),
                         'salary_max': job.get('max_amount'),
-                        'is_remote': 'remote' in str(job.get('location', '')).lower(),
+                        'is_remote': 'remote' in location.lower(),
                         'scraped_at': datetime.now(),
                     }
                     
