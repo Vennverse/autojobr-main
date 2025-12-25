@@ -5,6 +5,8 @@ import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { SEO } from "@/components/seo";
+import { SEOMeta } from "@/components/seo-meta";
 import { 
   Users, 
   Target, 
@@ -34,7 +36,11 @@ import {
   ChartBar,
   DollarSign,
   Mail,
-  Cpu
+  Cpu,
+  Layout,
+  Layers,
+  Activity,
+  Workflow
 } from "lucide-react";
 import logoImage from "@assets/generated_images/AutoJobr_professional_logo_17c702fa.png";
 import dashboardMockup from "@assets/generated_images/Recruitment_dashboard_mockup_2b680657.png";
@@ -374,6 +380,16 @@ export default function RecruiterFeaturesPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      <SEO 
+        title="AI-Powered Recruitment & ATS Platform for Startups"
+        description="Streamline your hiring with AutoJobr. AI candidate scoring, virtual video interviews, ATS, pipeline management, and intelligent recruitment workflows for startups."
+      />
+      <SEOMeta
+        title="AI-Powered Recruitment & ATS Platform for Startups"
+        description="Automate your hiring process with AI. Video interviews, candidate ranking, and integrated ATS for fast-growing startups. 60% reduction in time-to-hire."
+        keywords="recruiter bidding system, AI recruiter matching, talent marketplace, recruiter platform, AI hiring platform, startup recruitment software, virtual video interview platform, ATS for startups, pipeline management tool"
+        url="https://autojobr.com/employer-features"
+      />
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-700/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -468,6 +484,47 @@ export default function RecruiterFeaturesPage() {
                   Cancel anytime
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Platform Capabilities Section */}
+      <section className="py-24 bg-white dark:bg-slate-900/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-blue-100 text-blue-700">
+              <Layers className="w-3 h-3 mr-1" />
+              Comprehensive HR Suite
+            </Badge>
+            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
+              All-in-One Recruitment Ecosystem
+            </h2>
+            <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
+              From first contact to final offer, manage your entire talent pipeline with a unified set of powerful tools.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+              <Video className="w-10 h-10 text-blue-600 mb-4" />
+              <h3 className="text-xl font-bold mb-2">Virtual Interviews</h3>
+              <p className="text-slate-600 dark:text-slate-300">Scalable video interview platform with AI-driven sentiment analysis and transcription.</p>
+            </div>
+            <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+              <Layout className="w-10 h-10 text-purple-600 mb-4" />
+              <h3 className="text-xl font-bold mb-2">Integrated ATS</h3>
+              <p className="text-slate-600 dark:text-slate-300">Modern Applicant Tracking System designed for the speed of fast-growing startups.</p>
+            </div>
+            <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+              <Activity className="w-10 h-10 text-green-600 mb-4" />
+              <h3 className="text-xl font-bold mb-2">Pipeline Management</h3>
+              <p className="text-slate-600 dark:text-slate-300">Visual drag-and-drop candidate stages with real-time conversion analytics.</p>
+            </div>
+            <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+              <Workflow className="w-10 h-10 text-orange-600 mb-4" />
+              <h3 className="text-xl font-bold mb-2">Smart Workflows</h3>
+              <p className="text-slate-600 dark:text-slate-300">Automate repetitive HR tasks and focus on building relationships with top talent.</p>
             </div>
           </div>
         </div>
