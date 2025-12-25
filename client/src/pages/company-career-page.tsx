@@ -555,8 +555,14 @@ export default function CompanyCareerPage() {
       },
       "jobLocation": {
         "@type": "Place",
-        "address": job.location
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": job.location || "Remote",
+          "addressLocality": job.location || "Remote",
+          "addressCountry": "US"
+        }
       },
+      "jobLocationType": job.workMode === 'remote' ? "TELECOMMUTE" : undefined,
       "employmentType": (() => {
         const type = formatJobType(job.jobType).toLowerCase().replace('-', '_');
         const validTypes = { 

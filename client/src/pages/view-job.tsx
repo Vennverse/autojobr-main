@@ -187,11 +187,15 @@ const generateJobPostingStructuredData = (job: any, jobId: string) => {
       "@type": "Place",
       "address": {
         "@type": "PostalAddress",
+        "streetAddress": address.addressLocality || "Remote",
         "addressLocality": address.addressLocality,
         "addressRegion": address.addressRegion,
         "addressCountry": address.addressCountry
       }
     },
+    ...(job.workMode?.toLowerCase() === 'remote' ? {
+      "jobLocationType": "TELECOMMUTE"
+    } : {}),
     "applicantLocationRequirements": {
       "@type": "Country",
       "name": address.addressCountry === 'US' ? 'United States' : address.addressCountry
