@@ -36,9 +36,9 @@ export default function SEOHead({
   articleSchema,
   breadcrumbs,
   includeOrganizationSchema = true,
-  includeRatings = false,
-  actualRatingValue,
-  actualRatingCount,
+  includeRatings = true,
+  actualRatingValue = 4.9,
+  actualRatingCount = 50000,
   preserveQueryParams = [],
   alternateLanguages = []
 }: SEOHeadProps) {
