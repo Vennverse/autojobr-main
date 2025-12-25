@@ -918,7 +918,48 @@ export default function LandingPage() {
           </Card>
 
           {/* Pricing Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+            {/* Free Forever Plan */}
+            <Card className="border-2 hover:shadow-xl transition-all duration-300 group">
+              <CardContent className="p-8">
+                <div className="text-center mb-4">
+                  <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                    🌱 Free Forever
+                  </Badge>
+                </div>
+                <h3 className="text-2xl font-bold mb-2 text-center text-slate-900 dark:text-white">FREE PLAN</h3>
+                <div className="text-center mb-4">
+                  <div className="text-5xl font-bold text-slate-900 dark:text-white">$0
+                    <span className="text-lg text-slate-500 dark:text-slate-400">/mo</span>
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Always free</p>
+                </div>
+                <p className="text-sm text-center text-slate-600 dark:text-slate-300 mb-6 italic">
+                  Perfect for starting your journey.
+                </p>
+                <ul className="space-y-3 mb-8">
+                  {[
+                    "100+ Job Applications/mo",
+                    "Basic AI Resume Analysis",
+                    "Access to Referral Network",
+                    "Chrome Extension for Auto-fill",
+                    "Community Support"
+                  ].map((feature, idx) => (
+                    <li key={idx} className="flex items-start">
+                      <CheckCircle className="w-5 h-5 text-blue-500 mr-3 flex-shrink-0 mt-0.5" />
+                      <span className="text-sm text-slate-700 dark:text-slate-300">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/auth">
+                  <Button className="w-full group-hover:shadow-lg transition-all" variant="outline" size="lg" data-testid="button-free-plan">
+                    Start for Free
+                  </Button>
+                </Link>
+                <p className="text-xs text-center text-slate-500 dark:text-slate-400 mt-3">No credit card required</p>
+              </CardContent>
+            </Card>
+
             {/* Monthly Access Plan */}
             <Card className="border-2 hover:shadow-xl transition-all duration-300 group">
               <CardContent className="p-8">
