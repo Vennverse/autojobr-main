@@ -34,9 +34,9 @@ export default function ReferralCodesPremiumGuide() {
   return (
     <>
       <SEOHead
-        title="Get Free Premium Job Search with Referral Codes | GREGORY Code"
-        description="Learn how to get 7 days of free premium access with AutoJobr referral codes like GREGORY. No subscription needed. Unlimited job applications, AI resume optimization, career coaching - all free."
-        keywords="referral codes free premium, GREGORY code AutoJobr, free job search premium, referral code jobs, unlimited job applications free, premium features free, job referral program"
+        title="Get Free Premium Job Search with Referral Codes | GREGORY & GREGORY30"
+        description="Learn how to get free premium access with AutoJobr referral codes like GREGORY (7 days) and GREGORY30 (30 days). No subscription needed. Unlimited job applications, AI resume optimization, career coaching - all free."
+        keywords="referral codes free premium, GREGORY code AutoJobr, GREGORY30 code, free job search premium, referral code jobs, unlimited job applications free, premium features free, job referral program"
         canonicalUrl="https://autojobr.com/blog/referral-codes-free-premium"
         structuredData={structuredData}
       />
@@ -145,6 +145,26 @@ export default function ReferralCodesPremiumGuide() {
                   Active Referral Codes
                 </h2>
                 <div className="space-y-4">
+                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-purple-200 dark:border-purple-800">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="text-2xl font-bold text-purple-600">GREGORY30</h3>
+                        <p className="text-gray-600 dark:text-gray-300">New 30-Day Launch Special Code</p>
+                      </div>
+                      <Badge className="bg-purple-500">New & Recommended</Badge>
+                    </div>
+                    <ul className="space-y-2 text-gray-600 dark:text-gray-300">
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <strong>30 days</strong> free premium access
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        Full access to all premium features
+                      </li>
+                    </ul>
+                  </div>
+
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-lg">
                     <div className="flex items-start justify-between mb-3">
                       <div>
@@ -234,15 +254,15 @@ export default function ReferralCodesPremiumGuide() {
                 <h2 className="text-3xl font-bold mb-6">Frequently Asked Questions</h2>
                 <div className="space-y-6">
                   <div>
-                    <h3 className="font-semibold text-lg mb-2">Can I use the GREGORY referral code multiple times?</h3>
+                    <h3 className="font-semibold text-lg mb-2">Can I use the GREGORY or GREGORY30 referral codes multiple times?</h3>
                     <p className="text-gray-600 dark:text-gray-300">
-                      Yes! The GREGORY code has unlimited uses. Every time you enter it, you get 7 more days of premium access.
+                      Yes! These codes have unlimited uses. Every time you enter them, you get 7 or 30 more days of premium access respectively.
                     </p>
                   </div>
                   <div>
                     <h3 className="font-semibold text-lg mb-2">How long does the free premium access last?</h3>
                     <p className="text-gray-600 dark:text-gray-300">
-                      Each referral code grants 7 days of premium access. After that, you can use another code to extend your access.
+                      It depends on the code. GREGORY grants 7 days, while GREGORY30 grants 30 days of premium access. After that, you can use another code to extend your access.
                     </p>
                   </div>
                   <div>
@@ -270,10 +290,10 @@ export default function ReferralCodesPremiumGuide() {
             {/* CTA Section */}
             <div className="text-center bg-gradient-to-r from-blue-600 to-purple-600 text-white p-12 rounded-lg">
               <h2 className="text-3xl font-bold mb-4">Start Getting Free Premium Today</h2>
-              <p className="text-lg mb-6 text-blue-100">Use code GREGORY to unlock 7 days of unlimited job applications and AI tools</p>
+              <p className="text-lg mb-6 text-blue-100">Use code GREGORY for 7 days or GREGORY30 for 30 days of unlimited job applications and AI tools</p>
               <Link href="/auth">
                 <Button size="lg" variant="secondary" className="bg-white text-blue-600 hover:bg-gray-100">
-                  Get Started Free - Use GREGORY Code
+                  Get Started Free - Use GREGORY30 Code
                 </Button>
               </Link>
             </div>

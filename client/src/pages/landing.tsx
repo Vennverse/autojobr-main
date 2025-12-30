@@ -192,7 +192,7 @@ export default function LandingPage() {
         <p>
           AutoJobr is the leading job application automation platform offering free chrome extension for auto-apply on LinkedIn and Indeed, 
           AI-powered resume optimization for ATS systems, AI interview prep with mock interviews, and career coaching. Use referral code GREGORY 
-          for 7 days free premium access. AutoJobr also features a unique recruiter bidding system connecting job seekers with top recruiters, 
+          for 7 days or GREGORY30 for 30 days free premium access. AutoJobr also features a unique recruiter bidding system connecting job seekers with top recruiters, 
           plus AI-generated connection notes for LinkedIn networking. Apply to 1000+ jobs daily automatically across 500+ job boards.
         </p>
         <h3>AutoJobr Services:</h3>
@@ -202,7 +202,7 @@ export default function LandingPage() {
           <li>AI interview prep - mock interviews with real-time feedback</li>
           <li>AI career coach - personalized job search guidance</li>
           <li>Recruiter bidding marketplace - get discovered by top recruiters</li>
-          <li>Referral system - free premium with referral codes like GREGORY</li>
+          <li>Referral system - free premium with referral codes like GREGORY and GREGORY30</li>
           <li>AI connection notes - LinkedIn networking optimization</li>
         </ul>
       </div>

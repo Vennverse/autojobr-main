@@ -8534,12 +8534,31 @@ Generate ONLY the connection note text, nothing else.`
       // Handle referral code if provided
       if (referralCode) {
         try {
-          const code = await db.query.referralCodes.findFirst({
-            where: and(
-              eq(schema.referralCodes.code, referralCode),
-              eq(schema.referralCodes.isActive, true)
-            )
-          });
+          if (referralCode === "GREGORY" || referralCode === "GREGORY30") {
+            const days = referralCode === "GREGORY30" ? 30 : 7;
+            const endDate = new Date();
+            const currentUser = await storage.getUser(userId);
+
+            if (currentUser?.subscriptionEndDate && currentUser.subscriptionEndDate > new Date()) {
+              endDate.setTime(currentUser.subscriptionEndDate.getTime() + (days * 24 * 60 * 60 * 1000));
+            } else {
+              endDate.setDate(endDate.getDate() + days);
+            }
+
+            await storage.updateUser(userId, {
+              planType: 'premium',
+              subscriptionStatus: 'active',
+              subscriptionEndDate: endDate
+            });
+
+            console.log(`✅ Activated ${referralCode} (${days} days) for user ${userId}`);
+          } else {
+            const code = await db.query.referralCodes.findFirst({
+              where: and(
+                eq(schema.referralCodes.code, referralCode),
+                eq(schema.referralCodes.isActive, true)
+              )
+            });
 
           if (code && (!code.expiresAt || new Date(code.expiresAt) > new Date())) {
             // Check if code has uses left
