@@ -139,12 +139,21 @@ export default function VirtualInterviewComplete() {
       setInterviewData(response);
       setCompleted(true);
       
+      console.log("[DEBUG] Interview complete response:", response);
+
       toast({
         title: "Interview Completed",
         description: response.assignmentType === 'recruiter_assigned' 
           ? "Your interview has been submitted successfully. Thank you for completing it!"
           : "Your interview has been completed and analyzed. You can now view your feedback!",
       });
+
+      // Automatically redirect to feedback after a short delay if not recruiter assigned
+      if (response.assignmentType !== 'recruiter_assigned') {
+        setTimeout(() => {
+          setLocation(`/virtual-interview/${sessionId}/feedback`);
+        }, 3000);
+      }
     } catch (error) {
       console.error('Error completing interview:', error);
       toast({

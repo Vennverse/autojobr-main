@@ -623,6 +623,7 @@ router.post('/:sessionId/complete', isAuthenticated, async (req: any, res) => {
       interviewId: currentInterview.id,
       completed: true,
       overallScore,
+      assignmentType: currentInterview.jobPostingId ? 'recruiter_assigned' : 'practice',
       message: 'Interview completed successfully'
     });
   } catch (error) {
