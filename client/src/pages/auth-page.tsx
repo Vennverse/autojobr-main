@@ -470,11 +470,24 @@ export default function AuthPage() {
               tracked their progress, and landed their dream jobs with AutoJobr.
             </p>
             
-            {/* Recruiter Notice */}
-            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                <span className="font-semibold">For Recruiters:</span> Sign up with your corporate email address to unlock immediate access to advanced recruitment tools, candidate screening, and AI-powered interview platforms.
-              </p>
+            {/* Recruiter Notice - Enhanced Visibility */}
+            <div className="mt-6 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-2 border-blue-200 dark:border-blue-800 rounded-xl shadow-sm transform transition-all hover:scale-[1.01]">
+              <div className="flex items-start gap-4">
+                <div className="bg-blue-600 p-2 rounded-lg mt-1">
+                  <Briefcase className="w-5 h-5 text-white" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                    Recruiter Instant Access
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-100 animate-pulse border-none">
+                      Verified
+                    </Badge>
+                  </h3>
+                  <p className="text-sm leading-relaxed text-blue-800 dark:text-blue-200">
+                    Sign up with your <span className="font-bold underline decoration-blue-400">corporate email</span> to instantly unlock the full recruiter suite—candidate tracking, AI screening, and premium interview tools—no manual approval needed.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
