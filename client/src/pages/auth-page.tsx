@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Eye, EyeOff } from "lucide-react";
+import { Mail, Eye, EyeOff, Briefcase } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
+import { Badge } from "@/components/ui/badge";
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
