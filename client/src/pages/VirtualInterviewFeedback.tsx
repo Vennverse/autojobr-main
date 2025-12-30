@@ -222,14 +222,15 @@ export default function VirtualInterviewFeedback() {
           <CardContent className="p-6 text-center">
             <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
             <p className="text-red-600 dark:text-red-400 mb-4 font-medium">
-              {(error as any)?.message || 'Failed to load interview feedback'}
+              {error ? (error as any)?.message : 'Interview feedback is still being generated. Please wait a moment and refresh.'}
             </p>
             <div className="space-y-2">
-              <Button onClick={() => setLocation('/dashboard')} className="w-full" data-testid="return-dashboard">
-                Return to Dashboard
+              <Button onClick={() => window.location.reload()} className="w-full" variant="default">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh Feedback
               </Button>
-              <Button variant="outline" onClick={() => setLocation('/virtual-interview-start')} className="w-full">
-                Start New Interview
+              <Button onClick={() => setLocation('/dashboard')} className="w-full" variant="outline" data-testid="return-dashboard">
+                Return to Dashboard
               </Button>
             </div>
           </CardContent>
