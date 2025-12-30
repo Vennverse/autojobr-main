@@ -8552,6 +8552,15 @@ Generate ONLY the connection note text, nothing else.`
             });
 
             console.log(`✅ Activated ${referralCode} (${days} days) for user ${userId}`);
+            
+            // Invalidate user-specific cache properly
+            invalidateUserCache(userId);
+
+            return res.json({ 
+              ...profile, 
+              premiumActivated: true,
+              message: `✅ ${days}-day premium access activated! Enjoy your premium features.`
+            });
           } else {
             const code = await db.query.referralCodes.findFirst({
               where: and(
@@ -8559,8 +8568,6 @@ Generate ONLY the connection note text, nothing else.`
                 eq(schema.referralCodes.isActive, true)
               )
             });
-
-          if (code && (!code.expiresAt || new Date(code.expiresAt) > new Date())) {
             // Check if code has uses left
             if (!code.maxUses || code.currentUses < code.maxUses) {
               // Check if user has already used this code
