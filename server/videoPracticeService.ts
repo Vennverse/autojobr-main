@@ -87,14 +87,14 @@ export class VideoPracticeService {
       // Fallback technical questions
       const fallbackTechnical = [
         `Explain your approach to optimizing a database query that's running slowly. Walk through your thought process verbally - we want your logic and troubleshooting methodology, not code execution.`,
-        `Describe how you would debug a production issue where users are reporting intermittent errors. What's your systematic approach to identifying and resolving the problem?`,
+        `Describe how you would debug a production issue where users are reporting intermittent errors. What's your systematic approach to identifying and resolving this?`,
         `Explain how you would design a scalable system to handle 1 million concurrent users. Walk through your architecture decisions and reasoning verbally.`
       ];
 
       const technicalPrompts = [
-        `You are interviewing a ${role}${companyContext}. Generate ONE technical problem-solving question at ${difficulty} level. Ask them to VERBALLY EXPLAIN their approach to solving a real-world technical challenge (e.g., optimizing performance, designing a feature, handling scale). Explicitly state: "Walk through your thought process and approach verbally - we want to understand your logic and problem-solving methodology, not see code execution." Make it specific to their role.`,
-        `Create ONE debugging/troubleshooting scenario for ${role}${companyContext} at ${difficulty} level. Describe a realistic production issue (performance problem, bug, system failure) and ask: "How would you systematically debug and resolve this?" Focus on their analytical thinking, not coding. Examples: slow queries, memory leaks, API failures, race conditions.`,
-        `Generate ONE system design or architecture question for ${role}${companyContext} at ${difficulty} level. Ask them to design a specific system or feature (e.g., "Design a URL shortener", "How would you architect a real-time chat system?"). Request they explain: key components, data flow, scalability considerations, and trade-offs. Emphasize verbal explanation of their reasoning.`
+        `You are interviewing a ${role}${companyContext}. Generate ONE technical problem-solving question at ${difficulty} level. Focus on a complex scenario involving ${role}-specific technologies. Ask them to VERBALLY EXPLAIN their approach to solving this. Emphasize trade-offs and alternative solutions.`,
+        `Create ONE advanced architecture or debugging scenario for ${role}${companyContext} at ${difficulty} level. Describe a realistic bottleneck or failure mode and ask: "How would you diagnose and fix this?" Focus on their analytical depth.`,
+        `Generate ONE system design question for ${role}${companyContext} at ${difficulty} level that requires scaling considerations. Ask about data consistency, latency, or availability trade-offs.`
       ];
 
       for (let i = 0; i < 3; i++) {

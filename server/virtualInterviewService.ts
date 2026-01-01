@@ -291,41 +291,31 @@ export class VirtualInterviewService {
     // Use centralized AI service for analysis with CORRECTNESS validation
 
     const prompt = `
-Analyze this interview response for CORRECTNESS and QUALITY. Be STRICT.
+Analyze this interview response for CORRECTNESS, QUALITY, and DEPTH. Be EXTREMELY STRICT.
 
 Question: "${question}"
 Category: ${questionCategory}
 Response: "${userResponse}"
 
 CRITICAL EVALUATION CRITERIA:
-1. CORRECTNESS: Is the answer factually accurate and directly addresses the question?
-   - Wrong/incorrect answers get 1-3 responseQuality
-   - Partially correct answers get 4-6
-   - Fully correct and detailed answers get 7-10
-
-2. RELEVANCE: Does the response actually answer what was asked?
-   - Off-topic or tangential responses get low scores regardless of length
-
-3. DEPTH: Does it show understanding or just surface-level knowledge?
-   - Generic/memorized answers without examples get max 5
-   - Specific examples and reasoning get higher scores
-
-4. TECHNICAL ACCURACY: For technical questions, are concepts/code/methods correct?
-   - Incorrect technical details drastically lower the score
+1. CORRECTNESS: Is the answer factually accurate? 
+   - Incorrect facts or technical misunderstandings MUST result in a technicalAccuracy < 30.
+2. STAR METHOD: Does the response follow Situation, Task, Action, Result?
+   - Behavioral responses missing specific results get max 60 depthScore.
+3. RELEVANCE: Does it answer the SPECIFIC question or is it a generic "canned" response?
+4. DEPTH: Does it demonstrate senior-level insight or just junior-level definitions?
 
 DO NOT reward:
-- Long responses that don't answer the question
-- Responses that pass gibberish check but are factually wrong
-- Generic answers without specifics
-- Off-topic rambling
+- Wordiness without substance.
+- Generic "I am a hard worker" style answers.
+- Definitions instead of implementation details for technical questions.
 
 REWARD:
-- Correct, accurate answers
-- Specific examples demonstrating understanding
-- Clear explanations of reasoning
-- Direct answers to the question asked
+- Quantitative results (e.g., "increased performance by 20%").
+- Specific technical trade-offs (e.g., "used Redis instead of Memcached because...").
+- Accurate, concise technical explanations.
 
-Return JSON only: {"responseQuality": 1-10, "technicalAccuracy": 0-100, "clarityScore": 0-100, "depthScore": 0-100, "keywordsMatched": ["matched", "keywords"], "sentiment": "positive/neutral/negative", "confidence": 1-100, "isCorrect": true/false, "relevanceScore": 0-100}`;
+Return JSON only: {"responseQuality": 1-10, "technicalAccuracy": 0-100, "clarityScore": 0-100, "depthScore": 0-100, "keywordsMatched": ["matched", "keywords"], "sentiment": "positive/neutral/negative", "confidence": 1-100, "isCorrect": true/false, "relevanceScore": 0-100, "starMethodScore": 0-100}`;
 
     try {
       const response = await aiService.createChatCompletion([
@@ -662,25 +652,25 @@ Keep it conversational and under 100 words.`;
       case 1:
         // Add variation to first question to prevent duplicates
         const firstQuestionVariations = [
-          'Start with a specific scenario-based question about real-world experience',
-          'Begin with a technical problem-solving question with a unique twist',
-          'Ask about a recent project or challenge they faced',
-          'Start with an open-ended question about their approach to a common problem',
-          'Begin with a situational question about teamwork or leadership'
+          'Start with a deep-dive behavioral question about a recent complex project failure and what was learned',
+          'Begin with a foundational architectural question regarding their primary stack',
+          'Ask about a time they had to make a significant technical trade-off under pressure',
+          'Start with a situational question about managing conflicting stakeholder requirements',
+          'Begin with a question about their philosophy on code quality and testing'
         ];
         questionFocus = firstQuestionVariations[randomVariation] || 'Start with foundational concepts or basic experience related to the job';
         break;
       case 2:
-        questionFocus = 'Ask about practical application and problem-solving relevant to job responsibilities';
+        questionFocus = 'Ask a specific technical question about implementing a feature or solving a common bottleneck in the mentioned role';
         break;
       case 3:
-        questionFocus = 'Dive deeper into technical expertise and past project experience';
+        questionFocus = 'Challenge them with a "What would you do if..." scenario involving high-stakes decision making';
         break;
       case 4:
-        questionFocus = 'Challenge with advanced concepts or complex scenarios';
+        questionFocus = 'Dive into advanced optimization, scalability, or security considerations for the role';
         break;
       default:
-        questionFocus = 'Test comprehensive understanding and ability to handle edge cases';
+        questionFocus = 'Synthesis question: How would they mentor a junior or lead a team through a transition to a new technology?';
     }
 
     // Build job-specific context
