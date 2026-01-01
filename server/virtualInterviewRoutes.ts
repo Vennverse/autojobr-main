@@ -549,13 +549,14 @@ router.post('/:sessionId/complete', isAuthenticated, async (req: any, res) => {
 
     console.log(`🎯 Generating AI feedback for interview ${sessionId} with ${responses.length} responses`);
 
-    // Generate AI-powered detailed feedback
+    // Generate AI-powered detailed feedback with granular analysis
     const aiFeedback = await virtualInterviewService.generateFinalFeedback(
       currentInterview,
       messages.map(m => ({
         sender: m.sender,
         content: m.content,
-        timestamp: m.createdAt
+        timestamp: m.createdAt,
+        messageIndex: m.messageIndex
       }))
     );
 

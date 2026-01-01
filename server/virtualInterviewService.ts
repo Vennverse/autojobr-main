@@ -530,35 +530,75 @@ Keep it conversational and under 100 words.`;
       };
     }
 
-    const prompt = `Analyze this interview session and provide HONEST feedback as JSON only:
+    const analysisResults = await Promise.all(
+      messages
+        .filter(m => m.sender === 'candidate')
+        .map(async (m) => {
+          const prevMsg = messages.find(pm => pm.sender === 'interviewer' && pm.messageIndex === m.messageIndex);
+          return this.analyzeResponse(
+            prevMsg?.content || "Tell me about your experience.",
+            m.content,
+            [],
+            interviewData.interviewType
+          );
+        })
+    );
 
-Role: ${interviewData.role}
-Interview Type: ${interviewData.interviewType}
-Questions Answered: ${questionsAnswered}
+    const aggregatedAnalysis = analysisResults.reduce((acc, curr) => ({
+      avgAccuracy: acc.avgAccuracy + (curr.technicalAccuracy || 0),
+      avgClarity: acc.avgClarity + (curr.clarityScore || 0),
+      avgDepth: acc.avgDepth + (curr.depthScore || 0),
+      allKeywords: [...acc.allKeywords, ...(curr.keywordsMatched || [])],
+      isCorrectCount: acc.isCorrectCount + (curr.isCorrect ? 1 : 0),
+    }), { avgAccuracy: 0, avgClarity: 0, avgDepth: 0, allKeywords: [] as string[], isCorrectCount: 0 });
 
-Candidate Responses:
-${candidateResponses}
+    const count = analysisResults.length || 1;
+    const finalStats = `
+      Detailed Analysis Stats:
+      - Average Technical Accuracy: ${Math.round(aggregatedAnalysis.avgAccuracy / count)}%
+      - Average Clarity: ${Math.round(aggregatedAnalysis.avgClarity / count)}%
+      - Average Depth: ${Math.round(aggregatedAnalysis.avgDepth / count)}%
+      - Factually Correct Answers: ${aggregatedAnalysis.isCorrectCount}/${analysisResults.length}
+      - Keywords Detected: ${[...new Set(aggregatedAnalysis.allKeywords)].join(', ')}
+    `;
 
-IMPORTANT: Be STRICT and REALISTIC in your evaluation. 
-- Only give scores above 70 for genuinely good responses with specific examples
-- Give scores 50-70 for adequate but generic responses  
-- Give scores below 50 for poor, vague, or off-topic responses
-- Do NOT inflate scores - be honest about the quality
+    const prompt = `Analyze this interview session and provide DEEP, ACTIONABLE, and HONEST feedback as JSON only.
+    
+    Role: ${interviewData.role}
+    Interview Type: ${interviewData.interviewType}
+    Questions Answered: ${questionsAnswered}
+    Difficulty: ${interviewData.difficulty}
 
-Return valid JSON only with these exact fields:
-{
-  "performanceSummary": "2-3 sentence honest assessment of actual performance",
-  "keyStrengths": ["strength1", "strength2", "strength3"],
-  "areasForImprovement": ["area1", "area2", "area3"],
-  "overallScore": 60,
-  "technicalScore": 55,
-  "communicationScore": 65,
-  "confidenceScore": 60,
-  "recommendedResources": [{"title": "Resource", "url": "https://example.com", "description": "Description"}],
-  "nextSteps": ["step1", "step2", "step3"]
-}
+    ${finalStats}
 
-Be constructive but honest - don't give false praise.`;
+    Candidate Responses:
+    ${candidateResponses}
+
+    CRITICAL EVALUATION GUIDELINES:
+    1. BE STRICT: Only give scores above 85 for exceptional, senior-level responses.
+    2. ANALYZE CONTENT: Look for specific methodologies (STAR, etc.), technical depth, and actual results mentioned.
+    3. DETECT VAGUENESS: Penalize "fluff" or generic advice that lacks personal experience.
+    4. EVALUATE READINESS: Does this candidate sound like they can do the job TODAY at ${interviewData.company || 'a top-tier company'}?
+
+    DETAILED FEEDBACK REQUIREMENTS:
+    - performanceSummary: A high-impact, professional assessment (3-4 sentences). Use industry-standard terminology.
+    - keyStrengths: Identify 3-4 specific technical or behavioral advantages shown.
+    - areasForImprovement: Provide 3-4 CRITICAL gaps. Don't be polite, be helpful. If they missed a standard technical concept, name it.
+    - recommendedResources: Provide 3-4 high-quality links (documentation, specific courses, or practice areas).
+    - nextSteps: 3-4 concrete, numbered actions they should take in the next 48 hours.
+
+    Return valid JSON only with these exact fields:
+    {
+      "performanceSummary": "string",
+      "keyStrengths": ["string"],
+      "areasForImprovement": ["string"],
+      "overallScore": number (0-100),
+      "technicalScore": number (0-100),
+      "communicationScore": number (0-100),
+      "confidenceScore": number (0-100),
+      "recommendedResources": [{"title": "string", "url": "string", "description": "string"}],
+      "nextSteps": ["string"]
+    }`;
 
     try {
       console.log('Generating AI feedback for interview:', interviewData.id);
