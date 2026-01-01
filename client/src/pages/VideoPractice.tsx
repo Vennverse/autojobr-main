@@ -765,6 +765,12 @@ export default function VideoPractice() {
                   >
                     <option value="technical">Technical Interview</option>
                     <option value="behavioral">Behavioral Interview</option>
+                    <option value="finance">Finance Interview</option>
+                    <option value="sales">Sales Interview</option>
+                    <option value="marketing">Marketing Interview</option>
+                    <option value="legal">Legal Interview</option>
+                    <option value="accounting">Accounting Interview</option>
+                    <option value="hr">HR Interview</option>
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
                     {setupData.interviewType === 'technical' 

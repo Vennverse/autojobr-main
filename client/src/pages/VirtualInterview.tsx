@@ -133,7 +133,8 @@ export default function VirtualInterview() {
         questionNumber: response.questionNumber,
         totalQuestions: response.totalQuestions,
         timeRemaining: response.timeRemaining,
-        category: response.category
+        category: response.category,
+        role: response.role
       });
       
       // Set the timer

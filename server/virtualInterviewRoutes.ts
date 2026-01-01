@@ -461,7 +461,8 @@ router.get('/:sessionId/question', isAuthenticated, async (req: any, res) => {
       totalQuestions: currentInterview.totalQuestions || 5,
       category: questionCategory,
       timeRemaining,
-      difficulty: questionDifficulty
+      difficulty: questionDifficulty,
+      role: currentInterview.role
     });
   } catch (error) {
     console.error('Error getting interview question:', error);
