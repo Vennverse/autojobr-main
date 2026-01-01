@@ -24,9 +24,20 @@ export default function VideoPractice() {
   const [setupData, setSetupData] = useState({
     role: '',
     company: '',
-    interviewType: 'technical' as 'technical' | 'behavioral',
+    interviewType: 'technical' as 'technical' | 'behavioral' | 'finance' | 'sales' | 'marketing' | 'legal' | 'accounting' | 'hr',
     difficulty: 'medium' as 'easy' | 'medium' | 'hard'
   });
+
+  const interviewTypes = [
+    { value: 'technical', label: 'Technical' },
+    { value: 'behavioral', label: 'Behavioral' },
+    { value: 'finance', label: 'Finance' },
+    { value: 'sales', label: 'Sales' },
+    { value: 'marketing', label: 'Marketing' },
+    { value: 'legal', label: 'Legal' },
+    { value: 'accounting', label: 'Accounting' },
+    { value: 'hr', label: 'Human Resources' }
+  ];
   const [showPaymentRequired, setShowPaymentRequired] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'paypal' | 'razorpay'>('paypal');

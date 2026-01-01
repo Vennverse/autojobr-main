@@ -198,6 +198,12 @@ export default function VirtualInterviewStart() {
                           <SelectItem value="behavioral">Behavioral</SelectItem>
                           <SelectItem value="mixed">Mixed</SelectItem>
                           <SelectItem value="system_design">System Design</SelectItem>
+                          <SelectItem value="finance">Finance</SelectItem>
+                          <SelectItem value="sales">Sales</SelectItem>
+                          <SelectItem value="marketing">Marketing</SelectItem>
+                          <SelectItem value="legal">Legal</SelectItem>
+                          <SelectItem value="accounting">Accounting</SelectItem>
+                          <SelectItem value="hr">Human Resources</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

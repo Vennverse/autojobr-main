@@ -24,6 +24,7 @@ interface InterviewState {
   totalQuestions: number;
   timeRemaining: number;
   category: string;
+  role: string;
 }
 
 export default function VirtualInterview() {
@@ -307,10 +308,18 @@ export default function VirtualInterview() {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Virtual AI Interview
-            </h1>
+            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                Virtual AI Interview
+              </h1>
+              {interview.role && (
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 flex items-center gap-1">
+                  <User className="w-4 h-4" />
+                  Interviewing for: <span className="font-semibold">{interview.role}</span>
+                </p>
+              )}
+            </div>
             <div className="flex items-center space-x-4">
               <Badge 
                 variant={timeRemaining < 300 ? "destructive" : "secondary"} 

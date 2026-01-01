@@ -29,6 +29,7 @@ export class VideoPracticeService {
   ): Promise<VideoPracticeQuestion[]> {
     const questions: VideoPracticeQuestion[] = [];
     const isTechnical = interviewType?.toLowerCase() === 'technical';
+    const isSpecialized = ['finance', 'sales', 'marketing', 'legal', 'accounting', 'hr'].includes(interviewType?.toLowerCase());
     
     // Check if AI service is available
     const isAIAvailable = aiService && typeof aiService.createChatCompletion === 'function' && !aiService['developmentMode'];
@@ -83,50 +84,75 @@ export class VideoPracticeService {
     }
 
     // Next 3 questions: Technical OR Domain-specific
-    if (isTechnical) {
-      // Fallback technical questions
-      const fallbackTechnical = [
-        `Explain your approach to optimizing a database query that's running slowly. Walk through your thought process verbally - we want your logic and troubleshooting methodology, not code execution.`,
-        `Describe how you would debug a production issue where users are reporting intermittent errors. What's your systematic approach to identifying and resolving this?`,
-        `Explain how you would design a scalable system to handle 1 million concurrent users. Walk through your architecture decisions and reasoning verbally.`
-      ];
+    if (isTechnical || isSpecialized) {
+      const specializedPrompts: Record<string, string[]> = {
+        finance: [
+          `Generate ONE advanced finance interview question for ${role}${companyContext}. Focus on: financial modeling, risk assessment, capital structure, or valuation techniques.`,
+          `Create ONE situational finance scenario for ${role}. Ask about handling market volatility, budget variances, or investment strategy trade-offs.`,
+          `Generate ONE question about financial regulations, compliance, or reporting standards relevant to ${role}.`
+        ],
+        sales: [
+          `Generate ONE high-stakes sales question for ${role}${companyContext}. Ask about: handling complex objections, closing a major deal, or sales strategy development.`,
+          `Create ONE scenario for ${role} about recovering a failing account or managing a difficult client relationship.`,
+          `Generate ONE question about sales metrics, pipeline management, or territory expansion strategy.`
+        ],
+        marketing: [
+          `Generate ONE marketing strategy question for ${role}${companyContext}. Focus on: multi-channel campaign ROI, brand positioning, or market penetration tactics.`,
+          `Create ONE data-driven marketing scenario for ${role}. Ask about optimizing a failing campaign using specific KPIs.`,
+          `Generate ONE question about consumer behavior analysis or competitive landscape assessment.`
+        ],
+        legal: [
+          `Generate ONE legal advisory question for ${role}${companyContext}. Focus on: risk mitigation, contract dispute resolution, or regulatory compliance strategy.`,
+          `Create ONE ethical dilemma or complex litigation scenario for ${role}.`,
+          `Generate ONE question about specialized legal research, document drafting, or case law application.`
+        ],
+        accounting: [
+          `Generate ONE advanced accounting question for ${role}${companyContext}. Focus on: complex revenue recognition, audit procedures, or internal control implementation.`,
+          `Create ONE scenario for ${role} about identifying and correcting material misstatements or handling a difficult audit.`,
+          `Generate ONE question about tax strategy, forensic accounting, or consolidated financial statement preparation.`
+        ],
+        hr: [
+          `Generate ONE strategic HR question for ${role}${companyContext}. Focus on: talent retention strategies, organizational design, or performance management frameworks.`,
+          `Create ONE scenario for ${role} about resolving a high-level workplace conflict or managing a major workforce transition.`,
+          `Generate ONE question about employment law, diversity and inclusion initiatives, or HR tech stack optimization.`
+        ]
+      };
 
-      const technicalPrompts = [
+      const prompts = isTechnical ? [
         `You are interviewing a ${role}${companyContext}. Generate ONE technical problem-solving question at ${difficulty} level. Focus on a complex scenario involving ${role}-specific technologies. Ask them to VERBALLY EXPLAIN their approach to solving this. Emphasize trade-offs and alternative solutions.`,
         `Create ONE advanced architecture or debugging scenario for ${role}${companyContext} at ${difficulty} level. Describe a realistic bottleneck or failure mode and ask: "How would you diagnose and fix this?" Focus on their analytical depth.`,
         `Generate ONE system design question for ${role}${companyContext} at ${difficulty} level that requires scaling considerations. Ask about data consistency, latency, or availability trade-offs.`
-      ];
+      ] : specializedPrompts[interviewType.toLowerCase()];
 
       for (let i = 0; i < 3; i++) {
-        let questionText = fallbackTechnical[i];
+        let questionText = "Please describe your approach to a complex challenge in your field.";
         
         if (isAIAvailable) {
           try {
             const aiResponse = await aiService.createChatCompletion([
               {
                 role: 'system',
-                content: 'You are a technical interviewer. Generate questions that assess problem-solving and technical thinking. Explicitly tell candidates to EXPLAIN their approach verbally - we want their logic and thought process, NOT running code.'
+                content: `You are an experienced ${interviewType} interviewer. Generate realistic, high-level questions for a ${role} position.`
               },
               {
                 role: 'user',
-                content: technicalPrompts[i]
+                content: prompts[i]
               }
             ], {
               temperature: 0.6,
               max_tokens: 200
             });
 
-            questionText = aiResponse.choices[0]?.message?.content?.trim() || fallbackTechnical[i];
+            questionText = aiResponse.choices[0]?.message?.content?.trim() || questionText;
           } catch (error) {
-            console.log(`AI technical question generation failed, using fallback for question ${i + 4}`);
-            questionText = fallbackTechnical[i];
+            console.log(`AI ${interviewType} question generation failed`);
           }
         }
 
         questions.push({
           id: `q${i + 4}`,
           question: questionText,
-          type: 'technical',
+          type: (isTechnical ? 'technical' : 'domain') as any,
           timeLimit: 90
         });
       }
